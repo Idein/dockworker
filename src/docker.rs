@@ -205,7 +205,8 @@ impl Docker {
 
     fn execute_request(&self, request: RequestBuilder) -> Result<String> {
         let mut response = try!(request.send());
-        assert!(response.status.is_success());
+        println!("{}", response.status);
+        // assert!(response.status.is_success());
 
         let mut body = String::new();
         try!(response.read_to_string(&mut body));
@@ -239,6 +240,21 @@ impl Docker {
                       -> Result<Vec<Container>> {
         let url = format!("/containers/json?{}", opts.to_url_params());
         self.decode_url("Container", &url)
+    }
+
+    pub fn create_container(&self, name: &str, image: &str) -> Result<Container> {
+        let request_url = self.get_url(&format!("/containers/create"));
+        let request_body = r#"{
+            "Image": "openjdk:8"
+        }"#;
+        let mut headers = hyper::header::Headers::new();
+        headers.set_raw("Content-Type", vec![String::from("application/json").into_bytes()]);
+        let request = self.build_post_request(&request_url).headers(headers).body(request_body);
+        let body = try!(self.execute_request(request));
+        let fixed = self.arrayify(&body);
+        let container = try!(serde_json::from_str(&fixed)
+            .chain_err(|| ErrorKind::ParseError("CreateContainer", fixed)));
+        Ok(container)
     }
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
