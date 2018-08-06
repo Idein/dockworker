@@ -1,10 +1,13 @@
 use std;
+use std::fs::File;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::io::{self, Read};
 use hyper;
+use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper::header::ContentType;
 use hyper::Client;
 use hyper::client::RequestBuilder;
 use hyper::client::pool::{Config, Pool};
@@ -329,6 +332,20 @@ impl Docker {
         };
         let url = format!("/images/json?a={}", a);
         self.decode_url("Image", &url)
+    }
+
+    pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
+        let mut file: File = try!(File::open(path));
+        let request_url = self.get_url(&format!("/images/load?quiet={}", suppress));
+        let request = self.build_post_request(&request_url)
+            .header(ContentType(Mime(
+                TopLevel::Application,
+                SubLevel::Ext("x-tar".into()),
+                vec![],
+            )))
+            .body(&mut file);
+        try!(self.start_request(request));
+        Ok(())
     }
 
     pub fn system_info(&self) -> Result<SystemInfo> {
