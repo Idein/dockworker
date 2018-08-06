@@ -5,11 +5,11 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::io::{self, Read};
-use hyper;
+use hyper::Url;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::header::ContentType;
 use hyper::Client;
-use hyper::client::RequestBuilder;
+use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::client::pool::{Config, Pool};
 use hyper::client::response::Response;
 use hyper::net::HttpConnector;
@@ -71,7 +71,7 @@ enum ClientType {
 pub struct Docker {
     client: Client,
     client_type: ClientType,
-    client_addr: String,
+    client_addr: Url,
 }
 
 impl Docker {
@@ -121,6 +121,7 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
 
         let client = Client::with_connector(connection_pool);
+        let client_addr = try!(Url::parse(&format!("unix://{}", client_addr)));
         let docker = Docker { client: client, client_type: ClientType::Unix, client_addr: client_addr };
 
         return Ok(docker);
@@ -134,7 +135,7 @@ impl Docker {
     #[cfg(feature="openssl")]
     pub fn connect_with_ssl(addr: &str, ssl_key: &Path, ssl_cert: &Path, ssl_ca: &Path) -> Result<Docker> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = addr.clone().replace("tcp://", "https://");
+        let client_addr = try!(Url::parse(&addr.clone().replace("tcp://", "https://")));
 
         let mkerr = || ErrorKind::SslError(addr.to_owned());
         let mut ssl_context = try!(SslContext::new(SslMethod::Sslv23)
@@ -153,9 +154,8 @@ impl Docker {
         let client = Client::with_connector(connection_pool);
         let docker = Docker {
             client: client,
-            client_type:
-            ClientType::Tcp,
-            client_addr: client_addr.to_owned(),
+            client_type: ClientType::Tcp,
+            client_addr: client_addr,
         };
 
         return Ok(docker);
@@ -170,7 +170,7 @@ impl Docker {
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = addr.clone().replace("tcp://", "http://");
+        let client_addr = try!(Url::parse(&addr.clone().replace("tcp://", "http://")));
 
         let http_connector = HttpConnector::default();
         let connection_pool_config = Config { max_idle: 8 };
@@ -183,27 +183,24 @@ impl Docker {
 
     }
 
-    fn get_url(&self, path: &str) -> String {
-        let mut base = match self.client_type {
+    fn get_url(&self, path: &str) -> Url {
+        let base = match self.client_type {
             ClientType::Tcp => self.client_addr.clone(),
             ClientType::Unix => {
                 // We need a host so the HTTP headers can be generated, so we just spoof it and say
                 // that we're talking to localhost.  The hostname doesn't matter one bit.
-                "http://localhost".to_string()
+                "http://localhost".into_url().unwrap()
             }
         };
-        let new_path = path.clone();
-        base.push_str(&*new_path);
-
-        base
+        base.join(path).unwrap()
     }
 
-    fn build_get_request(&self, request_url: &str) -> RequestBuilder {
-        self.client.get(request_url)
+    fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
+        self.client.get(request_url.clone())
     }
 
-    fn build_post_request(&self, request_url: &str) -> RequestBuilder {
-        self.client.post(request_url)
+    fn build_post_request(&self, request_url: &Url) -> RequestBuilder {
+        self.client.post(request_url.clone())
     }
 
     fn execute_request(&self, request: RequestBuilder) -> Result<String> {
