@@ -183,16 +183,16 @@ impl Docker {
 
     }
 
-    fn get_url(&self, path: &str) -> Url {
+    fn get_url(&self, path: &str) -> Result<Url> {
         let base = match self.client_type {
             ClientType::Tcp => self.client_addr.clone(),
             ClientType::Unix => {
                 // We need a host so the HTTP headers can be generated, so we just spoof it and say
                 // that we're talking to localhost.  The hostname doesn't matter one bit.
-                "http://localhost".into_url().unwrap()
+                "http://localhost".into_url().expect("valid url")
             }
         };
-        base.join(path).unwrap()
+        Ok(try!(base.join(path)))
     }
 
     fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
@@ -227,7 +227,7 @@ impl Docker {
     fn decode_url<T>(&self, type_name: &'static str, url: &str) -> Result<T>
         where T: DeserializeOwned<>
     {
-        let request_url = self.get_url(url);
+        let request_url = try!(self.get_url(url));
         let request = self.build_get_request(&request_url);
         let body = try!(self.execute_request(request));
         let info = try!(serde_json::from_str::<T>(&body)
@@ -306,14 +306,14 @@ impl Docker {
             return Err("The container is already stopped.".into());
         }
 
-        let request_url = self.get_url(&format!("/containers/{}/stats", container.Id));
+        let request_url = try!(self.get_url(&format!("/containers/{}/stats", container.Id)));
         let request = self.build_get_request(&request_url);
         let response = try!(self.start_request(request));
         Ok(StatsReader::new(response))
     }
 
     pub fn create_image(&self, image: String, tag: String) -> Result<Vec<ImageStatus>> {
-        let request_url = self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag));
+        let request_url = try!(self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag)));
         let request = self.build_post_request(&request_url);
         let body = try!(self.execute_request(request));
         let fixed = self.arrayify(&body);
@@ -333,7 +333,7 @@ impl Docker {
 
     pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
         let mut file: File = try!(File::open(path));
-        let request_url = self.get_url(&format!("/images/load?quiet={}", suppress));
+        let request_url = try!(self.get_url(&format!("/images/load?quiet={}", suppress)));
         let request = self.build_post_request(&request_url)
             .header(ContentType(Mime(
                 TopLevel::Application,
@@ -362,14 +362,14 @@ impl Docker {
 
     pub fn export_container(&self, container: &Container) -> Result<Response> {
         let url = format!("/containers/{}/export", container.Id);
-        let request_url = self.get_url(&url);
+        let request_url = try!(self.get_url(&url));
         let request = self.build_get_request(&request_url);
         let response = try!(self.start_request(request));
         Ok(response)
     }
 
     pub fn ping(&self) -> Result<String> {
-        let request_url = self.get_url(&format!("/_ping"));
+        let request_url = try!(self.get_url(&format!("/_ping")));
         let request = self.build_get_request(&request_url);
         let body = try!(self.execute_request(request));
         Ok(body)
