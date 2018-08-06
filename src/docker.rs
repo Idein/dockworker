@@ -189,7 +189,7 @@ impl Docker {
             ClientType::Unix => {
                 // We need a host so the HTTP headers can be generated, so we just spoof it and say
                 // that we're talking to localhost.  The hostname doesn't matter one bit.
-                "http://localhost/".to_string()
+                "http://localhost".to_string()
             }
         };
         let new_path = path.clone();
