@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::time::Duration;
+
 use url::form_urlencoded;
 use std::collections::HashMap;
 
@@ -190,116 +191,116 @@ impl ContainerCreateOptions {
         }
     }
 
-    fn hostname(&mut self, hostname: String) -> &mut Self {
+    pub fn hostname(&mut self, hostname: String) -> &mut Self {
         self.hostname = hostname;
         self
     }
 
-    fn domainname(&mut self, domainname: String) -> &mut Self {
+    pub fn domainname(&mut self, domainname: String) -> &mut Self {
         self.domainname = domainname;
         self
     }
 
-    fn user(&mut self, user: String) -> &mut Self {
+    pub fn user(&mut self, user: String) -> &mut Self {
         self.user = user;
         self
     }
 
-    fn attach_stdin(&mut self, attach_stdin: bool) -> &mut Self {
+    pub fn attach_stdin(&mut self, attach_stdin: bool) -> &mut Self {
         self.attach_stdin = attach_stdin;
         self
     }
 
-    fn attach_stdout(&mut self, attach_stdout: bool,) -> &mut Self {
+    pub fn attach_stdout(&mut self, attach_stdout: bool,) -> &mut Self {
         self.attach_stdout = attach_stdout;
         self
     }
 
-    fn attach_stderr(&mut self, attach_stderr: bool,) -> &mut Self {
+    pub fn attach_stderr(&mut self, attach_stderr: bool,) -> &mut Self {
         self.attach_stderr = attach_stderr;
         self
     }
 
-    fn tty(&mut self, tty: bool) -> &mut Self {
+    pub fn tty(&mut self, tty: bool) -> &mut Self {
         self.tty = tty;
         self
     }
 
-    fn open_stdin(&mut self, open_stdin: bool) -> &mut Self {
+    pub fn open_stdin(&mut self, open_stdin: bool) -> &mut Self {
         self.open_stdin = open_stdin;
         self
     }
 
-    fn stdin_once(&mut self, stdin_once: bool) -> &mut Self {
+    pub fn stdin_once(&mut self, stdin_once: bool) -> &mut Self {
         self.stdin_once = stdin_once;
         self
     }
 
     /// push back an envvar entry
-    fn env(&mut self, env: String) -> &mut Self {
+    pub fn env(&mut self, env: String) -> &mut Self {
         self.env.push(env);
         self
     }
 
     /// push back a cmd argment
-    fn cmd(&mut self, cmd: String) -> &mut Self {
+    pub fn cmd(&mut self, cmd: String) -> &mut Self {
         self.cmd.push(cmd);
         self
     }
 
     /// update entrypoint
-    fn entrypoint(&mut self, entrypoint: Vec<String>) -> &mut Self {
+    pub fn entrypoint(&mut self, entrypoint: Vec<String>) -> &mut Self {
         self.entrypoint = entrypoint;
         self
     }
 
-    fn image(&mut self, image: String) -> &mut Self {
+    pub fn image(&mut self, image: String) -> &mut Self {
         self.image = image;
         self
     }
 
     /// add a label/value pair
-    fn label(&mut self, key: String, value: String) -> &mut Self {
+    pub fn label(&mut self, key: String, value: String) -> &mut Self {
         self.labels.insert(key, value);
         self
     }
 
-    fn working_dir(&mut self, working_dir: PathBuf) -> &mut Self {
+    pub fn working_dir(&mut self, working_dir: PathBuf) -> &mut Self {
         self.working_dir = working_dir;
         self
     }
 
-    fn network_disabled(&mut self, network_disabled: bool) -> &mut Self {
+    pub fn network_disabled(&mut self, network_disabled: bool) -> &mut Self {
         self.network_disabled = network_disabled;
         self
     }
 
-    fn mac_address(&mut self, mac_address: String) -> &mut Self {
+    pub fn mac_address(&mut self, mac_address: String) -> &mut Self {
         self.mac_address = mac_address;
         self
     }
 
-    fn on_build(&mut self, on_build: Vec<String>) -> &mut Self {
+    pub fn on_build(&mut self, on_build: Vec<String>) -> &mut Self {
         self.on_build = on_build;
         self
     }
 
-    fn stop_signal(&mut self, stop_signal: String) -> &mut Self {
+    pub fn stop_signal(&mut self, stop_signal: String) -> &mut Self {
         self.stop_signal = stop_signal;
         self
     }
 
-    fn stop_timeout(&mut self, stop_timeout: Duration) -> &mut Self {
+    pub fn stop_timeout(&mut self, stop_timeout: Duration) -> &mut Self {
         self.stop_timeout = stop_timeout;
         self
     }
 
-    fn host_config(&mut self, host_config: ContainerHostConfig) -> &mut Self {
+    pub fn host_config(&mut self, host_config: ContainerHostConfig) -> &mut Self {
         self.host_config = Some(host_config);
         self
     }
 
-    fn networking_config(&mut self, networking_config: NetworkingConfig) -> &mut Self {
+    pub fn networking_config(&mut self, networking_config: NetworkingConfig) -> &mut Self {
         self.networking_config = Some(networking_config);
         self
     }
@@ -324,7 +325,6 @@ mod format {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
