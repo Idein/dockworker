@@ -260,6 +260,16 @@ impl Docker {
         Ok(container)
     }
 
+    /// start a container
+    ///
+    /// /containers/{id}/start
+    pub fn start_container(&self, id: &str) -> Result<()> {
+        let request_url = try!(self.get_url(&format!("/containers/{}/start", id)));
+        let request = self.build_post_request(&request_url);
+        let _response = try!(self.execute_request(request));
+        Ok(())
+    }
+
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let url = format!("/containers/{}/top", container.Id);
         let top: Top = try!(self.decode_url("Top", &url));
