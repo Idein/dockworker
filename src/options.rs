@@ -129,10 +129,11 @@ pub struct NetworkingConfig {
 }
 
 /// request body of /containers/create api
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ContainerCreateOptions {
     hostname: String,
-    domain_name: String,
+    domainname: String,
     user: String,
     attach_stdin: bool,
     attach_stdout: bool,
@@ -142,7 +143,9 @@ pub struct ContainerCreateOptions {
     open_stdin: bool,
     stdin_once: bool,
     env: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     cmd: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     entrypoint: Vec<String>,
     image: String,
     labels: HashMap<String, String>,
@@ -153,16 +156,17 @@ pub struct ContainerCreateOptions {
     mac_address: String,
     on_build: Vec<String>,
     stop_signal: String,
+    #[serde(with = "format::duration::DurationDelegate")]
     stop_timeout: Duration,
     host_config: Option<ContainerHostConfig>,
     networking_config: Option<NetworkingConfig>
 }
 
 impl ContainerCreateOptions {
-    fn new(image: &str) -> Self {
+    pub fn new(image: &str) -> Self {
         Self {
             hostname: "".to_owned(),
-            domain_name: "".to_owned(),
+            domainname: "".to_owned(),
             user: "".to_owned(),
             attach_stdin: false,
             attach_stdout: true,
@@ -191,8 +195,8 @@ impl ContainerCreateOptions {
         self
     }
 
-    fn domain_name(&mut self, domain_name: String) -> &mut Self {
-        self.domain_name = domain_name;
+    fn domainname(&mut self, domainname: String) -> &mut Self {
+        self.domainname = domainname;
         self
     }
 
@@ -299,5 +303,33 @@ impl ContainerCreateOptions {
         self.networking_config = Some(networking_config);
         self
     }
+}
+
+mod format {
+    use serde::de::Deserializer;
+    use serde::ser::Serializer;
+
+    pub mod duration {
+        use std::time::Duration;
+
+        #[derive(Serialize, Deserialize)]
+        #[serde(remote = "Duration")]
+        pub struct DurationDelegate(#[serde(getter = "Duration::as_secs")] u64);
+
+        // Provide a conversion to construct the remote type.
+        impl From<DurationDelegate> for Duration {
+            fn from(def: DurationDelegate) -> Duration {
+                Duration::new(def.0, 0)
+            }
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct CreateContainerResponse {
+    pub id: String,
+    pub warnings: Option<Vec<String>>,
 }
 
