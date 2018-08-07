@@ -66,11 +66,13 @@ pub fn default_cert_path() -> Result<PathBuf> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum ClientType {
     Unix,
     Tcp,
 }
 
+#[derive(Debug)]
 pub struct Docker {
     client: Client,
     client_type: ClientType,
@@ -78,6 +80,14 @@ pub struct Docker {
 }
 
 impl Docker {
+    fn new(client: Client, client_type: ClientType, client_addr: Url) -> Self {
+        Self {
+            client,
+            client_type: client_type,
+            client_addr: client_addr,
+        }
+    }
+
     /// Connect to the Docker daemon using the standard Docker
     /// configuration options.  This includes `DOCKER_HOST`,
     /// `DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH` and `DOCKER_CONFIG`, and we
@@ -121,9 +131,7 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
 
         let client = Client::with_connector(connection_pool);
-        let docker = Docker { client: client, client_type: ClientType::Unix, client_addr: client_addr };
-
-        return Ok(docker);
+        Ok(Docker::new(client, ClientType::Unix, client_addr))
     }
 
     #[cfg(not(unix))]
@@ -148,13 +156,7 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, https_connector);
 
         let client = Client::with_connector(connection_pool);
-        let docker = Docker {
-            client: client,
-            client_type: ClientType::Tcp,
-            client_addr: client_addr,
-        };
-
-        return Ok(docker);
+        Ok(Docker::new(client, ClientType::Tcp, client_addr))
     }
 
     #[cfg(not(feature="openssl"))]
@@ -173,10 +175,7 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, http_connector);
 
         let client = Client::with_connector(connection_pool);
-        let docker = Docker { client: client, client_type: ClientType::Tcp, client_addr: client_addr };
-
-        return Ok(docker);
-
+        Ok(Docker::new(client, ClientType::Tcp, client_addr))
     }
 
     fn get_url(&self, path: &str) -> Result<Url> {
