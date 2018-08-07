@@ -4,6 +4,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::io::{self, Read};
+use url;
 use hyper;
 use hyper::header::ContentType;
 use hyper::mime::*;
@@ -247,19 +248,18 @@ impl Docker {
     /// Create a container
     ///
     /// POST /containers/create
-    pub fn create_container(&self, name: &str, create: &ContainerCreateOptions) -> Result<Container> {
-        let mut name = form_urlencoded::Serializer::new(String::new());
-        name.append_pair("name", name);
+    pub fn create_container(&self, name: &str, create: &ContainerCreateOptions) -> Result<CreateContainerResponse> {
+        let mut name_param = url::form_urlencoded::Serializer::new(String::new());
+        name_param.append_pair("name", name);
 
-        let request_url = self.get_url(&format!("/containers/create/?{}", name.finish()));
+        let request_url = self.get_url(&format!("/containers/create?{}", name_param.finish()));
         let json_body = try!(serde_json::to_string(&create));
         let request = self.build_post_request(&request_url)
                             .header(ContentType::json())
                             .body(&json_body);
-        let body = try!(self.execute_request(request));
-        let fixed = self.arrayify(&body);
-        let container = try!(serde_json::from_str(&fixed)
-            .chain_err(|| ErrorKind::ParseError("CreateContainer", fixed)));
+        let response = try!(self.execute_request(request));
+        let container = try!(serde_json::from_str(&response)
+            .chain_err(|| ErrorKind::ParseError("CreateContainer", response)));
         Ok(container)
     }
 
