@@ -3,12 +3,14 @@
 use hyper;
 use std::env;
 use std::io;
+use serde_json;
 
 error_chain! {
     foreign_links {
         env::VarError, EnvVar;
         hyper::Error, Hyper;
         io::Error, Io;
+        serde_json::error::Error, Json;
     }
 
     errors {

@@ -248,13 +248,14 @@ impl Docker {
     ///
     /// POST /containers/create
     pub fn create_container(&self, name: &str, create: &ContainerCreateOptions) -> Result<Container> {
-        let request_url = self.get_url(&format!("/containers/create"));
-        let request_body = r#"{
-            "Image": "openjdk:8"
-        }"#;
+        let mut name = form_urlencoded::Serializer::new(String::new());
+        name.append_pair("name", name);
+
+        let request_url = self.get_url(&format!("/containers/create/?{}", name.finish()));
+        let json_body = try!(serde_json::to_string(&create));
         let request = self.build_post_request(&request_url)
-                            .header(ContentType(mime!(Application/Json)))
-                            .body(request_body);
+                            .header(ContentType::json())
+                            .body(&json_body);
         let body = try!(self.execute_request(request));
         let fixed = self.arrayify(&body);
         let container = try!(serde_json::from_str(&fixed)
