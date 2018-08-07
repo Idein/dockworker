@@ -279,7 +279,7 @@ impl Docker {
     /// /containers/{id}/attach
     pub fn attach_container(&self, id: &str, detachKeys: Option<&str>, logs: bool
                             , stream: bool, stdin: bool, stdout: bool, stderr: bool)
-        -> Result<()> {
+        -> Result<Response> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         if let Some(keys) = detachKeys {
             param.append_pair("detachKeys", keys);
@@ -292,8 +292,7 @@ impl Docker {
 
         let request_url = try!(self.get_url(&format!("/containers/{}/attach?{}", id, param.finish())));
         let request = self.build_post_request(&request_url);
-        let response = try!(self.execute_request(request));
-        Ok(())
+        Ok(try!(request.send()))
     }
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
