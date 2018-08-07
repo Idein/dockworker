@@ -111,17 +111,13 @@ impl Docker {
         // This ensures that using a fully-qualified path --
         // e.g. unix://.... -- works.  The unix socket provider expects a
         // Path, so we don't need scheme.
-        //
-        // TODO: Fix `replace` here and in other connect_* functions to only
-        // replace at the beginning of the string.
-        let client_addr = addr.clone().replace("unix://", "");
+        let client_addr = try!(addr.into_url());
 
-        let http_unix_connector = HttpUnixConnector::new(&client_addr);
+        let http_unix_connector = HttpUnixConnector::new(client_addr.path());
         let connection_pool_config = Config { max_idle: 8 };
         let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
 
         let client = Client::with_connector(connection_pool);
-        let client_addr = try!(Url::parse(&format!("unix://{}", client_addr)));
         let docker = Docker { client: client, client_type: ClientType::Unix, client_addr: client_addr };
 
         return Ok(docker);
