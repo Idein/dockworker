@@ -262,11 +262,37 @@ impl Docker {
 
     /// start a container
     ///
+    /// # API
     /// /containers/{id}/start
     pub fn start_container(&self, id: &str) -> Result<()> {
         let request_url = try!(self.get_url(&format!("/containers/{}/start", id)));
         let request = self.build_post_request(&request_url);
         let _response = try!(self.execute_request(request));
+        Ok(())
+    }
+
+    /// Attach to a container
+    ///
+    /// Attach to a container to read its output or send it input.
+    ///
+    /// # API
+    /// /containers/{id}/attach
+    pub fn attach_container(&self, id: &str, detachKeys: Option<&str>, logs: bool
+                            , stream: bool, stdin: bool, stdout: bool, stderr: bool)
+        -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        if let Some(keys) = detachKeys {
+            param.append_pair("detachKeys", keys);
+        }
+        param.append_pair("logs", &logs.to_string());
+        param.append_pair("stream", &stream.to_string());
+        param.append_pair("stdin", &stdin.to_string());
+        param.append_pair("stdout", &stdout.to_string());
+        param.append_pair("stderr", &stderr.to_string());
+
+        let request_url = try!(self.get_url(&format!("/containers/{}/attach?{}", id, param.finish())));
+        let request = self.build_post_request(&request_url);
+        let response = try!(self.execute_request(request));
         Ok(())
     }
 
