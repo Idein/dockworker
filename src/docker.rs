@@ -60,8 +60,8 @@ pub fn default_cert_path() -> Result<PathBuf> {
     if let Ok(ref path) = from_env {
         Ok(Path::new(path).to_owned())
     } else {
-        let home = try!(env::home_dir()
-            .ok_or_else(|| ErrorKind::NoCertPath));
+        let home = env::home_dir()
+            .ok_or_else(|| ErrorKind::NoCertPath)?;
         Ok(home.join(".docker"))
     }
 }
@@ -88,7 +88,7 @@ impl Docker {
         let host = env::var("DOCKER_HOST")
             .unwrap_or(DEFAULT_DOCKER_HOST.to_string());
         let tls_verify = env::var("DOCKER_TLS_VERIFY").is_ok();
-        let cert_path = try!(default_cert_path());
+        let cert_path = default_cert_path()?;
 
         // Dispatch to the correct connection function.
         let mkerr = || ErrorKind::CouldNotConnect(host.clone());
@@ -114,7 +114,7 @@ impl Docker {
         // This ensures that using a fully-qualified path --
         // e.g. unix://.... -- works.  The unix socket provider expects a
         // Path, so we don't need scheme.
-        let client_addr = try!(addr.into_url());
+        let client_addr = addr.into_url()?;
 
         let http_unix_connector = HttpUnixConnector::new(client_addr.path());
         let connection_pool_config = Config { max_idle: 8 };
@@ -134,16 +134,13 @@ impl Docker {
     #[cfg(feature="openssl")]
     pub fn connect_with_ssl(addr: &str, ssl_key: &Path, ssl_cert: &Path, ssl_ca: &Path) -> Result<Docker> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = try!(Url::parse(&addr.clone().replace("tcp://", "https://")));
+        let client_addr = Url::parse(&addr.clone().replace("tcp://", "https://"))?;
 
         let mkerr = || ErrorKind::SslError(addr.to_owned());
-        let mut ssl_context = try!(SslContext::new(SslMethod::Sslv23)
-            .chain_err(&mkerr));
-        try!(ssl_context.set_CA_file(ssl_ca).chain_err(&mkerr));
-        try!(ssl_context.set_certificate_file(ssl_cert, X509FileType::PEM)
-            .chain_err(&mkerr));
-        try!(ssl_context.set_private_key_file(ssl_key, X509FileType::PEM)
-            .chain_err(&mkerr));
+        let mut ssl_context = SslContext::new(SslMethod::Sslv23).chain_err(&mkerr)?;
+        ssl_context.set_CA_file(ssl_ca).chain_err(&mkerr)?;
+        ssl_context.set_certificate_file(ssl_cert, X509FileType::PEM).chain_err(&mkerr)?;
+        ssl_context.set_private_key_file(ssl_key, X509FileType::PEM).chain_err(&mkerr)?;
 
         let hyper_ssl_context = Openssl { context: Arc::new(ssl_context) };
         let https_connector = HttpsConnector::new(hyper_ssl_context);
@@ -169,7 +166,7 @@ impl Docker {
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = try!(Url::parse(&addr.clone().replace("tcp://", "http://")));
+        let client_addr = Url::parse(&addr.clone().replace("tcp://", "http://"))?;
 
         let http_connector = HttpConnector::default();
         let connection_pool_config = Config { max_idle: 8 };
@@ -191,7 +188,7 @@ impl Docker {
                 "http://localhost".into_url().expect("valid url")
             }
         };
-        Ok(try!(base.join(path)))
+        Ok(base.join(path)?)
     }
 
     fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
@@ -203,17 +200,17 @@ impl Docker {
     }
 
     fn execute_request(&self, request: RequestBuilder) -> Result<String> {
-        let mut response = try!(request.send());
+        let mut response = request.send()?;
         println!("{}", response.status);
         // assert!(response.status.is_success());
 
         let mut body = String::new();
-        try!(response.read_to_string(&mut body));
+        response.read_to_string(&mut body)?;
         Ok(body)
     }
 
     fn start_request(&self, request: RequestBuilder) -> Result<Response> {
-        let response = try!(request.send());
+        let response = request.send()?;
         assert!(response.status.is_success());
         Ok(response)
     }
@@ -227,11 +224,11 @@ impl Docker {
     fn decode_url<T>(&self, type_name: &'static str, url: &str) -> Result<T>
         where T: DeserializeOwned<>
     {
-        let request_url = try!(self.get_url(url));
+        let request_url = self.get_url(url)?;
         let request = self.build_get_request(&request_url);
-        let body = try!(self.execute_request(request));
-        let info = try!(serde_json::from_str::<T>(&body)
-            .chain_err(|| ErrorKind::ParseError(type_name, body)));
+        let body = self.execute_request(request)?;
+        let info = serde_json::from_str::<T>(&body)
+            .chain_err(|| ErrorKind::ParseError(type_name, body))?;
         Ok(info)
     }
 
@@ -249,14 +246,14 @@ impl Docker {
         let mut name_param = url::form_urlencoded::Serializer::new(String::new());
         name_param.append_pair("name", name);
 
-        let request_url = try!(self.get_url(&format!("/containers/create?{}", name_param.finish())));
-        let json_body = try!(serde_json::to_string(&create));
+        let request_url = self.get_url(&format!("/containers/create?{}", name_param.finish()))?;
+        let json_body = serde_json::to_string(&create)?;
         let request = self.build_post_request(&request_url)
                             .header(ContentType::json())
                             .body(&json_body);
-        let response = try!(self.execute_request(request));
-        let container = try!(serde_json::from_str(&response)
-            .chain_err(|| ErrorKind::ParseError("CreateContainer", response)));
+        let response = self.execute_request(request)?;
+        let container = serde_json::from_str(&response)
+            .chain_err(|| ErrorKind::ParseError("CreateContainer", response))?;
         Ok(container)
     }
 
@@ -265,9 +262,9 @@ impl Docker {
     /// # API
     /// /containers/{id}/start
     pub fn start_container(&self, id: &str) -> Result<()> {
-        let request_url = try!(self.get_url(&format!("/containers/{}/start", id)));
+        let request_url = self.get_url(&format!("/containers/{}/start", id))?;
         let request = self.build_post_request(&request_url);
-        let _response = try!(self.execute_request(request));
+        let _response = self.execute_request(request)?;
         Ok(())
     }
 
@@ -290,14 +287,14 @@ impl Docker {
         param.append_pair("stdout", &stdout.to_string());
         param.append_pair("stderr", &stderr.to_string());
 
-        let request_url = try!(self.get_url(&format!("/containers/{}/attach?{}", id, param.finish())));
+        let request_url = self.get_url(&format!("/containers/{}/attach?{}", id, param.finish()))?;
         let request = self.build_post_request(&request_url);
-        Ok(try!(request.send()))
+        Ok(request.send()?)
     }
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let url = format!("/containers/{}/top", container.Id);
-        let top: Top = try!(self.decode_url("Top", &url));
+        let top: Top = self.decode_url("Top", &url)?;
 
         let mut processes: Vec<Process> = Vec::new();
         let mut process_iter = top.Processes.iter();
@@ -360,19 +357,19 @@ impl Docker {
             return Err("The container is already stopped.".into());
         }
 
-        let request_url = try!(self.get_url(&format!("/containers/{}/stats", container.Id)));
+        let request_url = self.get_url(&format!("/containers/{}/stats", container.Id))?;
         let request = self.build_get_request(&request_url);
-        let response = try!(self.start_request(request));
+        let response = self.start_request(request)?;
         Ok(StatsReader::new(response))
     }
 
     pub fn create_image(&self, image: String, tag: String) -> Result<Vec<ImageStatus>> {
-        let request_url = try!(self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag)));
+        let request_url = self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag))?;
         let request = self.build_post_request(&request_url);
-        let body = try!(self.execute_request(request));
+        let body = self.execute_request(request)?;
         let fixed = self.arrayify(&body);
-        let statuses = try!(serde_json::from_str::<Vec<ImageStatus>>(&fixed)
-            .chain_err(|| ErrorKind::ParseError("ImageStatus", fixed)));
+        let statuses = serde_json::from_str::<Vec<ImageStatus>>(&fixed)
+            .chain_err(|| ErrorKind::ParseError("ImageStatus", fixed))?;
         Ok(statuses)
     }
 
@@ -386,8 +383,8 @@ impl Docker {
     }
 
     pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
-        let mut file: File = try!(File::open(path));
-        let request_url = try!(self.get_url(&format!("/images/load?quiet={}", suppress)));
+        let mut file: File = File::open(path)?;
+        let request_url = self.get_url(&format!("/images/load?quiet={}", suppress))?;
         let request = self.build_post_request(&request_url)
             .header(ContentType(Mime(
                 TopLevel::Application,
@@ -395,7 +392,7 @@ impl Docker {
                 vec![],
             )))
             .body(&mut file);
-        try!(self.start_request(request));
+        self.start_request(request)?;
         Ok(())
     }
 
@@ -416,17 +413,15 @@ impl Docker {
 
     pub fn export_container(&self, container: &Container) -> Result<Response> {
         let url = format!("/containers/{}/export", container.Id);
-        let request_url = try!(self.get_url(&url));
+        let request_url = self.get_url(&url)?;
         let request = self.build_get_request(&request_url);
-        let response = try!(self.start_request(request));
-        Ok(response)
+        Ok(self.start_request(request)?)
     }
 
     pub fn ping(&self) -> Result<String> {
-        let request_url = try!(self.get_url(&format!("/_ping")));
+        let request_url = self.get_url("/_ping")?;
         let request = self.build_get_request(&request_url);
-        let body = try!(self.execute_request(request));
-        Ok(body)
+        Ok(self.execute_request(request)?)
     }
 
     pub fn version(&self) -> Result<Version> {
