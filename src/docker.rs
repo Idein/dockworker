@@ -244,7 +244,10 @@ impl Docker {
         self.decode_url("Container", &url)
     }
 
-    pub fn create_container(&self, name: &str, image: &str) -> Result<Container> {
+    /// Create a container
+    ///
+    /// POST /containers/create
+    pub fn create_container(&self, name: &str, create: &ContainerCreateOptions) -> Result<Container> {
         let request_url = self.get_url(&format!("/containers/create"));
         let request_body = r#"{
             "Image": "openjdk:8"

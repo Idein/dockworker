@@ -1,5 +1,7 @@
 //! Options which can be passed to various `Docker` commands.
 
+use std::path::PathBuf;
+use std::time::Duration;
 use url::form_urlencoded;
 use std::collections::HashMap;
 
@@ -126,7 +128,8 @@ pub struct NetworkingConfig {
     // TODO
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// request body of /containers/create api
+#[derive(Debug, Clone, Serialize)]
 pub struct ContainerCreateOptions {
     hostname: String,
     domain_name: String,
@@ -134,21 +137,167 @@ pub struct ContainerCreateOptions {
     attach_stdin: bool,
     attach_stdout: bool,
     attach_stderr: bool,
+    // exposed_ports: HashMap<String, Any>, not sure the type that this would need to be
     tty: bool,
     open_stdin: bool,
     stdin_once: bool,
     env: Vec<String>,
     cmd: Vec<String>,
-    entrypoint: String,
+    entrypoint: Vec<String>,
     image: String,
     labels: HashMap<String, String>,
     // volumes: HashMap<String, Any>, not sure the type that this would need to be.
     // healthcheck: Not sure the type that this would be
-    working_dir: String,
-    network_disable: bool,
+    working_dir: PathBuf,
+    network_disabled: bool,
     mac_address: String,
-    // exposed_ports: HashMap<String, Any>, not sure the type that this would need to be
+    on_build: Vec<String>,
     stop_signal: String,
-    host_config: ContainerHostConfig,
-    networking_config: NetworkingConfig
+    stop_timeout: Duration,
+    host_config: Option<ContainerHostConfig>,
+    networking_config: Option<NetworkingConfig>
 }
+
+impl ContainerCreateOptions {
+    fn new(image: &str) -> Self {
+        Self {
+            hostname: "".to_owned(),
+            domain_name: "".to_owned(),
+            user: "".to_owned(),
+            attach_stdin: false,
+            attach_stdout: true,
+            attach_stderr: true,
+            tty: false,
+            open_stdin: false,
+            stdin_once: false,
+            env: vec![],
+            cmd: vec![],
+            image: image.to_owned(),
+            working_dir: PathBuf::new(),
+            entrypoint: vec![],
+            network_disabled: false,
+            mac_address: "".to_owned(),
+            on_build: vec![],
+            labels: HashMap::new(),
+            stop_signal: "SIGTERM".to_owned(),
+            stop_timeout: Duration::from_secs(10),
+            host_config: None,
+            networking_config: None
+        }
+    }
+
+    fn hostname(&mut self, hostname: String) -> &mut Self {
+        self.hostname = hostname;
+        self
+    }
+
+    fn domain_name(&mut self, domain_name: String) -> &mut Self {
+        self.domain_name = domain_name;
+        self
+    }
+
+    fn user(&mut self, user: String) -> &mut Self {
+        self.user = user;
+        self
+    }
+
+    fn attach_stdin(&mut self, attach_stdin: bool) -> &mut Self {
+        self.attach_stdin = attach_stdin;
+        self
+    }
+
+    fn attach_stdout(&mut self, attach_stdout: bool,) -> &mut Self {
+        self.attach_stdout = attach_stdout;
+        self
+    }
+
+    fn attach_stderr(&mut self, attach_stderr: bool,) -> &mut Self {
+        self.attach_stderr = attach_stderr;
+        self
+    }
+
+    fn tty(&mut self, tty: bool) -> &mut Self {
+        self.tty = tty;
+        self
+    }
+
+    fn open_stdin(&mut self, open_stdin: bool) -> &mut Self {
+        self.open_stdin = open_stdin;
+        self
+    }
+
+    fn stdin_once(&mut self, stdin_once: bool) -> &mut Self {
+        self.stdin_once = stdin_once;
+        self
+    }
+
+    /// push back an envvar entry
+    fn env(&mut self, env: String) -> &mut Self {
+        self.env.push(env);
+        self
+    }
+
+    /// push back a cmd argment
+    fn cmd(&mut self, cmd: String) -> &mut Self {
+        self.cmd.push(cmd);
+        self
+    }
+
+    /// update entrypoint
+    fn entrypoint(&mut self, entrypoint: Vec<String>) -> &mut Self {
+        self.entrypoint = entrypoint;
+        self
+    }
+
+    fn image(&mut self, image: String) -> &mut Self {
+        self.image = image;
+        self
+    }
+
+    /// add a label/value pair
+    fn label(&mut self, key: String, value: String) -> &mut Self {
+        self.labels.insert(key, value);
+        self
+    }
+
+    fn working_dir(&mut self, working_dir: PathBuf) -> &mut Self {
+        self.working_dir = working_dir;
+        self
+    }
+
+    fn network_disabled(&mut self, network_disabled: bool) -> &mut Self {
+        self.network_disabled = network_disabled;
+        self
+    }
+
+    fn mac_address(&mut self, mac_address: String) -> &mut Self {
+        self.mac_address = mac_address;
+        self
+    }
+
+    fn on_build(&mut self, on_build: Vec<String>) -> &mut Self {
+        self.on_build = on_build;
+        self
+    }
+
+    fn stop_signal(&mut self, stop_signal: String) -> &mut Self {
+        self.stop_signal = stop_signal;
+        self
+    }
+
+    fn stop_timeout(&mut self, stop_timeout: Duration) -> &mut Self {
+        self.stop_timeout = stop_timeout;
+        self
+    }
+
+    fn host_config(&mut self, host_config: ContainerHostConfig) -> &mut Self {
+        self.host_config = Some(host_config);
+        self
+    }
+
+    fn networking_config(&mut self, networking_config: NetworkingConfig) -> &mut Self {
+        self.networking_config = Some(networking_config);
+        self
+    }
+}
+
