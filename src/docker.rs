@@ -1,4 +1,5 @@
 use std;
+use std::fs::File;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -8,8 +9,10 @@ use url;
 use hyper;
 use hyper::header::ContentType;
 use hyper::mime::*;
+use hyper::Url;
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::Client;
-use hyper::client::RequestBuilder;
+use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::client::pool::{Config, Pool};
 use hyper::client::response::Response;
 use hyper::net::HttpConnector;
@@ -71,7 +74,7 @@ enum ClientType {
 pub struct Docker {
     client: Client,
     client_type: ClientType,
-    client_addr: String,
+    client_addr: Url,
 }
 
 impl Docker {
@@ -111,12 +114,9 @@ impl Docker {
         // This ensures that using a fully-qualified path --
         // e.g. unix://.... -- works.  The unix socket provider expects a
         // Path, so we don't need scheme.
-        //
-        // TODO: Fix `replace` here and in other connect_* functions to only
-        // replace at the beginning of the string.
-        let client_addr = addr.clone().replace("unix://", "");
+        let client_addr = try!(addr.into_url());
 
-        let http_unix_connector = HttpUnixConnector::new(&client_addr);
+        let http_unix_connector = HttpUnixConnector::new(client_addr.path());
         let connection_pool_config = Config { max_idle: 8 };
         let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
 
@@ -134,7 +134,7 @@ impl Docker {
     #[cfg(feature="openssl")]
     pub fn connect_with_ssl(addr: &str, ssl_key: &Path, ssl_cert: &Path, ssl_ca: &Path) -> Result<Docker> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = addr.clone().replace("tcp://", "https://");
+        let client_addr = try!(Url::parse(&addr.clone().replace("tcp://", "https://")));
 
         let mkerr = || ErrorKind::SslError(addr.to_owned());
         let mut ssl_context = try!(SslContext::new(SslMethod::Sslv23)
@@ -153,9 +153,8 @@ impl Docker {
         let client = Client::with_connector(connection_pool);
         let docker = Docker {
             client: client,
-            client_type:
-            ClientType::Tcp,
-            client_addr: client_addr.to_owned(),
+            client_type: ClientType::Tcp,
+            client_addr: client_addr,
         };
 
         return Ok(docker);
@@ -170,7 +169,7 @@ impl Docker {
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = addr.clone().replace("tcp://", "http://");
+        let client_addr = try!(Url::parse(&addr.clone().replace("tcp://", "http://")));
 
         let http_connector = HttpConnector::default();
         let connection_pool_config = Config { max_idle: 8 };
@@ -183,27 +182,24 @@ impl Docker {
 
     }
 
-    fn get_url(&self, path: &str) -> String {
-        let mut base = match self.client_type {
+    fn get_url(&self, path: &str) -> Result<Url> {
+        let base = match self.client_type {
             ClientType::Tcp => self.client_addr.clone(),
             ClientType::Unix => {
                 // We need a host so the HTTP headers can be generated, so we just spoof it and say
                 // that we're talking to localhost.  The hostname doesn't matter one bit.
-                "http://localhost".to_string()
+                "http://localhost".into_url().expect("valid url")
             }
         };
-        let new_path = path.clone();
-        base.push_str(&*new_path);
-
-        base
+        Ok(try!(base.join(path)))
     }
 
-    fn build_get_request(&self, request_url: &str) -> RequestBuilder {
-        self.client.get(request_url)
+    fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
+        self.client.get(request_url.clone())
     }
 
-    fn build_post_request(&self, request_url: &str) -> RequestBuilder {
-        self.client.post(request_url)
+    fn build_post_request(&self, request_url: &Url) -> RequestBuilder {
+        self.client.post(request_url.clone())
     }
 
     fn execute_request(&self, request: RequestBuilder) -> Result<String> {
@@ -231,7 +227,7 @@ impl Docker {
     fn decode_url<T>(&self, type_name: &'static str, url: &str) -> Result<T>
         where T: DeserializeOwned<>
     {
-        let request_url = self.get_url(url);
+        let request_url = try!(self.get_url(url));
         let request = self.build_get_request(&request_url);
         let body = try!(self.execute_request(request));
         let info = try!(serde_json::from_str::<T>(&body)
@@ -248,11 +244,12 @@ impl Docker {
     /// Create a container
     ///
     /// POST /containers/create
-    pub fn create_container(&self, name: &str, create: &ContainerCreateOptions) -> Result<CreateContainerResponse> {
+    pub fn create_container(&self, name: &str, create: &ContainerCreateOptions)
+                    -> Result<CreateContainerResponse> {
         let mut name_param = url::form_urlencoded::Serializer::new(String::new());
         name_param.append_pair("name", name);
 
-        let request_url = self.get_url(&format!("/containers/create?{}", name_param.finish()));
+        let request_url = try!(self.get_url(&format!("/containers/create?{}", name_param.finish())));
         let json_body = try!(serde_json::to_string(&create));
         let request = self.build_post_request(&request_url)
                             .header(ContentType::json())
@@ -328,14 +325,14 @@ impl Docker {
             return Err("The container is already stopped.".into());
         }
 
-        let request_url = self.get_url(&format!("/containers/{}/stats", container.Id));
+        let request_url = try!(self.get_url(&format!("/containers/{}/stats", container.Id)));
         let request = self.build_get_request(&request_url);
         let response = try!(self.start_request(request));
         Ok(StatsReader::new(response))
     }
 
     pub fn create_image(&self, image: String, tag: String) -> Result<Vec<ImageStatus>> {
-        let request_url = self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag));
+        let request_url = try!(self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag)));
         let request = self.build_post_request(&request_url);
         let body = try!(self.execute_request(request));
         let fixed = self.arrayify(&body);
@@ -351,6 +348,20 @@ impl Docker {
         };
         let url = format!("/images/json?a={}", a);
         self.decode_url("Image", &url)
+    }
+
+    pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
+        let mut file: File = try!(File::open(path));
+        let request_url = try!(self.get_url(&format!("/images/load?quiet={}", suppress)));
+        let request = self.build_post_request(&request_url)
+            .header(ContentType(Mime(
+                TopLevel::Application,
+                SubLevel::Ext("x-tar".into()),
+                vec![],
+            )))
+            .body(&mut file);
+        try!(self.start_request(request));
+        Ok(())
     }
 
     pub fn system_info(&self) -> Result<SystemInfo> {
@@ -370,14 +381,14 @@ impl Docker {
 
     pub fn export_container(&self, container: &Container) -> Result<Response> {
         let url = format!("/containers/{}/export", container.Id);
-        let request_url = self.get_url(&url);
+        let request_url = try!(self.get_url(&url));
         let request = self.build_get_request(&request_url);
         let response = try!(self.start_request(request));
         Ok(response)
     }
 
     pub fn ping(&self) -> Result<String> {
-        let request_url = self.get_url(&format!("/_ping"));
+        let request_url = try!(self.get_url(&format!("/_ping")));
         let request = self.build_get_request(&request_url);
         let body = try!(self.execute_request(request));
         Ok(body)

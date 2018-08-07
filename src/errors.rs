@@ -9,6 +9,7 @@ error_chain! {
     foreign_links {
         env::VarError, EnvVar;
         hyper::Error, Hyper;
+        hyper::error::ParseError, Url;
         io::Error, Io;
         serde_json::error::Error, Json;
     }

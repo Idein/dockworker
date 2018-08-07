@@ -103,9 +103,9 @@ pub struct HttpUnixConnector {
 }
 
 impl HttpUnixConnector {
-    pub fn new(path: &String) -> HttpUnixConnector {
+    pub fn new(path: &str) -> HttpUnixConnector {
         HttpUnixConnector {
-            path: path.clone(),
+            path: path.to_string(),
         }
     }
 }
