@@ -7,6 +7,7 @@
 // import external libraries
 #[macro_use]
 extern crate error_chain;
+#[macro_use]
 extern crate hyper;
 #[cfg(feature="openssl")]
 extern crate openssl;

@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::io::{self, Read};
 use hyper;
+use hyper::header::ContentType;
+use hyper::mime::*;
 use hyper::Client;
 use hyper::client::RequestBuilder;
 use hyper::client::pool::{Config, Pool};
@@ -247,9 +249,9 @@ impl Docker {
         let request_body = r#"{
             "Image": "openjdk:8"
         }"#;
-        let mut headers = hyper::header::Headers::new();
-        headers.set_raw("Content-Type", vec![String::from("application/json").into_bytes()]);
-        let request = self.build_post_request(&request_url).headers(headers).body(request_body);
+        let request = self.build_post_request(&request_url)
+                            .header(ContentType(mime!(Application/Json)))
+                            .body(request_body);
         let body = try!(self.execute_request(request));
         let fixed = self.arrayify(&body);
         let container = try!(serde_json::from_str(&fixed)
