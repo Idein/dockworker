@@ -400,13 +400,13 @@ impl Docker {
         Ok(statuses)
     }
 
+    /// List images
+    ///
+    /// # API
+    /// /images/json
     pub fn images(&self, all: bool) -> Result<Vec<Image>> {
-        let a = match all {
-            true => "1",
-            false => "0"
-        };
-        let url = format!("/images/json?a={}", a);
-        self.decode_url("Image", &url)
+        self.http_client().get(self.headers(), &format!("/images/json?a={}", all as u32))
+            .and_then(api_result)
     }
 
     pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
@@ -423,14 +423,22 @@ impl Docker {
         Ok(())
     }
 
+    /// Get system information
+    ///
+    /// # API
+    /// /info
     pub fn system_info(&self) -> Result<SystemInfo> {
-        self.decode_url("SystemInfo", &format!("/info"))
+        self.http_client().get(self.headers(), "/info")
+            .and_then(|res| api_result(res))
     }
 
+    /// Inspect about a container
+    ///
+    /// # API
+    /// /containers/{id}/json
     pub fn container_info(&self, container: &Container) -> Result<ContainerInfo> {
-        let url = format!("/containers/{}/json", container.Id);
-        self.decode_url("ContainerInfo", &url)
-            .chain_err(|| ErrorKind::ContainerInfo(container.Id.clone()))
+        self.http_client().get(self.headers(), &format!("/containers/{}/json", container.Id))
+            .and_then(|res| api_result(res))
     }
 
     /// Get changes on a container's filesystem
