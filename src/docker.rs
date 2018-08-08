@@ -448,10 +448,21 @@ impl Docker {
             .and_then(api_result)
     }
 
-    pub fn export_container(&self, container: &Container) -> Result<Response> {
-        let url = self.base.join(&format!("/containers/{}/export", container.Id))?;
-        let request = self.build_get_request(&url);
-        Ok(self.start_request(request)?)
+    /// Export a container
+    ///
+    /// # Summary
+    /// Returns a pointer to tar archive stream.
+    ///
+    /// # API
+    /// /containers/{id}/export
+    pub fn export_container(&self, container: &Container) -> Result<Box<Read>> {
+        self.http_client()
+            .get(self.headers(), &format!("/containers/{}/export", container.Id))
+            .and_then(|res| if res.status.is_success() {
+                Ok(Box::new(res) as Box<Read>)
+            } else {
+                Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+            })
     }
 
     /// Test if the server is accessible
