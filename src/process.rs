@@ -16,6 +16,25 @@ pub struct Process {
     pub command: String,
 }
 
+impl Default for Process {
+    fn default() -> Self {
+        Self {
+            user: String::new(),
+            pid: String::new(),
+            cpu: None,
+            memory: None,
+            vsz: None,
+            rss: None,
+            tty: None,
+            stat: None,
+            start: None,
+            time: None,
+            command: String::new()
+        }
+    }
+}
+
+
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Top {

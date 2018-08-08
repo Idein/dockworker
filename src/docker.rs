@@ -259,10 +259,14 @@ impl Docker {
         Ok(info)
     }
 
-    pub fn containers(&self, opts: ContainerListOptions)
-                      -> Result<Vec<Container>> {
-        let url = format!("/containers/json?{}", opts.to_url_params());
-        self.decode_url("Container", &url)
+    /// List containers
+    ///
+    /// # API
+    /// /containers/json
+    pub fn containers(&self, opts: ContainerListOptions) -> Result<Vec<Container>> {
+        self.http_client()
+            .get(self.headers(), &format!("/containers/json?{}", opts.to_url_params()))
+            .and_then(api_result)
     }
 
     /// Create a container
@@ -319,64 +323,41 @@ impl Docker {
         Ok(request.send()?)
     }
 
+    /// List processes running inside a container
+    ///
+    /// # API
+    /// /containers/{id}/top
+    pub fn container_top(&self, container: &Container) -> Result<Top> {
+        self.http_client().get(self.headers(), &format!("/containers/{}/top", container.Id))
+            .and_then(api_result)
+    }
+
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
-        let url = format!("/containers/{}/top", container.Id);
-        let top: Top = self.decode_url("Top", &url)?;
-
-        let mut processes: Vec<Process> = Vec::new();
-        let mut process_iter = top.Processes.iter();
-        loop {
-            let process = match process_iter.next() {
-                Some(process) => process,
-                None => { break; }
-            };
-
-            let mut p = Process{
-                user: String::new(),
-                pid: String::new(),
-                cpu: None,
-                memory: None,
-                vsz: None,
-                rss: None,
-                tty: None,
-                stat: None,
-                start: None,
-                time: None,
-                command: String::new()
-            };
-
-            let mut value_iter = process.iter();
-            let mut i: usize = 0;
-            loop {
-                let value = match value_iter.next() {
-                    Some(value) => value,
-                    None => { break; }
-                };
-                let key = &top.Titles[i];
-                match key.as_ref() {
-                    "UID" => { p.user = value.clone() },
-                    "USER" => {p.user = value.clone() },
-                    "PID" => { p.pid = value.clone() },
-                    "%CPU" => { p.cpu = Some(value.clone()) },
-                    "%MEM" => { p.memory = Some(value.clone()) },
-                    "VSZ" => { p.vsz = Some(value.clone()) },
-                    "RSS" => { p.rss = Some(value.clone()) },
-                    "TTY" => { p.tty = Some(value.clone()) },
-                    "STAT" => { p.stat = Some(value.clone()) },
-                    "START" => { p.start = Some(value.clone()) },
-                    "STIME" => { p.start = Some(value.clone()) },
-                    "TIME" => { p.time = Some(value.clone()) },
-                    "CMD" => { p.command = value.clone() },
-                    "COMMAND" => { p.command = value.clone() },
+        let top = self.container_top(container)?;
+        Ok(top.Processes.iter().map(|process| {
+            let mut p = Process::default();
+            for (i, value) in process.iter().enumerate() {
+                let v = value.clone();
+                match top.Titles[i].as_ref() {
+                    "UID" => { p.user = v },
+                    "USER" => { p.user = v },
+                    "PID" => { p.pid = v },
+                    "%CPU" => { p.cpu = Some(v) },
+                    "%MEM" => { p.memory = Some(v) },
+                    "VSZ" => { p.vsz = Some(v) },
+                    "RSS" => { p.rss = Some(v) },
+                    "TTY" => { p.tty = Some(v) },
+                    "STAT" => { p.stat = Some(v) },
+                    "START" => { p.start = Some(v) },
+                    "STIME" => { p.start = Some(v) },
+                    "TIME" => { p.time = Some(v) },
+                    "CMD" => { p.command = v },
+                    "COMMAND" => { p.command = v },
                     _ => {}
                 }
-
-                i = i + 1;
             }
-            processes.push(p);
-        }
-
-        Ok(processes)
+            p
+        }).collect())
     }
 
     /// Get containers stats based resource usage
