@@ -5,10 +5,10 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::io::{self, Read};
+use std::io::{self, Read, BufRead, BufReader};
 use url;
 use hyper;
-use hyper::header::{Headers, ContentType};
+use hyper::header::{Headers, ContentType, ContentLength};
 use hyper::mime::*;
 use hyper::Url;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -41,7 +41,7 @@ use version::Version;
 use hyper_client::HyperClient;
 
 use serde::de::DeserializeOwned;
-use serde_json;
+use serde_json::{self, Value};
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -109,9 +109,28 @@ impl ::std::error::Error for DockerError {
     }
 }
 
+/// Deserialize from json string
 fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
     if res.status.is_success() {
         Ok(serde_json::from_reader::<_, D>(res)?)
+    } else {
+        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+    }
+}
+
+/// Expect 204 NoContent
+fn no_content(res: Response) -> result::Result<(), Error> {
+    if res.status == StatusCode::NoContent {
+        Ok(())
+    } else {
+        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+    }
+}
+
+/// Ignore succeed response
+fn ignore_result(res: Response) -> result::Result<(), Error> {
+    if res.status.is_success() {
+        Ok(()) // ignore
     } else {
         Err(serde_json::from_reader::<_, DockerError>(res)?.into())
     }
@@ -127,6 +146,13 @@ pub trait HttpClient {
         headers: &Headers,
         path: &str,
         body: &str,
+    ) -> result::Result<Response, Self::Err>;
+
+    fn post_file(
+        &self,
+        headers: &Headers,
+        path: &str,
+        file: &Path,
     ) -> result::Result<Response, Self::Err>;
 }
 
@@ -238,11 +264,6 @@ impl Docker {
         Ok(response)
     }
 
-    fn arrayify(&self, s: &str) -> String {
-        let wrapped = format!("[{}]", s);
-        wrapped.clone().replace("}\r\n{", "}{").replace("}{", "},{")
-    }
-
     /// List containers
     ///
     /// # API
@@ -256,20 +277,17 @@ impl Docker {
     /// Create a container
     ///
     /// POST /containers/create
-    pub fn create_container(&self, name: &str, create: &ContainerCreateOptions)
+    pub fn create_container(&self, name: &str, option: &ContainerCreateOptions)
                     -> Result<CreateContainerResponse> {
-        let mut name_param = url::form_urlencoded::Serializer::new(String::new());
-        name_param.append_pair("name", name);
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("name", name);
 
-        let url = self.base.join(&format!("/containers/create?{}", name_param.finish()))?;
-        let json_body = serde_json::to_string(&create)?;
-        let request = self.build_post_request(&url)
-                            .header(ContentType::json())
-                            .body(&json_body);
-        let response = self.execute_request(request)?;
-        let container = serde_json::from_str(&response)
-            .chain_err(|| ErrorKind::ParseError("CreateContainer", response))?;
-        Ok(container)
+        let json_body = serde_json::to_string(&option)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(&headers, &format!("/containers/create?{}", param.finish()), &json_body)
+            .and_then(api_result)
     }
 
     /// start a container
@@ -277,10 +295,9 @@ impl Docker {
     /// # API
     /// /containers/{id}/start
     pub fn start_container(&self, id: &str) -> Result<()> {
-        let url = self.base.join(&format!("/containers/{}/start", id))?;
-        let request = self.build_post_request(&url);
-        let _response = self.execute_request(request)?;
-        Ok(())
+        self.http_client()
+            .post(self.headers(), &format!("/containers/{}/start", id), "")
+            .and_then(no_content)
     }
 
     /// Attach to a container
@@ -289,6 +306,7 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/attach
+    #[allow(non_snake_case)]
     pub fn attach_container(&self, id: &str, detachKeys: Option<&str>, logs: bool
                             , stream: bool, stdin: bool, stdout: bool, stderr: bool)
         -> Result<Response> {
@@ -302,9 +320,8 @@ impl Docker {
         param.append_pair("stdout", &stdout.to_string());
         param.append_pair("stderr", &stderr.to_string());
 
-        let url = self.base.join(&format!("/containers/{}/attach?{}", id, param.finish()))?;
-        let request = self.build_post_request(&url);
-        Ok(request.send()?)
+        self.http_client()
+            .post(self.headers(), &format!("/containers/{}/attach?{}", id, param.finish()), "")
     }
 
     /// List processes running inside a container
@@ -353,14 +370,29 @@ impl Docker {
         Ok(StatsReader::new(res))
     }
 
-    pub fn create_image(&self, image: String, tag: String) -> Result<Vec<ImageStatus>> {
-        let url = self.base.join(&format!("/images/create?fromImage={}&tag={}", image, tag))?;
-        let request = self.build_post_request(&url);
-        let body = self.execute_request(request)?;
-        let fixed = self.arrayify(&body);
-        let statuses = serde_json::from_str::<Vec<ImageStatus>>(&fixed)
-            .chain_err(|| ErrorKind::ParseError("ImageStatus", fixed))?;
-        Ok(statuses)
+    /// Create an image by pulling it from registry
+    ///
+    /// # API
+    /// /images/create
+    ///
+    /// # TODO
+    /// - Typing result iterator like image::ImageStatus.
+    /// - Generalize input parameters
+    pub fn create_image(&self, image: &str, tag: &str) -> Result<Box<Iterator<Item=Result<Value>>>> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("fromImage", image);
+        param.append_pair("tag", tag);
+
+        let res = self.http_client()
+            .post(self.headers(), &format!("/images/create?{}", param.finish()), "")?;
+        if res.status.is_success() {
+            Ok(Box::new(BufReader::new(res).lines().map(|line| {
+                Ok(line?).and_then(|ref line|
+                Ok(serde_json::from_str(line)?))
+            })))
+        } else {
+            Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+        }
     }
 
     /// List images
@@ -372,18 +404,17 @@ impl Docker {
             .and_then(api_result)
     }
 
+    /// Load a set of images and tags
+    ///
+    /// # API
+    /// /images/load
     pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
-        let mut file: File = File::open(path)?;
-        let url = self.base.join(&format!("/images/load?quiet={}", suppress))?;
-        let request = self.build_post_request(&url)
-            .header(ContentType(Mime(
-                TopLevel::Application,
-                SubLevel::Ext("x-tar".into()),
-                vec![],
-            )))
-            .body(&mut file);
-        self.start_request(request)?;
-        Ok(())
+        let mut headers = self.headers().clone();
+        let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
+        headers.set::<ContentType>(ContentType(application_tar));
+        self.http_client()
+            .post_file(&headers, &format!("/images/load?quiet={}", suppress), path)
+            .and_then(ignore_result)
     }
 
     /// Get system information

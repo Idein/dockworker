@@ -1,6 +1,7 @@
 use std::result;
 use std::sync::Arc;
 use std::path::Path;
+use std::fs::File;
 
 use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::Client;
@@ -104,6 +105,22 @@ impl HttpClient for HyperClient {
                 .post(url.clone())
                 .headers(headers.clone())
                 .body(body)
+                .send()?;
+        Ok(res)
+    }
+
+    fn post_file(
+        &self,
+        headers: &Headers,
+        path: &str,
+        file: &Path,
+    ) -> result::Result<Response, Self::Err> {
+        let mut content = File::open(file)?;
+        let url = self.base.join(path)?;
+        let res = self.client
+                .post(url.clone())
+                .headers(headers.clone())
+                .body(&mut content)
                 .send()?;
         Ok(res)
     }
