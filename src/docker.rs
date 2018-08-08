@@ -218,10 +218,6 @@ impl Docker {
         Ok(Docker::new(client, Protocol::Tcp, client_addr))
     }
 
-    fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
-        self.client.client.get(request_url.clone())
-    }
-
     fn build_post_request(&self, request_url: &Url) -> RequestBuilder {
         self.client.client.post(request_url.clone())
     }
@@ -245,18 +241,6 @@ impl Docker {
     fn arrayify(&self, s: &str) -> String {
         let wrapped = format!("[{}]", s);
         wrapped.clone().replace("}\r\n{", "}{").replace("}{", "},{")
-    }
-
-    /// `GET` a URL and decode it.
-    fn decode_url<T>(&self, type_name: &'static str, path: &str) -> Result<T>
-        where T: DeserializeOwned<>
-    {
-        let url = self.base.join(path)?;
-        let request = self.build_get_request(&url);
-        let body = self.execute_request(request)?;
-        let info = serde_json::from_str::<T>(&body)
-            .chain_err(|| ErrorKind::ParseError(type_name, body))?;
-        Ok(info)
     }
 
     /// List containers
