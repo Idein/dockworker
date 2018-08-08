@@ -66,8 +66,9 @@ pub fn default_cert_path() -> Result<PathBuf> {
     }
 }
 
+/// protocol connect to docker daemon
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-enum ClientType {
+enum Protocol {
     Unix,
     Tcp,
 }
@@ -75,15 +76,15 @@ enum ClientType {
 #[derive(Debug)]
 pub struct Docker {
     client: Client,
-    client_type: ClientType,
+    protocol: Protocol,
     client_addr: Url,
 }
 
 impl Docker {
-    fn new(client: Client, client_type: ClientType, client_addr: Url) -> Self {
+    fn new(client: Client, protocol: Protocol, client_addr: Url) -> Self {
         Self {
             client,
-            client_type: client_type,
+            protocol,
             client_addr: client_addr,
         }
     }
@@ -131,7 +132,7 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
 
         let client = Client::with_connector(connection_pool);
-        Ok(Docker::new(client, ClientType::Unix, client_addr))
+        Ok(Docker::new(client, Protocol::Unix, client_addr))
     }
 
     #[cfg(not(unix))]
@@ -156,7 +157,7 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, https_connector);
 
         let client = Client::with_connector(connection_pool);
-        Ok(Docker::new(client, ClientType::Tcp, client_addr))
+        Ok(Docker::new(client, Protocol::Tcp, client_addr))
     }
 
     #[cfg(not(feature="openssl"))]
@@ -175,13 +176,13 @@ impl Docker {
         let connection_pool = Pool::with_connector(connection_pool_config, http_connector);
 
         let client = Client::with_connector(connection_pool);
-        Ok(Docker::new(client, ClientType::Tcp, client_addr))
+        Ok(Docker::new(client, Protocol::Tcp, client_addr))
     }
 
     fn get_url(&self, path: &str) -> Result<Url> {
-        let base = match self.client_type {
-            ClientType::Tcp => self.client_addr.clone(),
-            ClientType::Unix => {
+        let base = match self.protocol {
+            Protocol::Tcp => self.client_addr.clone(),
+            Protocol::Unix => {
                 // We need a host so the HTTP headers can be generated, so we just spoof it and say
                 // that we're talking to localhost.  The hostname doesn't matter one bit.
                 "http://localhost".into_url().expect("valid url")
