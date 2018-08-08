@@ -379,15 +379,13 @@ impl Docker {
         Ok(processes)
     }
 
+    /// Get containers stats based resource usage
+    ///
+    /// # API
+    /// /containers/{id}/stats
     pub fn stats(&self, container: &Container) -> Result<StatsReader> {
-        if container.Status.contains("Up") == false {
-            return Err("The container is already stopped.".into());
-        }
-
-        let url = self.base.join(&format!("/containers/{}/stats", container.Id))?;
-        let request = self.build_get_request(&url);
-        let response = self.start_request(request)?;
-        Ok(StatsReader::new(response))
+        let res = self.http_client().get(self.headers(), &format!("/containers/{}/stats", container.Id))?;
+        Ok(StatsReader::new(res))
     }
 
     pub fn create_image(&self, image: String, tag: String) -> Result<Vec<ImageStatus>> {
@@ -429,7 +427,7 @@ impl Docker {
     /// /info
     pub fn system_info(&self) -> Result<SystemInfo> {
         self.http_client().get(self.headers(), "/info")
-            .and_then(|res| api_result(res))
+            .and_then(api_result)
     }
 
     /// Inspect about a container
@@ -438,7 +436,7 @@ impl Docker {
     /// /containers/{id}/json
     pub fn container_info(&self, container: &Container) -> Result<ContainerInfo> {
         self.http_client().get(self.headers(), &format!("/containers/{}/json", container.Id))
-            .and_then(|res| api_result(res))
+            .and_then(api_result)
     }
 
     /// Get changes on a container's filesystem
@@ -447,7 +445,7 @@ impl Docker {
     /// /containers/{id}/changes
     pub fn filesystem_changes(&self, container: &Container) -> Result<Vec<FilesystemChange>> {
         self.http_client().get(self.headers(), &format!("/containers/{}/changes", container.Id))
-            .and_then(|res| api_result(res))
+            .and_then(api_result)
     }
 
     pub fn export_container(&self, container: &Container) -> Result<Response> {
@@ -478,7 +476,7 @@ impl Docker {
     /// /version
     pub fn version(&self) -> Result<Version> {
         self.http_client().get(self.headers(), "/version")
-            .and_then(|res| api_result(res))
+            .and_then(api_result)
     }
 }
 

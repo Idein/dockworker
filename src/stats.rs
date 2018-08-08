@@ -1,6 +1,4 @@
-extern crate hyper;
 
-use std;
 use std::iter;
 use std::io::{BufRead, BufReader};
 use hyper::client::response::Response;
@@ -9,14 +7,16 @@ use serde_json;
 
 use errors::*;
 
+/// response of /containers/{}/stats api
+#[derive(Debug)]
 pub struct StatsReader {
     buf: BufReader<Response>,
 }
 
 impl StatsReader {
-   pub fn new(r: Response) -> StatsReader {
-        StatsReader {
-            buf: BufReader::new(r),
+   pub fn new(response: Response) -> Self {
+        Self {
+            buf: BufReader::new(response),
         }
     }
 }
@@ -24,20 +24,21 @@ impl StatsReader {
 impl iter::Iterator for StatsReader {
     type Item = Result<Stats>;
 
-    fn next(&mut self) -> Option<Result<Stats>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let mut line = String::new();
-        if let Err(err) = self.buf.read_line(&mut line) {
-            return Some(Err(err.into()));
+        match self.buf.read_line(&mut line) {
+            Ok(0) => None,
+            Ok(n) => Some(serde_json::from_str::<Stats>(&line)
+                        .chain_err(|| ErrorKind::ParseError("Stats", line))),
+            Err(err) => Some(Err(err.into())),
         }
-        Some(serde_json::from_str::<Stats>(&line)
-            .chain_err(|| ErrorKind::ParseError("Stats", line)))
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Stats {
     pub read: String,
-    pub network: Network,
+    pub network: Option<Network>,
     pub memory_stats: MemoryStats,
     pub cpu_stats: CpuStats,
     pub blkio_stats: BlkioStats
@@ -59,7 +60,7 @@ pub struct Network {
 pub struct MemoryStats {
     pub max_usage: u64,
     pub usage: u64,
-    pub failcnt: u64,
+    pub failcnt: Option<u64>,
     pub limit: u64,
     pub stats: MemoryStat
 }
@@ -84,7 +85,6 @@ pub struct MemoryStat {
     pub total_inactive_anon: u64,
     pub rss_huge: u64,
     pub hierarchical_memory_limit: u64,
-    pub hierarchical_memsw_limit: u64,
     pub total_pgfault: u64,
     pub total_active_file: u64,
     pub active_anon: u64,
@@ -96,8 +96,6 @@ pub struct MemoryStat {
     pub pgfault: u64,
     pub inactive_file: u64,
     pub total_pgpgin: u64,
-    pub swap: u64,
-    pub total_swap: u64
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
