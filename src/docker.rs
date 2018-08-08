@@ -135,8 +135,10 @@ impl Docker {
         let connection_pool_config = Config { max_idle: 8 };
         let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
 
+        // dummy base address
+        let base_addr = "http://localhost".into_url().expect("dummy url");
         let client = Client::with_connector(connection_pool);
-        Ok(Docker::new(client, Protocol::Unix, client_addr))
+        Ok(Docker::new(client, Protocol::Unix, base_addr))
     }
 
     #[cfg(not(unix))]
@@ -183,18 +185,6 @@ impl Docker {
         Ok(Docker::new(client, Protocol::Tcp, client_addr))
     }
 
-    fn get_url(&self, path: &str) -> Result<Url> {
-        let base = match self.protocol {
-            Protocol::Tcp => self.base.clone(),
-            Protocol::Unix => {
-                // We need a host so the HTTP headers can be generated, so we just spoof it and say
-                // that we're talking to localhost.  The hostname doesn't matter one bit.
-                "http://localhost".into_url().expect("valid url")
-            }
-        };
-        Ok(base.join(path)?)
-    }
-
     fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
         self.client.get(request_url.clone())
     }
@@ -225,11 +215,11 @@ impl Docker {
     }
 
     /// `GET` a URL and decode it.
-    fn decode_url<T>(&self, type_name: &'static str, url: &str) -> Result<T>
+    fn decode_url<T>(&self, type_name: &'static str, path: &str) -> Result<T>
         where T: DeserializeOwned<>
     {
-        let request_url = self.get_url(url)?;
-        let request = self.build_get_request(&request_url);
+        let url = self.base.join(path)?;
+        let request = self.build_get_request(&url);
         let body = self.execute_request(request)?;
         let info = serde_json::from_str::<T>(&body)
             .chain_err(|| ErrorKind::ParseError(type_name, body))?;
@@ -250,9 +240,9 @@ impl Docker {
         let mut name_param = url::form_urlencoded::Serializer::new(String::new());
         name_param.append_pair("name", name);
 
-        let request_url = self.get_url(&format!("/containers/create?{}", name_param.finish()))?;
+        let url = self.base.join(&format!("/containers/create?{}", name_param.finish()))?;
         let json_body = serde_json::to_string(&create)?;
-        let request = self.build_post_request(&request_url)
+        let request = self.build_post_request(&url)
                             .header(ContentType::json())
                             .body(&json_body);
         let response = self.execute_request(request)?;
@@ -266,8 +256,8 @@ impl Docker {
     /// # API
     /// /containers/{id}/start
     pub fn start_container(&self, id: &str) -> Result<()> {
-        let request_url = self.get_url(&format!("/containers/{}/start", id))?;
-        let request = self.build_post_request(&request_url);
+        let url = self.base.join(&format!("/containers/{}/start", id))?;
+        let request = self.build_post_request(&url);
         let _response = self.execute_request(request)?;
         Ok(())
     }
@@ -291,8 +281,8 @@ impl Docker {
         param.append_pair("stdout", &stdout.to_string());
         param.append_pair("stderr", &stderr.to_string());
 
-        let request_url = self.get_url(&format!("/containers/{}/attach?{}", id, param.finish()))?;
-        let request = self.build_post_request(&request_url);
+        let url = self.base.join(&format!("/containers/{}/attach?{}", id, param.finish()))?;
+        let request = self.build_post_request(&url);
         Ok(request.send()?)
     }
 
@@ -361,15 +351,15 @@ impl Docker {
             return Err("The container is already stopped.".into());
         }
 
-        let request_url = self.get_url(&format!("/containers/{}/stats", container.Id))?;
-        let request = self.build_get_request(&request_url);
+        let url = self.base.join(&format!("/containers/{}/stats", container.Id))?;
+        let request = self.build_get_request(&url);
         let response = self.start_request(request)?;
         Ok(StatsReader::new(response))
     }
 
     pub fn create_image(&self, image: String, tag: String) -> Result<Vec<ImageStatus>> {
-        let request_url = self.get_url(&format!("/images/create?fromImage={}&tag={}", image, tag))?;
-        let request = self.build_post_request(&request_url);
+        let url = self.base.join(&format!("/images/create?fromImage={}&tag={}", image, tag))?;
+        let request = self.build_post_request(&url);
         let body = self.execute_request(request)?;
         let fixed = self.arrayify(&body);
         let statuses = serde_json::from_str::<Vec<ImageStatus>>(&fixed)
@@ -388,8 +378,8 @@ impl Docker {
 
     pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
         let mut file: File = File::open(path)?;
-        let request_url = self.get_url(&format!("/images/load?quiet={}", suppress))?;
-        let request = self.build_post_request(&request_url)
+        let url = self.base.join(&format!("/images/load?quiet={}", suppress))?;
+        let request = self.build_post_request(&url)
             .header(ContentType(Mime(
                 TopLevel::Application,
                 SubLevel::Ext("x-tar".into()),
@@ -416,15 +406,14 @@ impl Docker {
     }
 
     pub fn export_container(&self, container: &Container) -> Result<Response> {
-        let url = format!("/containers/{}/export", container.Id);
-        let request_url = self.get_url(&url)?;
-        let request = self.build_get_request(&request_url);
+        let url = self.base.join(&format!("/containers/{}/export", container.Id))?;
+        let request = self.build_get_request(&url);
         Ok(self.start_request(request)?)
     }
 
     pub fn ping(&self) -> Result<String> {
-        let request_url = self.get_url("/_ping")?;
-        let request = self.build_get_request(&request_url);
+        let url = self.base.join("/_ping")?;
+        let request = self.build_get_request(&url);
         Ok(self.execute_request(request)?)
     }
 
