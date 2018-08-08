@@ -1,4 +1,5 @@
 use std::result;
+use std::fmt;
 use std::fs::File;
 use std::collections::BTreeMap;
 use std::env;
@@ -15,6 +16,7 @@ use hyper::Client;
 use hyper::client::{IntoUrl, RequestBuilder};
 use hyper::client::pool::{Config, Pool};
 use hyper::client::response::Response;
+use hyper::status::StatusCode;
 use hyper::net::HttpConnector;
 #[cfg(feature="openssl")]
 use hyper::net::{HttpsConnector, Openssl};
@@ -82,6 +84,37 @@ pub struct Docker {
     /// connection protocol
     protocol: Protocol,
     base: Url,
+    headers: Headers,
+}
+
+/// Type of general docker error response
+#[derive(Debug, Deserialize)]
+pub struct DockerError {
+    pub message: String
+}
+
+impl fmt::Display for DockerError {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.message)
+    }
+}
+
+impl ::std::error::Error for DockerError {
+    fn description(&self) -> &str {
+        &self.message
+    }
+
+    fn cause(&self) -> Option<&::std::error::Error> {
+        None
+    }
+}
+
+fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
+    if res.status.is_success() {
+        Ok(serde_json::from_reader::<_, D>(res)?)
+    } else {
+        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+    }
 }
 
 pub trait HttpClient {
@@ -108,7 +141,12 @@ impl Docker {
             client,
             protocol,
             base,
+            headers: Headers::new(),
         }
+    }
+
+    fn headers(&self) -> &Headers {
+        &self.headers
     }
 
     /// Connect to the Docker daemon using the standard Docker
@@ -406,14 +444,29 @@ impl Docker {
         Ok(self.start_request(request)?)
     }
 
-    pub fn ping(&self) -> Result<String> {
-        let url = self.base.join("/_ping")?;
-        let request = self.build_get_request(&url);
-        Ok(self.execute_request(request)?)
+    /// Test if the server is accessible
+    ///
+    /// # API
+    /// /_ping
+    pub fn ping(&self) -> Result<()> {
+        let mut res = self.http_client().get(self.headers(), "/_ping")?;
+        if res.status.is_success() {
+            let mut buf = String::new();
+            res.read_to_string(&mut buf)?;
+            assert_eq!(&buf, "OK");
+            Ok(())
+        } else {
+            Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+        }
     }
 
+    /// Get version and various information
+    ///
+    /// # API
+    /// /version
     pub fn version(&self) -> Result<Version> {
-        self.decode_url("Version", "/version")
+        self.http_client().get(self.headers(), "/version")
+            .and_then(|res| api_result(res))
     }
 }
 

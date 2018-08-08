@@ -4,6 +4,7 @@ use hyper;
 use std::env;
 use std::io;
 use serde_json;
+use docker;
 
 error_chain! {
     foreign_links {
@@ -12,6 +13,7 @@ error_chain! {
         hyper::error::ParseError, Url;
         io::Error, Io;
         serde_json::error::Error, Json;
+        docker::DockerError, Docker;
     }
 
     errors {
@@ -48,6 +50,11 @@ error_chain! {
         UnsupportedScheme(host: String) {
             description("unsupported Docker URL scheme")
             display("do not know how to connect to Docker at '{}'", &host)
+        }
+
+        Unknown(message: String) {
+            description("unknown error")
+            display("unknown error: {}", &message)
         }
     }
 }

@@ -1,4 +1,5 @@
-#[derive(Debug, Serialize, Deserialize)]
+
+#[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Version {
    pub Version: String,
@@ -11,3 +12,4 @@ pub struct Version {
    pub BuildTime: Option<String>,
    pub Experimental:Option<bool>
 }
+
