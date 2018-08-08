@@ -27,9 +27,9 @@ use errors::*;
 #[derive(Debug)]
 pub struct HyperClient {
     /// http client
-    pub client: Client,
+    client: Client,
     /// base connection address
-    pub base: Url,
+    base: Url,
 }
 
 fn ssl_context(addr: &str, key: &Path, cert: &Path, ca: &Path) -> result::Result<Openssl, Error> {
