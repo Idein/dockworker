@@ -433,9 +433,13 @@ impl Docker {
             .chain_err(|| ErrorKind::ContainerInfo(container.Id.clone()))
     }
 
+    /// Get changes on a container's filesystem
+    ///
+    /// # API
+    /// /containers/{id}/changes
     pub fn filesystem_changes(&self, container: &Container) -> Result<Vec<FilesystemChange>> {
-        let url = format!("/containers/{}/changes", container.Id);
-        self.decode_url("FilesystemChange", &url)
+        self.http_client().get(self.headers(), &format!("/containers/{}/changes", container.Id))
+            .and_then(|res| api_result(res))
     }
 
     pub fn export_container(&self, container: &Container) -> Result<Response> {
