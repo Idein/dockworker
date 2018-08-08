@@ -73,19 +73,23 @@ enum Protocol {
     Tcp,
 }
 
+/// Client connects to docker daemon
 #[derive(Debug)]
 pub struct Docker {
+    /// http client
     client: Client,
+    /// connection protocol
     protocol: Protocol,
-    client_addr: Url,
+    /// base connection address
+    base: Url,
 }
 
 impl Docker {
-    fn new(client: Client, protocol: Protocol, client_addr: Url) -> Self {
+    fn new(client: Client, protocol: Protocol, base: Url) -> Self {
         Self {
             client,
             protocol,
-            client_addr: client_addr,
+            base,
         }
     }
 
@@ -181,7 +185,7 @@ impl Docker {
 
     fn get_url(&self, path: &str) -> Result<Url> {
         let base = match self.protocol {
-            Protocol::Tcp => self.client_addr.clone(),
+            Protocol::Tcp => self.base.clone(),
             Protocol::Unix => {
                 // We need a host so the HTTP headers can be generated, so we just spoof it and say
                 // that we're talking to localhost.  The hostname doesn't matter one bit.
