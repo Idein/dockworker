@@ -28,6 +28,7 @@ mod util;
 mod unix;
 mod options;
 mod docker;
+mod hyper_client;
 pub mod errors;
 pub mod container;
 pub mod stats;

@@ -1,4 +1,4 @@
-use std;
+use std::result;
 use std::fs::File;
 use std::collections::BTreeMap;
 use std::env;
@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::io::{self, Read};
 use url;
 use hyper;
-use hyper::header::ContentType;
+use hyper::header::{Headers, ContentType};
 use hyper::mime::*;
 use hyper::Url;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -36,6 +36,7 @@ use system::SystemInfo;
 use image::{Image, ImageStatus};
 use filesystem::FilesystemChange;
 use version::Version;
+use hyper_client::HyperClient;
 
 use serde::de::DeserializeOwned;
 use serde_json;
@@ -77,15 +78,32 @@ enum Protocol {
 #[derive(Debug)]
 pub struct Docker {
     /// http client
-    client: Client,
+    client: HyperClient,
     /// connection protocol
     protocol: Protocol,
-    /// base connection address
     base: Url,
 }
 
+pub trait HttpClient {
+    type Err: ::std::error::Error + Send + 'static;
+
+    fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
+
+    fn post(
+        &self,
+        headers: &Headers,
+        path: &str,
+        body: &str,
+    ) -> result::Result<Response, Self::Err>;
+}
+
+pub trait HaveHttpClient {
+    type Client: HttpClient;
+    fn http_client(&self) -> &Self::Client;
+}
+
 impl Docker {
-    fn new(client: Client, protocol: Protocol, base: Url) -> Self {
+    fn new(client: HyperClient, protocol: Protocol, base: Url) -> Self {
         Self {
             client,
             protocol,
@@ -129,15 +147,9 @@ impl Docker {
         // This ensures that using a fully-qualified path --
         // e.g. unix://.... -- works.  The unix socket provider expects a
         // Path, so we don't need scheme.
-        let client_addr = addr.into_url()?;
-
-        let http_unix_connector = HttpUnixConnector::new(client_addr.path());
-        let connection_pool_config = Config { max_idle: 8 };
-        let connection_pool = Pool::with_connector(connection_pool_config, http_unix_connector);
-
-        // dummy base address
-        let base_addr = "http://localhost".into_url().expect("dummy url");
-        let client = Client::with_connector(connection_pool);
+        let url = addr.into_url()?;
+        let client = HyperClient::connect_with_unix(url.path());
+        let base_addr = "http://localhost".into_url().unwrap();
         Ok(Docker::new(client, Protocol::Unix, base_addr))
     }
 
@@ -147,23 +159,10 @@ impl Docker {
     }
 
     #[cfg(feature="openssl")]
-    pub fn connect_with_ssl(addr: &str, ssl_key: &Path, ssl_cert: &Path, ssl_ca: &Path) -> Result<Docker> {
-        // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = Url::parse(&addr.clone().replace("tcp://", "https://"))?;
-
-        let mkerr = || ErrorKind::SslError(addr.to_owned());
-        let mut ssl_context = SslContext::new(SslMethod::Sslv23).chain_err(&mkerr)?;
-        ssl_context.set_CA_file(ssl_ca).chain_err(&mkerr)?;
-        ssl_context.set_certificate_file(ssl_cert, X509FileType::PEM).chain_err(&mkerr)?;
-        ssl_context.set_private_key_file(ssl_key, X509FileType::PEM).chain_err(&mkerr)?;
-
-        let hyper_ssl_context = Openssl { context: Arc::new(ssl_context) };
-        let https_connector = HttpsConnector::new(hyper_ssl_context);
-        let connection_pool_config = Config { max_idle: 8 };
-        let connection_pool = Pool::with_connector(connection_pool_config, https_connector);
-
-        let client = Client::with_connector(connection_pool);
-        Ok(Docker::new(client, Protocol::Tcp, client_addr))
+    pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
+        let url = Url::parse(&addr.clone().replacen("tcp://", "https://", 1))?;
+        let client = HyperClient::connect_with_ssl(addr, key, cert, ca)?;
+        Ok(Docker::new(client, Protocol::Tcp, url))
     }
 
     #[cfg(not(feature="openssl"))]
@@ -177,20 +176,16 @@ impl Docker {
         // This ensures that using docker-machine-esque addresses work with Hyper.
         let client_addr = Url::parse(&addr.clone().replace("tcp://", "http://"))?;
 
-        let http_connector = HttpConnector::default();
-        let connection_pool_config = Config { max_idle: 8 };
-        let connection_pool = Pool::with_connector(connection_pool_config, http_connector);
-
-        let client = Client::with_connector(connection_pool);
+        let client = HyperClient::connect_with_http(addr)?;
         Ok(Docker::new(client, Protocol::Tcp, client_addr))
     }
 
     fn build_get_request(&self, request_url: &Url) -> RequestBuilder {
-        self.client.get(request_url.clone())
+        self.client.client.get(request_url.clone())
     }
 
     fn build_post_request(&self, request_url: &Url) -> RequestBuilder {
-        self.client.post(request_url.clone())
+        self.client.client.post(request_url.clone())
     }
 
     fn execute_request(&self, request: RequestBuilder) -> Result<String> {
@@ -421,3 +416,11 @@ impl Docker {
         self.decode_url("Version", "/version")
     }
 }
+
+impl HaveHttpClient for Docker {
+    type Client = HyperClient;
+    fn http_client(&self) -> &Self::Client {
+        &self.client
+    }
+}
+
