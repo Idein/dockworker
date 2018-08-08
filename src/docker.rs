@@ -244,26 +244,6 @@ impl Docker {
         Ok(Docker::new(client, Protocol::Tcp, client_addr))
     }
 
-    fn build_post_request(&self, request_url: &Url) -> RequestBuilder {
-        self.client.client.post(request_url.clone())
-    }
-
-    fn execute_request(&self, request: RequestBuilder) -> Result<String> {
-        let mut response = request.send()?;
-        println!("{}", response.status);
-        // assert!(response.status.is_success());
-
-        let mut body = String::new();
-        response.read_to_string(&mut body)?;
-        Ok(body)
-    }
-
-    fn start_request(&self, request: RequestBuilder) -> Result<Response> {
-        let response = request.send()?;
-        assert!(response.status.is_success());
-        Ok(response)
-    }
-
     /// List containers
     ///
     /// # API
