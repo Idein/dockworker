@@ -166,7 +166,7 @@ impl Docker {
     }
 
     #[cfg(not(feature="openssl"))]
-    pub fn connect_with_ssl(addr: &str, ssl_key: &Path, ssl_cert: &Path, ssl_ca: &Path) -> Result<Docker> {
+    pub fn connect_with_ssl(_addr: &str, _key: &Path, _cert: &Path, _ca: &Path) -> Result<Docker> {
         Err(ErrorKind::SslDisabled.into())
     }
 
