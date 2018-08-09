@@ -1,8 +1,7 @@
-use std;
 use std::fmt;
 use std::io;
 use std::io::{ErrorKind, Read, Write};
-use std::net::{SocketAddr, ToSocketAddrs, SocketAddrV4, Ipv4Addr, Shutdown};
+use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr, Shutdown};
 use std::time::Duration;
 use unix_socket::UnixStream;
 use hyper;
@@ -113,7 +112,7 @@ impl HttpUnixConnector {
 impl NetworkConnector for HttpUnixConnector {
     type Stream = HttpUnixStream;
 
-    fn connect(&self, host: &str, port: u16, scheme: &str) -> hyper::error::Result<HttpUnixStream> {
+    fn connect(&self, _host: &str, _port: u16, _scheme: &str) -> hyper::error::Result<HttpUnixStream> {
         Ok(HttpUnixStream(UnixStream::connect(self.path.clone())?))
     }
 }

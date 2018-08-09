@@ -1,7 +1,6 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use serde::Deserialize;
 use serde::de::{self, Visitor, Deserializer};
 
 struct NumToBoolVisitor;

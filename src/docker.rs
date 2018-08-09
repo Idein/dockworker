@@ -1,33 +1,14 @@
 use std::result;
 use std::fmt;
-use std::fs::File;
-use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::io::{self, Read, BufRead, BufReader};
+use std::io::{Read, BufRead, BufReader};
 use url;
-use hyper;
-use hyper::header::{Headers, ContentType, ContentLength};
-use hyper::mime::*;
-use hyper::Url;
+use hyper::header::{Headers, ContentType};
 use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::Client;
-use hyper::client::{IntoUrl, RequestBuilder};
-use hyper::client::pool::{Config, Pool};
+use hyper::client::IntoUrl;
 use hyper::client::response::Response;
 use hyper::status::StatusCode;
-use hyper::net::HttpConnector;
-#[cfg(feature="openssl")]
-use hyper::net::{HttpsConnector, Openssl};
-#[cfg(feature="openssl")]
-use openssl::ssl::{SslContext, SslMethod};
-#[cfg(feature="openssl")]
-use openssl::ssl::error::SslError;
-#[cfg(feature="openssl")]
-use openssl::x509::X509FileType;
-#[cfg(unix)]
-use unix::HttpUnixConnector;
 
 use errors::*;
 use container::{Container, ContainerInfo};
@@ -35,7 +16,7 @@ use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
 use system::SystemInfo;
-use image::{Image, ImageStatus};
+use image::Image;
 use filesystem::FilesystemChange;
 use version::Version;
 use hyper_client::HyperClient;

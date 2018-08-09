@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::path::Path;
 use std::fs::File;
 
-use hyper::client::{IntoUrl, RequestBuilder};
+use hyper::client::IntoUrl;
 use hyper::Client;
 use hyper::Url;
 use hyper::client::pool::{Config, Pool};
@@ -14,8 +14,6 @@ use hyper::net::HttpConnector;
 use hyper::net::{HttpsConnector, Openssl};
 #[cfg(feature="openssl")]
 use openssl::ssl::{SslContext, SslMethod};
-#[cfg(feature="openssl")]
-use openssl::ssl::error::SslError;
 #[cfg(feature="openssl")]
 use openssl::x509::X509FileType;
 

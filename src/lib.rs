@@ -4,10 +4,8 @@
 // Increase the compiler's recursion limit for the `error_chain` crate.
 #![recursion_limit = "1024"]
 
-// import external libraries
 #[macro_use]
 extern crate error_chain;
-#[macro_use]
 extern crate hyper;
 #[cfg(feature="openssl")]
 extern crate openssl;
@@ -21,7 +19,6 @@ extern crate serde_json;
 extern crate serde;
 extern crate url;
 
-// declare modules
 mod test;
 mod util;
 #[cfg(unix)]
@@ -38,6 +35,5 @@ pub mod process;
 pub mod filesystem;
 pub mod version;
 
-// publicly re-export
 pub use docker::Docker;
 pub use options::*;

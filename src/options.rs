@@ -307,9 +307,6 @@ impl ContainerCreateOptions {
 }
 
 mod format {
-    use serde::de::Deserializer;
-    use serde::ser::Serializer;
-
     pub mod duration {
         use std::time::Duration;
 

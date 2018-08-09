@@ -1,4 +1,3 @@
-use std;
 use std::vec::Vec;
 use std::io::{Read, Write, Result};
 use std::time::Duration;
