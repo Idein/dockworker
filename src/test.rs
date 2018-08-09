@@ -51,7 +51,7 @@ fn get_stats_streaming() {
     let stats = reader.next().unwrap().unwrap();
     assert_eq!(stats.read, "2015-04-09T07:02:08.480022083Z".to_string());
 
-    assert!(reader.next().unwrap().is_err());
+    assert!(reader.next().is_none());
 }
 
 #[test]

@@ -16,12 +16,14 @@ pub struct Image {
     pub ParentId: String,
     #[serde(deserialize_with = "null_to_default")]
     pub RepoTags: Vec<String>,
-    #[serde(deserialize_with = "null_to_default")]
+    #[serde(deserialize_with = "null_to_default", default = "Vec::default")]
     pub RepoDigests: Vec<String>,
     pub Created: u64,
     pub Size: i64,
+    #[serde(default = "i64::default")]
     pub SharedSize: i64,
     pub VirtualSize: i64,
+    #[serde(default = "i64::default")]
     pub Containers: i64,
 }
 

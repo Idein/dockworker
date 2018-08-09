@@ -28,7 +28,7 @@ impl iter::Iterator for StatsReader {
         let mut line = String::new();
         match self.buf.read_line(&mut line) {
             Ok(0) => None,
-            Ok(n) => Some(serde_json::from_str::<Stats>(&line)
+            Ok(_) => Some(serde_json::from_str::<Stats>(&line)
                         .chain_err(|| ErrorKind::ParseError("Stats", line))),
             Err(err) => Some(Err(err.into())),
         }

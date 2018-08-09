@@ -5,6 +5,7 @@ use std::time::Duration;
 use std::net::{SocketAddr, Shutdown};
 use hyper::net::NetworkStream;
 
+#[derive(Debug)]
 pub struct MemoryStream {
     buf: Vec<u8>,
     pos: usize,
