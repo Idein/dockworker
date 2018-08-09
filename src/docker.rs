@@ -2,9 +2,9 @@ use std::result;
 use std::fmt;
 use std::env;
 use std::path::{Path, PathBuf};
-use std::io::{Read, BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use url;
-use hyper::header::{Headers, ContentType};
+use hyper::header::{ContentType, Headers};
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::client::IntoUrl;
 use hyper::client::response::Response;
@@ -39,13 +39,11 @@ pub const DEFAULT_DOCKER_HOST: &'static str = "tcp://localhost:2375";
 /// The default directory in which to look for our Docker certificate
 /// files.
 pub fn default_cert_path() -> Result<PathBuf> {
-    let from_env = env::var("DOCKER_CERT_PATH")
-        .or_else(|_| env::var("DOCKER_CONFIG"));
+    let from_env = env::var("DOCKER_CERT_PATH").or_else(|_| env::var("DOCKER_CONFIG"));
     if let Ok(ref path) = from_env {
         Ok(Path::new(path).to_owned())
     } else {
-        let home = env::home_dir()
-            .ok_or_else(|| ErrorKind::NoCertPath)?;
+        let home = env::home_dir().ok_or_else(|| ErrorKind::NoCertPath)?;
         Ok(home.join(".docker"))
     }
 }
@@ -70,7 +68,7 @@ pub struct Docker {
 /// Type of general docker error response
 #[derive(Debug, Deserialize)]
 pub struct DockerError {
-    pub message: String
+    pub message: String,
 }
 
 impl fmt::Display for DockerError {
@@ -161,8 +159,7 @@ impl Docker {
     /// possible.
     pub fn connect_with_defaults() -> Result<Docker> {
         // Read in our configuration from the Docker environment.
-        let host = env::var("DOCKER_HOST")
-            .unwrap_or(DEFAULT_DOCKER_HOST.to_string());
+        let host = env::var("DOCKER_HOST").unwrap_or(DEFAULT_DOCKER_HOST.to_string());
         let tls_verify = env::var("DOCKER_TLS_VERIFY").is_ok();
         let cert_path = default_cert_path()?;
 
@@ -172,11 +169,12 @@ impl Docker {
             Docker::connect_with_unix(&host).chain_err(&mkerr)
         } else if host.starts_with("tcp://") {
             if tls_verify {
-                Docker::connect_with_ssl(&host,
-                                         &cert_path.join("key.pem"),
-                                         &cert_path.join("cert.pem"),
-                                         &cert_path.join("ca.pem"))
-                    .chain_err(&mkerr)
+                Docker::connect_with_ssl(
+                    &host,
+                    &cert_path.join("key.pem"),
+                    &cert_path.join("cert.pem"),
+                    &cert_path.join("ca.pem"),
+                ).chain_err(&mkerr)
             } else {
                 Docker::connect_with_http(&host).chain_err(&mkerr)
             }
@@ -200,13 +198,13 @@ impl Docker {
         Err(ErrorKind::UnsupportedScheme(addr.to_owned()).into())
     }
 
-    #[cfg(feature="openssl")]
+    #[cfg(feature = "openssl")]
     pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
         let client = HyperClient::connect_with_ssl(addr, key, cert, ca)?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
-    #[cfg(not(feature="openssl"))]
+    #[cfg(not(feature = "openssl"))]
     pub fn connect_with_ssl(_addr: &str, _key: &Path, _cert: &Path, _ca: &Path) -> Result<Docker> {
         Err(ErrorKind::SslDisabled.into())
     }
@@ -224,15 +222,21 @@ impl Docker {
     /// /containers/json
     pub fn containers(&self, opts: ContainerListOptions) -> Result<Vec<Container>> {
         self.http_client()
-            .get(self.headers(), &format!("/containers/json?{}", opts.to_url_params()))
+            .get(
+                self.headers(),
+                &format!("/containers/json?{}", opts.to_url_params()),
+            )
             .and_then(api_result)
     }
 
     /// Create a container
     ///
     /// POST /containers/create
-    pub fn create_container(&self, name: &str, option: &ContainerCreateOptions)
-                    -> Result<CreateContainerResponse> {
+    pub fn create_container(
+        &self,
+        name: &str,
+        option: &ContainerCreateOptions,
+    ) -> Result<CreateContainerResponse> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("name", name);
 
@@ -240,7 +244,11 @@ impl Docker {
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
         self.http_client()
-            .post(&headers, &format!("/containers/create?{}", param.finish()), &json_body)
+            .post(
+                &headers,
+                &format!("/containers/create?{}", param.finish()),
+                &json_body,
+            )
             .and_then(api_result)
     }
 
@@ -261,9 +269,16 @@ impl Docker {
     /// # API
     /// /containers/{id}/attach
     #[allow(non_snake_case)]
-    pub fn attach_container(&self, id: &str, detachKeys: Option<&str>, logs: bool
-                            , stream: bool, stdin: bool, stdout: bool, stderr: bool)
-        -> Result<Response> {
+    pub fn attach_container(
+        &self,
+        id: &str,
+        detachKeys: Option<&str>,
+        logs: bool,
+        stream: bool,
+        stdin: bool,
+        stdout: bool,
+        stderr: bool,
+    ) -> Result<Response> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         if let Some(keys) = detachKeys {
             param.append_pair("detachKeys", keys);
@@ -274,8 +289,11 @@ impl Docker {
         param.append_pair("stdout", &stdout.to_string());
         param.append_pair("stderr", &stderr.to_string());
 
-        self.http_client()
-            .post(self.headers(), &format!("/containers/{}/attach?{}", id, param.finish()), "")
+        self.http_client().post(
+            self.headers(),
+            &format!("/containers/{}/attach?{}", id, param.finish()),
+            "",
+        )
     }
 
     /// List processes running inside a container
@@ -283,36 +301,40 @@ impl Docker {
     /// # API
     /// /containers/{id}/top
     pub fn container_top(&self, container: &Container) -> Result<Top> {
-        self.http_client().get(self.headers(), &format!("/containers/{}/top", container.Id))
+        self.http_client()
+            .get(self.headers(), &format!("/containers/{}/top", container.Id))
             .and_then(api_result)
     }
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let top = self.container_top(container)?;
-        Ok(top.Processes.iter().map(|process| {
-            let mut p = Process::default();
-            for (i, value) in process.iter().enumerate() {
-                let v = value.clone();
-                match top.Titles[i].as_ref() {
-                    "UID" => { p.user = v },
-                    "USER" => { p.user = v },
-                    "PID" => { p.pid = v },
-                    "%CPU" => { p.cpu = Some(v) },
-                    "%MEM" => { p.memory = Some(v) },
-                    "VSZ" => { p.vsz = Some(v) },
-                    "RSS" => { p.rss = Some(v) },
-                    "TTY" => { p.tty = Some(v) },
-                    "STAT" => { p.stat = Some(v) },
-                    "START" => { p.start = Some(v) },
-                    "STIME" => { p.start = Some(v) },
-                    "TIME" => { p.time = Some(v) },
-                    "CMD" => { p.command = v },
-                    "COMMAND" => { p.command = v },
-                    _ => {}
+        Ok(top.Processes
+            .iter()
+            .map(|process| {
+                let mut p = Process::default();
+                for (i, value) in process.iter().enumerate() {
+                    let v = value.clone();
+                    match top.Titles[i].as_ref() {
+                        "UID" => p.user = v,
+                        "USER" => p.user = v,
+                        "PID" => p.pid = v,
+                        "%CPU" => p.cpu = Some(v),
+                        "%MEM" => p.memory = Some(v),
+                        "VSZ" => p.vsz = Some(v),
+                        "RSS" => p.rss = Some(v),
+                        "TTY" => p.tty = Some(v),
+                        "STAT" => p.stat = Some(v),
+                        "START" => p.start = Some(v),
+                        "STIME" => p.start = Some(v),
+                        "TIME" => p.time = Some(v),
+                        "CMD" => p.command = v,
+                        "COMMAND" => p.command = v,
+                        _ => {}
+                    }
                 }
-            }
-            p
-        }).collect())
+                p
+            })
+            .collect())
     }
 
     /// Get containers stats based resource usage
@@ -320,7 +342,10 @@ impl Docker {
     /// # API
     /// /containers/{id}/stats
     pub fn stats(&self, container: &Container) -> Result<StatsReader> {
-        let res = self.http_client().get(self.headers(), &format!("/containers/{}/stats", container.Id))?;
+        let res = self.http_client().get(
+            self.headers(),
+            &format!("/containers/{}/stats", container.Id),
+        )?;
         Ok(StatsReader::new(res))
     }
 
@@ -332,17 +357,23 @@ impl Docker {
     /// # TODO
     /// - Typing result iterator like image::ImageStatus.
     /// - Generalize input parameters
-    pub fn create_image(&self, image: &str, tag: &str) -> Result<Box<Iterator<Item=Result<Value>>>> {
+    pub fn create_image(
+        &self,
+        image: &str,
+        tag: &str,
+    ) -> Result<Box<Iterator<Item = Result<Value>>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("fromImage", image);
         param.append_pair("tag", tag);
 
-        let res = self.http_client()
-            .post(self.headers(), &format!("/images/create?{}", param.finish()), "")?;
+        let res = self.http_client().post(
+            self.headers(),
+            &format!("/images/create?{}", param.finish()),
+            "",
+        )?;
         if res.status.is_success() {
             Ok(Box::new(BufReader::new(res).lines().map(|line| {
-                Ok(line?).and_then(|ref line|
-                Ok(serde_json::from_str(line)?))
+                Ok(line?).and_then(|ref line| Ok(serde_json::from_str(line)?))
             })))
         } else {
             Err(serde_json::from_reader::<_, DockerError>(res)?.into())
@@ -354,7 +385,8 @@ impl Docker {
     /// # API
     /// /images/json
     pub fn images(&self, all: bool) -> Result<Vec<Image>> {
-        self.http_client().get(self.headers(), &format!("/images/json?a={}", all as u32))
+        self.http_client()
+            .get(self.headers(), &format!("/images/json?a={}", all as u32))
             .and_then(api_result)
     }
 
@@ -376,7 +408,8 @@ impl Docker {
     /// # API
     /// /info
     pub fn system_info(&self) -> Result<SystemInfo> {
-        self.http_client().get(self.headers(), "/info")
+        self.http_client()
+            .get(self.headers(), "/info")
             .and_then(api_result)
     }
 
@@ -385,7 +418,11 @@ impl Docker {
     /// # API
     /// /containers/{id}/json
     pub fn container_info(&self, container: &Container) -> Result<ContainerInfo> {
-        self.http_client().get(self.headers(), &format!("/containers/{}/json", container.Id))
+        self.http_client()
+            .get(
+                self.headers(),
+                &format!("/containers/{}/json", container.Id),
+            )
             .and_then(api_result)
     }
 
@@ -394,7 +431,11 @@ impl Docker {
     /// # API
     /// /containers/{id}/changes
     pub fn filesystem_changes(&self, container: &Container) -> Result<Vec<FilesystemChange>> {
-        self.http_client().get(self.headers(), &format!("/containers/{}/changes", container.Id))
+        self.http_client()
+            .get(
+                self.headers(),
+                &format!("/containers/{}/changes", container.Id),
+            )
             .and_then(api_result)
     }
 
@@ -407,11 +448,16 @@ impl Docker {
     /// /containers/{id}/export
     pub fn export_container(&self, container: &Container) -> Result<Box<Read>> {
         self.http_client()
-            .get(self.headers(), &format!("/containers/{}/export", container.Id))
-            .and_then(|res| if res.status.is_success() {
-                Ok(Box::new(res) as Box<Read>)
-            } else {
-                Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+            .get(
+                self.headers(),
+                &format!("/containers/{}/export", container.Id),
+            )
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(Box::new(res) as Box<Read>)
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
             })
     }
 
@@ -436,7 +482,8 @@ impl Docker {
     /// # API
     /// /version
     pub fn version(&self) -> Result<Version> {
-        self.http_client().get(self.headers(), "/version")
+        self.http_client()
+            .get(self.headers(), "/version")
             .and_then(api_result)
     }
 }
@@ -447,4 +494,3 @@ impl HaveHttpClient for Docker {
         &self.client
     }
 }
-

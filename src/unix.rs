@@ -1,7 +1,7 @@
 use std::fmt;
 use std::io;
 use std::io::{ErrorKind, Read, Write};
-use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr, Shutdown};
+use std::net::{Ipv4Addr, Shutdown, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use unix_socket::UnixStream;
 use hyper;
@@ -72,7 +72,10 @@ impl ::std::os::unix::io::FromRawFd for HttpUnixStream {
 impl NetworkStream for HttpUnixStream {
     #[inline]
     fn peer_addr(&mut self) -> io::Result<SocketAddr> {
-        Ok(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 80)))
+        Ok(SocketAddr::V4(SocketAddrV4::new(
+            Ipv4Addr::new(127, 0, 0, 1),
+            80,
+        )))
     }
 
     #[inline]
@@ -91,7 +94,7 @@ impl NetworkStream for HttpUnixStream {
             Ok(_) => Ok(()),
             // see https://github.com/hyperium/hyper/issues/508
             Err(ref e) if e.kind() == ErrorKind::NotConnected => Ok(()),
-            err => err
+            err => err,
         }
     }
 }
@@ -112,7 +115,12 @@ impl HttpUnixConnector {
 impl NetworkConnector for HttpUnixConnector {
     type Stream = HttpUnixStream;
 
-    fn connect(&self, _host: &str, _port: u16, _scheme: &str) -> hyper::error::Result<HttpUnixStream> {
+    fn connect(
+        &self,
+        _host: &str,
+        _port: u16,
+        _scheme: &str,
+    ) -> hyper::error::Result<HttpUnixStream> {
         Ok(HttpUnixStream(UnixStream::connect(self.path.clone())?))
     }
 }

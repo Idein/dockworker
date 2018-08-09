@@ -29,17 +29,16 @@ impl Default for Process {
             stat: None,
             start: None,
             time: None,
-            command: String::new()
+            command: String::new(),
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Top {
     pub Titles: Vec<String>,
-    pub Processes: Vec<Vec<String>>
+    pub Processes: Vec<Vec<String>>,
 }
 
 impl Display for Process {
@@ -55,7 +54,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -63,7 +62,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -71,7 +70,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -79,7 +78,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -87,7 +86,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -95,7 +94,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -103,7 +102,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 
@@ -111,7 +110,7 @@ impl Display for Process {
             Some(v) => {
                 s.push_str(",");
                 s.push_str(&*v);
-            },
+            }
             None => {}
         }
 

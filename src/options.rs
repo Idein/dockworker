@@ -68,7 +68,7 @@ impl ContainerListOptions {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RestartPolicy {
     name: String,
-    maximum_retry_count: u16 // TODO: Maybe this can be smaller?
+    maximum_retry_count: u16, // TODO: Maybe this can be smaller?
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -81,14 +81,14 @@ pub struct ContainerHostConfig {
     memory_reservation: u64,
     kernel_memory: u64,
     cpu_percent: u64, // TODO: Not sure what this should actually be
-                      // it could either be 0 - 100, or it could be 100% per thread.
-    cpu_shares: u64, // TODO: I don't have a single clue what this even is
-    cpu_period: u64, // TODO: Still no clue
-    cpu_quota: u64, // TODO: Still no clue
-    cpuset_cpus: String, // TODO: Still no clue
+    // it could either be 0 - 100, or it could be 100% per thread.
+    cpu_shares: u64,           // TODO: I don't have a single clue what this even is
+    cpu_period: u64,           // TODO: Still no clue
+    cpu_quota: u64,            // TODO: Still no clue
+    cpuset_cpus: String,       // TODO: Still no clue
     io_maximum_bandwidth: u64, // TODO: Still no clue
-    io_maximum_ops: u64, // TODO: Still no clue
-    blkio_weight: u64, // TODO: Still no clue
+    io_maximum_ops: u64,       // TODO: Still no clue
+    blkio_weight: u64,         // TODO: Still no clue
     // blkio_weight_device: not sure the type of this. the provided is [{}]
     // blkio_weight_read_bps: not sure the type of this. the provided is [{}],
     // blkio_weight_read_iops: not sure the type of this. the provided is [{}]
@@ -121,7 +121,7 @@ pub struct ContainerHostConfig {
     // storage_opt: TODO: Not sure the type of this. the provided is {}
     cgroup_parent: String,
     volume_driver: String,
-    shm_size: u64
+    shm_size: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -160,7 +160,7 @@ pub struct ContainerCreateOptions {
     #[serde(with = "format::duration::DurationDelegate")]
     stop_timeout: Duration,
     host_config: Option<ContainerHostConfig>,
-    networking_config: Option<NetworkingConfig>
+    networking_config: Option<NetworkingConfig>,
 }
 
 impl ContainerCreateOptions {
@@ -187,7 +187,7 @@ impl ContainerCreateOptions {
             stop_signal: "SIGTERM".to_owned(),
             stop_timeout: Duration::from_secs(10),
             host_config: None,
-            networking_config: None
+            networking_config: None,
         }
     }
 
@@ -211,12 +211,12 @@ impl ContainerCreateOptions {
         self
     }
 
-    pub fn attach_stdout(&mut self, attach_stdout: bool,) -> &mut Self {
+    pub fn attach_stdout(&mut self, attach_stdout: bool) -> &mut Self {
         self.attach_stdout = attach_stdout;
         self
     }
 
-    pub fn attach_stderr(&mut self, attach_stderr: bool,) -> &mut Self {
+    pub fn attach_stderr(&mut self, attach_stderr: bool) -> &mut Self {
         self.attach_stderr = attach_stderr;
         self
     }
@@ -329,4 +329,3 @@ pub struct CreateContainerResponse {
     pub id: String,
     pub warnings: Option<Vec<String>>,
 }
-

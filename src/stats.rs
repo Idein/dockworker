@@ -1,4 +1,3 @@
-
 use std::iter;
 use std::io::{BufRead, BufReader};
 use hyper::client::response::Response;
@@ -14,7 +13,7 @@ pub struct StatsReader {
 }
 
 impl StatsReader {
-   pub fn new(response: Response) -> Self {
+    pub fn new(response: Response) -> Self {
         Self {
             buf: BufReader::new(response),
         }
@@ -28,8 +27,10 @@ impl iter::Iterator for StatsReader {
         let mut line = String::new();
         match self.buf.read_line(&mut line) {
             Ok(0) => None,
-            Ok(_) => Some(serde_json::from_str::<Stats>(&line)
-                        .chain_err(|| ErrorKind::ParseError("Stats", line))),
+            Ok(_) => Some(
+                serde_json::from_str::<Stats>(&line)
+                    .chain_err(|| ErrorKind::ParseError("Stats", line)),
+            ),
             Err(err) => Some(Err(err.into())),
         }
     }
@@ -41,7 +42,7 @@ pub struct Stats {
     pub network: Option<Network>,
     pub memory_stats: MemoryStats,
     pub cpu_stats: CpuStats,
-    pub blkio_stats: BlkioStats
+    pub blkio_stats: BlkioStats,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,7 +54,7 @@ pub struct Network {
     pub tx_dropped: u64,
     pub rx_packets: u64,
     pub tx_errors: u64,
-    pub tx_bytes: u64
+    pub tx_bytes: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,7 +63,7 @@ pub struct MemoryStats {
     pub usage: u64,
     pub failcnt: Option<u64>,
     pub limit: u64,
-    pub stats: MemoryStat
+    pub stats: MemoryStat,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,7 +103,7 @@ pub struct MemoryStat {
 pub struct CpuStats {
     pub cpu_usage: CpuUsage,
     pub system_cpu_usage: u64,
-    pub throttling_data: ThrottlingData
+    pub throttling_data: ThrottlingData,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -110,14 +111,14 @@ pub struct CpuUsage {
     pub percpu_usage: Vec<u64>,
     pub usage_in_usermode: u64,
     pub total_usage: u64,
-    pub usage_in_kernelmode: u64
+    pub usage_in_kernelmode: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThrottlingData {
     pub periods: u64,
     pub throttled_periods: u64,
-    pub throttled_time: u64
+    pub throttled_time: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,7 +130,7 @@ pub struct BlkioStats {
     pub io_wait_time_recursive: Vec<BlkioStat>,
     pub io_merged_recursive: Vec<BlkioStat>,
     pub io_time_recursive: Vec<BlkioStat>,
-    pub sectors_recursive: Vec<BlkioStat>
+    pub sectors_recursive: Vec<BlkioStat>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,5 +138,5 @@ pub struct BlkioStat {
     pub major: u64,
     pub minor: u64,
     pub op: String,
-    pub value: u64
+    pub value: u64,
 }

@@ -10,11 +10,11 @@ use hyper::client::pool::{Config, Pool};
 use hyper::header::Headers;
 use hyper::client::response::Response;
 use hyper::net::HttpConnector;
-#[cfg(feature="openssl")]
+#[cfg(feature = "openssl")]
 use hyper::net::{HttpsConnector, Openssl};
-#[cfg(feature="openssl")]
+#[cfg(feature = "openssl")]
 use openssl::ssl::{SslContext, SslMethod};
-#[cfg(feature="openssl")]
+#[cfg(feature = "openssl")]
 use openssl::x509::X509FileType;
 
 use unix::HttpUnixConnector;
@@ -34,13 +34,19 @@ fn ssl_context(addr: &str, key: &Path, cert: &Path, ca: &Path) -> result::Result
     let mkerr = || ErrorKind::SslError(addr.to_owned());
     let mut context = SslContext::new(SslMethod::Sslv23).chain_err(&mkerr)?;
     context.set_CA_file(ca).chain_err(&mkerr)?;
-    context.set_certificate_file(cert, X509FileType::PEM).chain_err(&mkerr)?;
-    context.set_private_key_file(key, X509FileType::PEM).chain_err(&mkerr)?;
-    Ok(Openssl { context: Arc::new(context) })
+    context
+        .set_certificate_file(cert, X509FileType::PEM)
+        .chain_err(&mkerr)?;
+    context
+        .set_private_key_file(key, X509FileType::PEM)
+        .chain_err(&mkerr)?;
+    Ok(Openssl {
+        context: Arc::new(context),
+    })
 }
 
 impl HyperClient {
-    fn new (client: Client, base: Url) -> Self {
+    fn new(client: Client, base: Url) -> Self {
         Self { client, base }
     }
 
@@ -56,8 +62,13 @@ impl HyperClient {
         Self::new(client, base_addr)
     }
 
-    #[cfg(feature="openssl")]
-    pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> result::Result<Self, Error> {
+    #[cfg(feature = "openssl")]
+    pub fn connect_with_ssl(
+        addr: &str,
+        key: &Path,
+        cert: &Path,
+        ca: &Path,
+    ) -> result::Result<Self, Error> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
         let url = Url::parse(&addr.clone().replacen("tcp://", "https://", 1))?;
 
@@ -88,7 +99,10 @@ impl HttpClient for HyperClient {
 
     fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err> {
         let url = self.base.join(path)?;
-        let res = self.client.get(url.clone()).headers(headers.clone()).send()?;
+        let res = self.client
+            .get(url.clone())
+            .headers(headers.clone())
+            .send()?;
         Ok(res)
     }
 
@@ -100,10 +114,10 @@ impl HttpClient for HyperClient {
     ) -> result::Result<Response, Self::Err> {
         let url = self.base.join(path)?;
         let res = self.client
-                .post(url.clone())
-                .headers(headers.clone())
-                .body(body)
-                .send()?;
+            .post(url.clone())
+            .headers(headers.clone())
+            .body(body)
+            .send()?;
         Ok(res)
     }
 
@@ -116,11 +130,10 @@ impl HttpClient for HyperClient {
         let mut content = File::open(file)?;
         let url = self.base.join(path)?;
         let res = self.client
-                .post(url.clone())
-                .headers(headers.clone())
-                .body(&mut content)
-                .send()?;
+            .post(url.clone())
+            .headers(headers.clone())
+            .body(&mut content)
+            .send()?;
         Ok(res)
     }
 }
-

@@ -2,7 +2,7 @@
 
 use serde_json;
 use container::{Container, ContainerInfo};
-use process::{Top};
+use process::Top;
 use stats::{Stats, StatsReader};
 use system::SystemInfo;
 use image::Image;
@@ -56,7 +56,7 @@ fn get_system_info() {
 #[test]
 fn get_images() {
     let response = get_images_response();
-    let images : Vec<Image> = serde_json::from_str(&response).unwrap();
+    let images: Vec<Image> = serde_json::from_str(&response).unwrap();
     assert_eq!(3, images.len());
 }
 
@@ -102,7 +102,8 @@ fn get_container_info_response() -> String {
 }
 
 fn get_processes_response() -> String {
-    "{\"Processes\":[[\"4586\",\"999\",\"rust\"]],\"Titles\":[\"PID\",\"USER\",\"COMMAND\"]}".to_string()
+    "{\"Processes\":[[\"4586\",\"999\",\"rust\"]],\"Titles\":[\"PID\",\"USER\",\"COMMAND\"]}"
+        .to_string()
 }
 
 fn get_filesystem_changes_response() -> String {
@@ -129,7 +130,9 @@ fn get_stats_response() -> String {
 
     let buf = match writer.end() {
         Ok(w) => w,
-        Err(_) => { panic!("error ending writer for stats response"); }
+        Err(_) => {
+            panic!("error ending writer for stats response");
+        }
     };
     let body = String::from_utf8(buf.into_inner()).unwrap();
     body

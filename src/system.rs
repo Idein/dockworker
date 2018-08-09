@@ -1,7 +1,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use serde::de::{self, Visitor, Deserializer};
+use serde::de::{self, Deserializer, Visitor};
 
 struct NumToBoolVisitor;
 
@@ -13,19 +13,22 @@ impl<'de> Visitor<'de> for NumToBoolVisitor {
     }
 
     fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
-    where E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(value)
     }
 
     fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-    where E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(value != 0)
     }
 
     fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-    where E: de::Error,
+    where
+        E: de::Error,
     {
         Ok(value != 0)
     }
@@ -83,4 +86,3 @@ pub struct SystemInfo {
     pub Labels: Option<Vec<String>>,
     // pub ServerVersion: String,
 }
-

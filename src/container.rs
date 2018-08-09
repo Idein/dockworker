@@ -15,7 +15,7 @@ pub struct Container {
     pub SizeRw: Option<u64>, // I guess it is optional on Mac.
     pub SizeRootFs: Option<u64>,
     pub Labels: Option<HashMap<String, String>>,
-    pub HostConfig: HostConfig
+    pub HostConfig: HostConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,13 +24,13 @@ pub struct Port {
     pub IP: Option<String>,
     pub PrivatePort: u64,
     pub PublicPort: Option<u64>,
-    pub Type: String
+    pub Type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct HostConfig {
-    pub NetworkMode: String
+    pub NetworkMode: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,7 +165,7 @@ pub struct State {
     pub ExitCode: i64,
     pub Error: String,
     pub StartedAt: String,
-    pub FinishedAt: String
+    pub FinishedAt: String,
 }
 
 impl std::fmt::Display for Container {

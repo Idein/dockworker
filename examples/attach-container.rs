@@ -1,6 +1,6 @@
 extern crate boondock;
-extern crate hyper;
 extern crate byteorder;
+extern crate hyper;
 
 use std::io::Read;
 use std::str;
@@ -14,11 +14,14 @@ fn main() {
 
     let container = docker.create_container("testing", &create).unwrap();
     docker.start_container(&container.id).unwrap();
-    let mut res = docker.attach_container(&container.id, None, true, true, false, true, false).unwrap();
+    let mut res = docker
+        .attach_container(&container.id, None, true, true, false, true, false)
+        .unwrap();
 
     if res.status == StatusCode::Ok {
         let mut buf = [0u8; 8];
-        while res.read_exact(&mut buf).is_ok() { // read 8 bytes
+        while res.read_exact(&mut buf).is_ok() {
+            // read 8 bytes
             assert_eq!(buf[0], 1); // stdout
 
             let mut frame_size_raw = &buf[4..];

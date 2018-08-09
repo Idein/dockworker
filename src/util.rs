@@ -1,7 +1,7 @@
 use std::vec::Vec;
-use std::io::{Read, Write, Result};
+use std::io::{Read, Result, Write};
 use std::time::Duration;
-use std::net::{SocketAddr, Shutdown};
+use std::net::{Shutdown, SocketAddr};
 use hyper::net::NetworkStream;
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl MemoryStream {
     }
 
     pub fn into_inner(self) -> Vec<u8> {
-        return self.buf
+        return self.buf;
     }
 }
 
