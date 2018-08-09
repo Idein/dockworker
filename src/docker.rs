@@ -83,7 +83,6 @@ pub struct Docker {
     client: HyperClient,
     /// connection protocol
     protocol: Protocol,
-    base: Url,
     headers: Headers,
 }
 
@@ -162,11 +161,10 @@ pub trait HaveHttpClient {
 }
 
 impl Docker {
-    fn new(client: HyperClient, protocol: Protocol, base: Url) -> Self {
+    fn new(client: HyperClient, protocol: Protocol) -> Self {
         Self {
             client,
             protocol,
-            base,
             headers: Headers::new(),
         }
     }
@@ -213,8 +211,7 @@ impl Docker {
         // Path, so we don't need scheme.
         let url = addr.into_url()?;
         let client = HyperClient::connect_with_unix(url.path());
-        let base_addr = "http://localhost".into_url().unwrap();
-        Ok(Docker::new(client, Protocol::Unix, base_addr))
+        Ok(Docker::new(client, Protocol::Unix))
     }
 
     #[cfg(not(unix))]
@@ -224,9 +221,8 @@ impl Docker {
 
     #[cfg(feature="openssl")]
     pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
-        let url = Url::parse(&addr.clone().replacen("tcp://", "https://", 1))?;
         let client = HyperClient::connect_with_ssl(addr, key, cert, ca)?;
-        Ok(Docker::new(client, Protocol::Tcp, url))
+        Ok(Docker::new(client, Protocol::Tcp))
     }
 
     #[cfg(not(feature="openssl"))]
@@ -237,11 +233,8 @@ impl Docker {
     /// Connect using unsecured HTTP.  This is strongly discouraged
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
-        // This ensures that using docker-machine-esque addresses work with Hyper.
-        let client_addr = Url::parse(&addr.clone().replace("tcp://", "http://"))?;
-
         let client = HyperClient::connect_with_http(addr)?;
-        Ok(Docker::new(client, Protocol::Tcp, client_addr))
+        Ok(Docker::new(client, Protocol::Tcp))
     }
 
     /// List containers
