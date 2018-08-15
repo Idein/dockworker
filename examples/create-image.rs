@@ -4,9 +4,12 @@ use boondock::Docker;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    let statuses = docker.create_image("debian", "latest").unwrap();
 
-    for status in statuses {
-        println!("{:?}", status);
+    let name = "debian";
+    let tag = "latest";
+    println!("create an image {}:{} ...", name, tag);
+    let stats = docker.create_image(name, tag).unwrap();
+    for stat in stats {
+        println!("{:?}", stat);
     }
 }
