@@ -550,7 +550,7 @@ impl HaveHttpClient for Docker {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 
