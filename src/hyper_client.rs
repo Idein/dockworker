@@ -17,6 +17,7 @@ use openssl::ssl::{SslContext, SslMethod};
 #[cfg(feature = "openssl")]
 use openssl::x509::X509FileType;
 
+#[cfg(unix)]
 use unix::HttpUnixConnector;
 use docker::*;
 use errors::*;
@@ -52,6 +53,7 @@ impl HyperClient {
     }
 
     /// path to unix socket
+    #[cfg(unix)]
     pub fn connect_with_unix(path: &str) -> Self {
         let conn = HttpUnixConnector::new(path);
         let pool_config = Config { max_idle: 8 };

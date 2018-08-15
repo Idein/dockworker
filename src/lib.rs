@@ -20,6 +20,7 @@ extern crate url;
 
 mod test;
 mod util;
+#[cfg(unix)]
 mod unix;
 mod options;
 mod docker;
