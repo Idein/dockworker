@@ -551,6 +551,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_server_access() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        assert!(docker.ping().is_ok());
+    }
+
+    #[test]
+    fn get_version() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        assert!(docker.version().is_ok());
+    }
+
+    #[test]
     fn create_remove_image() {
         let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("debian", "latest");
