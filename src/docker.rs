@@ -392,7 +392,7 @@ impl Docker {
         name: &str,
         force: Option<bool>,
         noprune: Option<bool>,
-    ) -> Result<()> {
+    ) -> Result<Vec<RemoveImageResponse>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("force", &force.unwrap_or(false).to_string());
         param.append_pair("noprune", &noprune.unwrap_or(false).to_string());
@@ -401,7 +401,7 @@ impl Docker {
                 self.headers(),
                 &format!("/images/{}?{}", name, param.finish()),
             )
-            .and_then(ignore_result)
+            .and_then(api_result)
     }
 
     /// List images

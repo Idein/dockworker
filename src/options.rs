@@ -329,3 +329,9 @@ pub struct CreateContainerResponse {
     pub id: String,
     pub warnings: Option<Vec<String>>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub enum RemoveImageResponse {
+    Untagged(String),
+    Deleted(String),
+}
