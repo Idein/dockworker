@@ -51,7 +51,9 @@ pub fn default_cert_path() -> Result<PathBuf> {
 /// protocol connect to docker daemon
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 enum Protocol {
+    /// unix domain socket
     Unix,
+    /// tcp/ip (BSD like socket)
     Tcp,
 }
 
@@ -114,6 +116,7 @@ fn ignore_result(res: Response) -> result::Result<(), Error> {
     }
 }
 
+/// A http client
 pub trait HttpClient {
     type Err: ::std::error::Error + Send + 'static;
 
@@ -136,6 +139,7 @@ pub trait HttpClient {
     ) -> result::Result<Response, Self::Err>;
 }
 
+/// Access to inner HttpClient
 pub trait HaveHttpClient {
     type Client: HttpClient;
     fn http_client(&self) -> &Self::Client;

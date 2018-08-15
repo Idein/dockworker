@@ -1,4 +1,6 @@
 
+image: Visual Studio 2017
+
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
   - rustup-init -yv --default-toolchain 1.25.0 --default-host x86_64-pc-windows-gnu
@@ -9,4 +11,4 @@ install:
 build: false
 
 test_script:
-  - cargo test --verbose --no-default-features
+  - cargo test --verbose --no-default-features -- --nocapture
