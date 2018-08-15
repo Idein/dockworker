@@ -36,13 +36,13 @@ fn get_stats_streaming() {
     let mut reader = StatsReader::new(response);
 
     let stats = reader.next().unwrap().unwrap();
-    assert_eq!(stats.read, "2015-04-09T07:02:08.480022081Z".to_string());
+    assert_eq!(&stats.read, "2015-04-09T07:02:08.480022081Z");
 
     let stats = reader.next().unwrap().unwrap();
-    assert_eq!(stats.read, "2015-04-09T07:02:08.480022082Z".to_string());
+    assert_eq!(&stats.read, "2015-04-09T07:02:08.480022082Z");
 
     let stats = reader.next().unwrap().unwrap();
-    assert_eq!(stats.read, "2015-04-09T07:02:08.480022083Z".to_string());
+    assert_eq!(&stats.read, "2015-04-09T07:02:08.480022083Z");
 
     assert!(reader.next().is_none());
 }
