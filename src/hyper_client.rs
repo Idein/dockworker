@@ -30,6 +30,7 @@ pub struct HyperClient {
     base: Url,
 }
 
+#[cfg(feature = "openssl")]
 fn ssl_context(addr: &str, key: &Path, cert: &Path, ca: &Path) -> result::Result<Openssl, Error> {
     let mkerr = || ErrorKind::SslError(addr.to_owned());
     let mut context = SslContext::new(SslMethod::Sslv23).chain_err(&mkerr)?;
