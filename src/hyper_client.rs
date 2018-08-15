@@ -121,6 +121,15 @@ impl HttpClient for HyperClient {
         Ok(res)
     }
 
+    fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err> {
+        let url = self.base.join(path)?;
+        let res = self.client
+            .delete(url.clone())
+            .headers(headers.clone())
+            .send()?;
+        Ok(res)
+    }
+
     fn post_file(
         &self,
         headers: &Headers,

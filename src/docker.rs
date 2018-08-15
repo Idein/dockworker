@@ -126,6 +126,8 @@ pub trait HttpClient {
         body: &str,
     ) -> result::Result<Response, Self::Err>;
 
+    fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
+
     fn post_file(
         &self,
         headers: &Headers,
@@ -380,6 +382,28 @@ impl Docker {
         }
     }
 
+    /// Remove an image
+    ///
+    /// # API
+    /// /images/{name}
+    ///
+    pub fn remove_image(
+        &self,
+        name: &str,
+        force: Option<bool>,
+        noprune: Option<bool>,
+    ) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("force", &force.unwrap_or(false).to_string());
+        param.append_pair("noprune", &noprune.unwrap_or(false).to_string());
+        self.http_client()
+            .delete(
+                self.headers(),
+                &format!("/images/{}?{}", name, param.finish()),
+            )
+            .and_then(ignore_result)
+    }
+
     /// List images
     ///
     /// # API
@@ -492,5 +516,23 @@ impl HaveHttpClient for Docker {
     type Client = HyperClient;
     fn http_client(&self) -> &Self::Client {
         &self.client
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_remove_image() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let name = "debian";
+        let tag = "latest";
+        assert!(docker.create_image(name, tag).is_ok());
+        assert!(
+            docker
+                .remove_image(&format!("{}:{}", name, tag), None, None)
+                .is_ok()
+        )
     }
 }
