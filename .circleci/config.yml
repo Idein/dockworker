@@ -1,0 +1,33 @@
+version: 2
+jobs:
+  build:
+    working_directory: /tmp/boondock
+    docker:
+      - image: idein/rust-stable:bionic-1.25.0
+        environment:
+          OS_VERSION: bionic
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: apt-get update -y && apt-get install -y docker.io
+      - run: cat Cargo.toml Cargo.lock > /tmp/build-dep
+      - run: rustc --version >> /tmp/build-dep
+      - run: echo $OS_VERSION >> /tmp/build-dep
+      - run: apt list --installed >> /tmp/build-dep
+      - restore_cache:
+          key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
+      - run: cargo fmt -- --write-mode "diff"
+      - run: RUST_BACKTRACE=1 cargo build --verbose --no-default-features
+      - run: RUST_BACKTRACE=1 cargo test --verbose --no-default-features
+      - save_cache:
+          key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
+          paths:
+            - ~/.cargo/registry/
+            - target/debug
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+ 
