@@ -254,7 +254,7 @@ impl Docker {
             .and_then(api_result)
     }
 
-    /// start a container
+    /// Start a container
     ///
     /// # API
     /// /containers/{id}/start
@@ -351,10 +351,37 @@ impl Docker {
         Ok(StatsReader::new(res))
     }
 
+    /// Remove a container
+    ///
+    /// # API
+    /// /containers/{id}
+    pub fn remove_container(
+        &self,
+        name: &str,
+        volume: Option<bool>,
+        force: Option<bool>,
+        link: Option<bool>,
+    ) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("v", &volume.unwrap_or(false).to_string());
+        param.append_pair("force", &force.unwrap_or(false).to_string());
+        param.append_pair("link", &link.unwrap_or(false).to_string());
+        self.http_client()
+            .delete(
+                self.headers(),
+                &format!("/containers/{}?{}", name, param.finish()),
+            )
+            .and_then(no_content)
+    }
+
     /// Create an image by pulling it from registry
     ///
     /// # API
-    /// /images/create
+    /// /images/create?fromImage={image}&tag={tag}
+    ///
+    /// # NOTE
+    /// When control returns from this function, creating job may have been completed.
+    /// For waiting the completion of the job, cunsuming response like `create_image("hello-world", "linux").map(|r| r.for_each(|_| ()));`.
     ///
     /// # TODO
     /// - Typing result iterator like image::ImageStatus.
@@ -526,9 +553,35 @@ mod tests {
     #[test]
     fn create_remove_image() {
         let docker = Docker::connect_with_defaults().unwrap();
-        let name = "debian";
-        let tag = "latest";
-        assert!(docker.create_image(name, tag).is_ok());
+        let (name, tag) = ("debian", "latest");
+        let sts = docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)));
+        assert!(sts.is_ok());
+        assert!(
+            docker
+                .remove_image(&format!("{}:{}", name, tag), None, None)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn create_remove_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("hello-world", "linux");
+        assert!(
+            docker
+                .create_image(name, tag)
+                .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+                .is_ok()
+        );
+        let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        assert!(docker.create_container("boondock_test", &create).is_ok());
+        assert!(
+            docker
+                .remove_container("boondock_test", None, None, None)
+                .is_ok()
+        );
         assert!(
             docker
                 .remove_image(&format!("{}:{}", name, tag), None, None)
