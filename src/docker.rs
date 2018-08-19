@@ -471,6 +471,20 @@ impl Docker {
     }
 
     /// Get a tarball containing all images and metadata for a repository
+    ///
+    /// # API
+    /// /images/{name}/get
+    pub fn export_image(&self, name: &str) -> Result<Box<Read>> {
+        self.http_client()
+            .get(self.headers(), &format!("/images/{}/get", name))
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(Box::new(res) as Box<Read>)
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
+    }
 
     /// Load a set of images and tags
     ///
