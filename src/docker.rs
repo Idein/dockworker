@@ -11,7 +11,7 @@ use hyper::client::response::Response;
 use hyper::status::StatusCode;
 
 use errors::*;
-use container::{Container, ContainerInfo};
+use container::{Container, ContainerFilters, ContainerInfo};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -226,6 +226,31 @@ impl Docker {
     ///
     /// # API
     /// /containers/json
+    pub fn list_containers(
+        &self,
+        all: Option<bool>,
+        limit: Option<u64>,
+        size: Option<bool>,
+        filters: ContainerFilters,
+    ) -> Result<Vec<Container>> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("all", &(all.unwrap_or(false) as u64).to_string());
+        if let Some(limit) = limit {
+            param.append_pair("limit", &limit.to_string());
+        }
+        param.append_pair("size", &(size.unwrap_or(false) as u64).to_string());
+        param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
+        println!("filter: {}", serde_json::to_string(&filters).unwrap());
+
+        self.http_client()
+            .get(
+                self.headers(),
+                &format!("/containers/json?{}", param.finish()),
+            )
+            .and_then(api_result)
+    }
+
+    #[deprecated]
     pub fn containers(&self, opts: ContainerListOptions) -> Result<Vec<Container>> {
         self.http_client()
             .get(
@@ -445,6 +470,8 @@ impl Docker {
             .and_then(api_result)
     }
 
+    /// Get a tarball containing all images and metadata for a repository
+
     /// Load a set of images and tags
     ///
     /// # API
@@ -553,6 +580,8 @@ impl HaveHttpClient for Docker {
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
+    use std::fs::{remove_file, File};
+    use std::io;
 
     #[test]
     fn test_server_access() {
@@ -603,5 +632,59 @@ mod tests {
                 .remove_image(&format!("{}:{}", name, tag), None, None)
                 .is_ok()
         )
+    }
+
+    fn pull_image(docker: &Docker, name: &str, tag: &str) {
+        assert!(
+            docker
+                .create_image(name, tag)
+                .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+                .is_ok()
+        );
+    }
+
+    fn exists_image(docker: &Docker, name: &str) -> bool {
+        let mut exact = ContainerFilters::new();
+        exact.name(name);
+        !docker
+            .list_containers(None, None, None, exact)
+            .unwrap()
+            .is_empty()
+    }
+
+    fn container_from(docker: &Docker, name: &str, from: &str) {
+        let create = ContainerCreateOptions::new(from);
+        assert!(docker.create_container(name, &create).is_ok());
+    }
+
+    #[test]
+    fn extract_load_image() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        pull_image(&docker, "alpine", "latest");
+        container_from(&docker, "boondock_test_alpine", "alpine:latest");
+
+        let mut filter = ContainerFilters::new();
+        filter.name("boondock_test_alpine");
+        let containers = docker
+            .list_containers(Some(true), None, None, filter)
+            .unwrap();
+        {
+            let mut file = File::create("boondock_test_alpine.tar").unwrap();
+            let mut res = docker.export_container(&containers[0]).unwrap();
+            io::copy(&mut res, &mut file).unwrap();
+        }
+        assert!(
+            docker
+                .remove_container("boondock_test_alpine", None, None, None)
+                .is_ok()
+        );
+        assert!(docker.remove_image("alpine:latest", None, None).is_ok());
+        assert!(!exists_image(&docker, "alpine:latest"));
+        assert!(
+            docker
+                .load_image(false, Path::new("boondock_test_alpine.tar"))
+                .is_ok()
+        );
+        remove_file("boondock_test_alpine.tar").unwrap();
     }
 }
