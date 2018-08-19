@@ -657,48 +657,23 @@ mod tests {
         );
     }
 
-    fn exists_image(docker: &Docker, name: &str) -> bool {
-        let mut exact = ContainerFilters::new();
-        exact.name(name);
-        !docker
-            .list_containers(None, None, None, exact)
-            .unwrap()
-            .is_empty()
-    }
-
-    fn container_from(docker: &Docker, name: &str, from: &str) {
-        let create = ContainerCreateOptions::new(from);
-        assert!(docker.create_container(name, &create).is_ok());
-    }
-
     #[test]
-    fn extract_load_image() {
+    fn export_load_image() {
         let docker = Docker::connect_with_defaults().unwrap();
         pull_image(&docker, "alpine", "latest");
-        container_from(&docker, "boondock_test_alpine", "alpine:latest");
 
-        let mut filter = ContainerFilters::new();
-        filter.name("boondock_test_alpine");
-        let containers = docker
-            .list_containers(Some(true), None, None, filter)
-            .unwrap();
         {
             let mut file = File::create("boondock_test_alpine.tar").unwrap();
-            let mut res = docker.export_container(&containers[0]).unwrap();
+            let mut res = docker.export_image("alpine:latest").unwrap();
             io::copy(&mut res, &mut file).unwrap();
         }
-        assert!(
-            docker
-                .remove_container("boondock_test_alpine", None, None, None)
-                .is_ok()
-        );
+
         assert!(docker.remove_image("alpine:latest", None, None).is_ok());
-        assert!(!exists_image(&docker, "alpine:latest"));
         assert!(
             docker
                 .load_image(false, Path::new("boondock_test_alpine.tar"))
                 .is_ok()
         );
-        remove_file("boondock_test_alpine.tar").unwrap();
+        assert!(remove_file("boondock_test_alpine.tar").is_ok());
     }
 }
