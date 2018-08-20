@@ -604,6 +604,12 @@ mod tests {
     }
 
     #[test]
+    fn test_info() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        assert!(docker.system_info().is_ok());
+    }
+
+    #[test]
     fn get_version() {
         let docker = Docker::connect_with_defaults().unwrap();
         assert!(docker.version().is_ok());
