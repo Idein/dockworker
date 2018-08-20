@@ -1,6 +1,7 @@
 use std::result;
 use std::fmt;
 use std::env;
+use std::time::Duration;
 use std::path::{Path, PathBuf};
 use std::io::{BufRead, BufReader, Read};
 use url;
@@ -290,6 +291,22 @@ impl Docker {
     pub fn start_container(&self, id: &str) -> Result<()> {
         self.http_client()
             .post(self.headers(), &format!("/containers/{}/start", id), "")
+            .and_then(no_content)
+    }
+
+    /// Stop a container
+    ///
+    /// # API
+    /// /containers/{id}/stop
+    pub fn stop_container(&self, id: &str, timeout: Duration) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("t", &timeout.as_secs().to_string());
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/stop?{}", id, param.finish()),
+                "",
+            )
             .and_then(no_content)
     }
 
