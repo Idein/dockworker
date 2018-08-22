@@ -2,7 +2,7 @@ use std;
 use hyper::client::response::Response;
 use std::collections::HashMap;
 use byteorder::{BigEndian, ReadBytesExt};
-use std::io::Read;
+use std::io::{self, Read};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -216,6 +216,7 @@ impl ContainerFilters {
     }
 }
 
+/// fragment of response of attach to container api
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum AttachResponseFrame {
     Stdin(Vec<u8>),
@@ -234,6 +235,7 @@ impl AttachResponseFrame {
     }
 }
 
+/// response of attach to container api
 #[derive(Debug)]
 pub struct AttachResponseStream {
     res: Response,
@@ -242,6 +244,12 @@ pub struct AttachResponseStream {
 impl AttachResponseStream {
     pub fn new(res: Response) -> Self {
         Self { res }
+    }
+}
+
+impl Read for AttachResponseStream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.res.read(buf)
     }
 }
 
