@@ -1,5 +1,8 @@
 use std;
+use hyper::client::response::Response;
 use std::collections::HashMap;
+use byteorder::{BigEndian, ReadBytesExt};
+use std::io::Read;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -210,5 +213,57 @@ impl ContainerFilters {
     pub fn name(&mut self, name: &str) -> &mut Self {
         self.name.push(name.to_owned());
         self
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum AttachResponseFrame {
+    Stdin(Vec<u8>),
+    Stdout(Vec<u8>),
+    Stderr(Vec<u8>),
+}
+
+impl AttachResponseFrame {
+    pub fn as_bytes(&self) -> &[u8] {
+        use self::AttachResponseFrame::*;
+        match self {
+            &Stdin(ref vs) => &vs,
+            &Stdout(ref vs) => &vs,
+            &Stderr(ref vs) => &vs,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct AttachResponseStream {
+    res: Response,
+}
+
+impl AttachResponseStream {
+    pub fn new(res: Response) -> Self {
+        Self { res }
+    }
+}
+
+impl Iterator for AttachResponseStream {
+    type Item = AttachResponseFrame;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut buf = [0u8; 8];
+        if self.res.read_exact(&mut buf).is_ok() {
+            let mut frame_size_raw = &buf[4..];
+            let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
+            let mut frame = vec![0; frame_size as usize];
+            if self.res.read_exact(&mut frame).is_err() {
+                return None;
+            }
+            match buf[0] {
+                0 => Some(AttachResponseFrame::Stdin(frame)),
+                1 => Some(AttachResponseFrame::Stdout(frame)),
+                2 => Some(AttachResponseFrame::Stderr(frame)),
+                _ => None,
+            }
+        } else {
+            None
+        }
     }
 }

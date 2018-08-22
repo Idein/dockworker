@@ -12,7 +12,7 @@ use hyper::client::response::Response;
 use hyper::status::StatusCode;
 
 use errors::*;
-use container::{Container, ContainerFilters, ContainerInfo};
+use container::{AttachResponseStream, Container, ContainerFilters, ContainerInfo};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -326,7 +326,7 @@ impl Docker {
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Result<Response> {
+    ) -> Result<AttachResponseStream> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         if let Some(keys) = detachKeys {
             param.append_pair("detachKeys", keys);
@@ -337,11 +337,17 @@ impl Docker {
         param.append_pair("stdout", &stdout.to_string());
         param.append_pair("stderr", &stderr.to_string());
 
-        self.http_client().post(
+        let res = self.http_client().post(
             self.headers(),
             &format!("/containers/{}/attach?{}", id, param.finish()),
             "",
-        )
+        )?;
+
+        if res.status.is_success() {
+            Ok(AttachResponseStream::new(res))
+        } else {
+            Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+        }
     }
 
     /// List processes running inside a container
