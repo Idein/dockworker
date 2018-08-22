@@ -1,11 +1,12 @@
 extern crate boondock;
 
-use std::path::Path;
 use boondock::Docker;
+use std::path::Path;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    docker
+    let id = docker
         .load_image(false, Path::new("image.tar"))
         .expect("prepare a tar-archive like: $docker save busybox > image.tar");
+    println!("loaded: {}", id);
 }

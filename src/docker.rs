@@ -4,6 +4,8 @@ use std::env;
 use std::time::Duration;
 use std::path::{Path, PathBuf};
 use std::io::{BufRead, BufReader, Read};
+use std::fs::File;
+use std::ffi::OsStr;
 use url;
 use hyper::header::{ContentType, Headers};
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -17,10 +19,11 @@ use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
 use system::SystemInfo;
-use image::Image;
+use image::{ImageId, Image};
 use filesystem::FilesystemChange;
 use version::Version;
 use hyper_client::HyperClient;
+use tar::Archive;
 
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
@@ -509,17 +512,32 @@ impl Docker {
             })
     }
 
-    /// Load a set of images and tags
+    /// Import images
+    ///
+    /// # Summary
+    /// Load a set of images and tags into a repository
     ///
     /// # API
     /// /images/load
-    pub fn load_image(&self, suppress: bool, path: &Path) -> Result<()> {
+    pub fn load_image(&self, quiet: bool, path: &Path) -> Result<ImageId> {
         let mut headers = self.headers().clone();
         let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
         headers.set::<ContentType>(ContentType(application_tar));
         self.http_client()
-            .post_file(&headers, &format!("/images/load?quiet={}", suppress), path)
-            .and_then(ignore_result)
+            .post_file(&headers, &format!("/images/load?quiet={}", quiet), path)
+            .and_then(ignore_result)?;
+
+        let mut ar = Archive::new(File::open(path)?);
+        for entry in ar.entries()?.filter_map(|e| e.ok()) {
+            let path = entry.path()?;
+            // looking for file name like XXXXXXXXXXXXXX.json
+            if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
+                let stem = path.file_stem().unwrap(); // contains .json
+                let id = stem.to_str().ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
+                return Ok(ImageId::new(id.to_string()))
+            }
+        }
+        Err(ErrorKind::Unknown("no expected file: XXXXXX.json".to_owned()).into())
     }
 
     /// Get system information

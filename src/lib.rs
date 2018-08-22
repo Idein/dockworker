@@ -18,6 +18,7 @@ extern crate serde_json;
 #[cfg(unix)]
 extern crate unix_socket;
 extern crate url;
+extern crate tar;
 
 mod test;
 mod util;
