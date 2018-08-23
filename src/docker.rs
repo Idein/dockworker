@@ -751,7 +751,7 @@ mod tests {
     }
 
     #[test]
-    fn wait_container_exit0() {
+    fn wait_container() {
         let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("alpine", "3.4");
         let container_name = "alpine34_exit0";
