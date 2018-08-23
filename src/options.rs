@@ -65,13 +65,33 @@ impl ContainerListOptions {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct RestartPolicy {
-    name: String,
-    maximum_retry_count: u16, // TODO: Maybe this can be smaller?
+    Name: String,
+    MaximumRetryCount: u16,
+}
+
+impl Default for RestartPolicy {
+    fn default() -> Self {
+        Self {
+            Name: "no".to_owned(),
+            MaximumRetryCount: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct DeviceMapping {
+    PathOnHost: PathBuf,
+    PathInContainer: PathBuf,
+    /// combination of r,w,m
+    CgroupPermissions: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct ContainerHostConfig {
     binds: Vec<String>,
     tmpfs: HashMap<String, String>,
@@ -94,7 +114,7 @@ pub struct ContainerHostConfig {
     // blkio_weight_read_iops: not sure the type of this. the provided is [{}]
     // blkio_weight_write_bps: not sure the type of this. the provided is [{}]
     // blkio_weight_write_iops: not sure the type of this. the provided is [{}]
-    memory_swappiness: u16, // TODO: Maybe this can be smaller?
+    memory_swappiness: i32, // TODO: Maybe this can be smaller?
     oom_kill_disable: bool,
     oom_score_adj: u16, // TODO: Maybe this can be smaller?
     pid_mode: String,
@@ -102,7 +122,7 @@ pub struct ContainerHostConfig {
     port_bindings: HashMap<String, Vec<HashMap<String, String>>>,
     publish_all_ports: bool,
     privileged: bool,
-    readonly_root_fs: bool,
+    readonly_rootfs: bool,
     dns: Vec<String>,
     dns_options: Vec<String>,
     dns_search: Vec<String>,
@@ -113,7 +133,7 @@ pub struct ContainerHostConfig {
     group_add: Vec<String>,
     restart_policy: RestartPolicy,
     network_mode: String,
-    devices: Vec<String>,
+    devices: Vec<DeviceMapping>,
     sysctls: HashMap<String, String>,
     // ulimits: TODO: Not sure the type of this. the provided is [{}]
     // log_config: TODO: not sure the type of this. the provided makes no sense
@@ -122,6 +142,52 @@ pub struct ContainerHostConfig {
     cgroup_parent: String,
     volume_driver: String,
     shm_size: u64,
+}
+
+impl ContainerHostConfig {
+    pub fn new() -> Self {
+        Self {
+            binds: Vec::new(),
+            tmpfs: HashMap::new(),
+            links: Vec::new(),
+            memory: 0,
+            memory_swap: 0,
+            memory_reservation: 0,
+            kernel_memory: 0,
+            cpu_percent: 0,
+            cpu_shares: 0,
+            cpu_period: 0,
+            cpu_quota: 0,
+            cpuset_cpus: "".to_owned(),
+            io_maximum_bandwidth: 0,
+            io_maximum_ops: 0,
+            blkio_weight: 0,
+            memory_swappiness: -1,
+            oom_kill_disable: false,
+            oom_score_adj: 0,
+            pid_mode: "".to_owned(),
+            pids_limit: 0,
+            port_bindings: HashMap::new(),
+            publish_all_ports: false,
+            privileged: false,
+            readonly_rootfs: false,
+            dns: Vec::new(),
+            dns_options: Vec::new(),
+            dns_search: Vec::new(),
+            volumes_from: Vec::new(),
+            cap_add: Vec::new(),
+            cap_drop: Vec::new(),
+            group_add: Vec::new(),
+            restart_policy: RestartPolicy::default(),
+            network_mode: "default".to_owned(),
+            devices: Vec::new(),
+            sysctls: HashMap::new(),
+            cgroup_parent: "".to_owned(),
+            volume_driver: "".to_owned(),
+            /// 64MB
+            shm_size: 64 * 1024 * 1024,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
