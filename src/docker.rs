@@ -13,8 +13,8 @@ use hyper::client::IntoUrl;
 use hyper::client::response::Response;
 use hyper::status::StatusCode;
 
+use container::{AttachResponseStream, Container, ContainerFilters, ContainerInfo, ExitStatus};
 use errors::*;
-use container::{AttachResponseStream, Container, ContainerFilters, ContainerInfo};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -406,6 +406,16 @@ impl Docker {
         Ok(StatsReader::new(res))
     }
 
+    /// Wait for a container
+    ///
+    /// # API
+    /// /containers/{id}/wait
+    pub fn wait_container(&self, id: &str) -> Result<ExitStatus> {
+        self.http_client()
+            .post(self.headers(), &format!("/containers/{}/wait", id), "")
+            .and_then(api_result)
+    }
+
     /// Remove a container
     ///
     /// # API
@@ -722,5 +732,39 @@ mod tests {
                 .is_ok()
         );
         assert!(remove_file("boondock_test_alpine.tar").is_ok());
+    }
+
+    fn with_image<F>(docker: &Docker, name: &str, tag: &str, f: F)
+    where
+        F: Fn(&str, &str),
+    {
+        pull_image(&docker, name, tag);
+        f(name, tag);
+        assert!(
+            docker
+                .remove_image(&format!("{}:{}", name, tag), None, None)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn wait_container_exit0() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.4");
+        let container_name = "alpine34_exit0";
+        with_image(&docker, name, tag, |name, tag| {
+            let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+            create.cmd("ls".to_string());
+            assert!(docker.create_container(container_name, &create).is_ok());
+            assert_eq!(
+                docker.wait_container(container_name).unwrap(),
+                ExitStatus::new(0)
+            );
+            assert!(
+                docker
+                    .remove_container(container_name, None, None, None)
+                    .is_ok()
+            );
+        })
     }
 }

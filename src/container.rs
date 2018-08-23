@@ -275,3 +275,27 @@ impl Iterator for AttachResponseStream {
         }
     }
 }
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct ExitStatus {
+    StatusCode: i32,
+}
+
+impl ExitStatus {
+    pub fn new(status_code: i32) -> Self {
+        Self {
+            StatusCode: status_code,
+        }
+    }
+
+    pub fn into_inner(self) -> i32 {
+        self.StatusCode
+    }
+}
+
+impl From<i32> for ExitStatus {
+    fn from(status_code: i32) -> Self {
+        Self::new(status_code)
+    }
+}
