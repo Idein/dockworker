@@ -1,7 +1,7 @@
-use std;
-use hyper::client::response::Response;
-use std::collections::HashMap;
 use byteorder::{BigEndian, ReadBytesExt};
+use hyper::client::response::Response;
+use std;
+use std::collections::HashMap;
 use std::io::{self, Read};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

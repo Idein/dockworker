@@ -1,29 +1,29 @@
-use std::result;
-use std::fmt;
-use std::env;
-use std::time::Duration;
-use std::path::{Path, PathBuf};
-use std::io::{BufRead, BufReader, Read};
-use std::fs::File;
-use std::ffi::OsStr;
-use url;
+use hyper::client::response::Response;
+use hyper::client::IntoUrl;
 use hyper::header::{ContentType, Headers};
 use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::client::IntoUrl;
-use hyper::client::response::Response;
 use hyper::status::StatusCode;
+use std::env;
+use std::ffi::OsStr;
+use std::fmt;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Read};
+use std::path::{Path, PathBuf};
+use std::result;
+use std::time::Duration;
+use url;
 
 use container::{AttachResponseStream, Container, ContainerFilters, ContainerInfo, ExitStatus};
 use errors::*;
+use filesystem::FilesystemChange;
+use hyper_client::HyperClient;
+use image::{Image, ImageId};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
 use system::SystemInfo;
-use image::{ImageId, Image};
-use filesystem::FilesystemChange;
-use version::Version;
-use hyper_client::HyperClient;
 use tar::Archive;
+use version::Version;
 
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
@@ -365,7 +365,8 @@ impl Docker {
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let top = self.container_top(container)?;
-        Ok(top.Processes
+        Ok(top
+            .Processes
             .iter()
             .map(|process| {
                 let mut p = Process::default();
@@ -543,8 +544,10 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem.to_str().ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
-                return Ok(ImageId::new(id.to_string()))
+                let id = stem
+                    .to_str()
+                    .ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
+                return Ok(ImageId::new(id.to_string()));
             }
         }
         Err(ErrorKind::Unknown("no expected file: XXXXXX.json".to_owned()).into())

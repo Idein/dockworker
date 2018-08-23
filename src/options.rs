@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use url::form_urlencoded;
 use std::collections::HashMap;
+use url::form_urlencoded;
 
 /// Options for `Docker::containers`.  This uses a "builder" pattern, so
 /// most methods will consume the object and return a new one.
