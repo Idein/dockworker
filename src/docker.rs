@@ -422,7 +422,7 @@ impl Docker {
     /// /containers/{id}
     pub fn remove_container(
         &self,
-        name: &str,
+        id: &str,
         volume: Option<bool>,
         force: Option<bool>,
         link: Option<bool>,
@@ -434,7 +434,7 @@ impl Docker {
         self.http_client()
             .delete(
                 self.headers(),
-                &format!("/containers/{}?{}", name, param.finish()),
+                &format!("/containers/{}?{}", id, param.finish()),
             )
             .and_then(no_content)
     }
