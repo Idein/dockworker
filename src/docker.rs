@@ -533,9 +533,17 @@ impl Docker {
         let mut headers = self.headers().clone();
         let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
         headers.set::<ContentType>(ContentType(application_tar));
-        self.http_client()
-            .post_file(&headers, &format!("/images/load?quiet={}", quiet), path)
-            .and_then(ignore_result)?;
+        let res =
+            self.http_client()
+                .post_file(&headers, &format!("/images/load?quiet={}", quiet), path)?;
+        if !res.status.is_success() {
+            return Err(serde_json::from_reader::<_, DockerError>(res)?.into());
+        }
+        // read and discard to end of response
+        for line in BufReader::new(res).lines() {
+            let buf = line?;
+            debug!("{}", buf);
+        }
 
         let mut ar = Archive::new(File::open(path)?);
         for entry in ar.entries()?.filter_map(|e| e.ok()) {

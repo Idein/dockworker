@@ -3,6 +3,8 @@
 // Increase the compiler's recursion limit for the `error_chain` crate.
 #![recursion_limit = "1024"]
 
+#[macro_use]
+extern crate log;
 extern crate byteorder;
 #[macro_use]
 extern crate error_chain;
