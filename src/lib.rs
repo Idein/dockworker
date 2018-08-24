@@ -6,6 +6,7 @@
 #[macro_use]
 extern crate log;
 extern crate byteorder;
+extern crate nix;
 #[macro_use]
 extern crate error_chain;
 extern crate hyper;

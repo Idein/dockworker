@@ -25,6 +25,7 @@ use system::SystemInfo;
 use tar::Archive;
 use version::Version;
 
+use nix::sys::signal::Signal;
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
 
@@ -308,6 +309,22 @@ impl Docker {
             .post(
                 self.headers(),
                 &format!("/containers/{}/stop?{}", id, param.finish()),
+                "",
+            )
+            .and_then(no_content)
+    }
+
+    /// Kill a container
+    ///
+    /// # API
+    /// /containers/{id}/kill
+    pub fn kill_container(&self, id: &str, signal: Signal) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("signal", &(signal as i32).to_string());
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/kill?{}", id, param.finish()),
                 "",
             )
             .and_then(no_content)

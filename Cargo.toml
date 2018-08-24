@@ -37,6 +37,7 @@ url = "1.2.2"
 byteorder = "1.1.0"
 tar = "0.4"
 log = "0.4"
+nix = "0.11"
 
 [dev-dependencies]
 env_logger = "0.5"
