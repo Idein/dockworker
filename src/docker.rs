@@ -365,8 +365,7 @@ impl Docker {
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let top = self.container_top(container)?;
-        Ok(top
-            .Processes
+        Ok(top.Processes
             .iter()
             .map(|process| {
                 let mut p = Process::default();
@@ -544,8 +543,7 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem
-                    .to_str()
+                let id = stem.to_str()
                     .ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
                 return Ok(ImageId::new(id.to_string()));
             }
