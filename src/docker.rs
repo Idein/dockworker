@@ -694,7 +694,9 @@ mod tests {
                 .map(|sts| sts.for_each(|st| println!("{:?}", st)))
                 .is_ok()
         );
-        let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        create.host_config(ContainerHostConfig::new());
+
         assert!(docker.create_container("boondock_test", &create).is_ok());
         assert!(
             docker
