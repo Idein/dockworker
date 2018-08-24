@@ -90,6 +90,20 @@ pub struct DeviceMapping {
     CgroupPermissions: String,
 }
 
+impl DeviceMapping {
+    pub fn new(
+        path_on_host: PathBuf,
+        path_in_container: PathBuf,
+        cgroup_permissions: String,
+    ) -> Self {
+        Self {
+            PathOnHost: path_on_host,
+            PathInContainer: path_in_container,
+            CgroupPermissions: cgroup_permissions,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ContainerHostConfig {
