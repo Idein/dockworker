@@ -6,7 +6,6 @@ use std::io::{self, Read};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
-//Labels, HostConfig
 pub struct Container {
     pub Id: String,
     pub Image: String,
