@@ -133,7 +133,7 @@ pub struct ContainerHostConfig {
     oom_score_adj: u16, // TODO: Maybe this can be smaller?
     pid_mode: String,
     pids_limit: i16,
-    // port_bindings: HashMap<String, Vec<HashMap<String, String>>>,
+    port_bindings: HashMap<String, Vec<HashMap<String, String>>>,
     publish_all_ports: bool,
     privileged: bool,
     readonly_rootfs: bool,
@@ -181,7 +181,7 @@ impl ContainerHostConfig {
             oom_score_adj: 0,
             pid_mode: "".to_owned(),
             pids_limit: 0,
-            // port_bindings: HashMap::new(),
+            port_bindings: HashMap::new(),
             publish_all_ports: false,
             privileged: false,
             readonly_rootfs: false,
