@@ -253,24 +253,29 @@ impl Read for AttachResponseStream {
 }
 
 impl Iterator for AttachResponseStream {
-    type Item = AttachResponseFrame;
+    type Item = io::Result<AttachResponseFrame>;
     fn next(&mut self) -> Option<Self::Item> {
+        use container::AttachResponseFrame::*;
         let mut buf = [0u8; 8];
-        if self.res.read_exact(&mut buf).is_ok() {
-            let mut frame_size_raw = &buf[4..];
-            let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
-            let mut frame = vec![0; frame_size as usize];
-            if self.res.read_exact(&mut frame).is_err() {
-                return None;
+        if let Err(err) = self.res.read_exact(&mut buf) {
+            return Some(Err(err));
+        }
+        let mut frame_size_raw = &buf[4..];
+        let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
+        println!("frame_size: {}", frame_size);
+        let mut frame = vec![0; frame_size as usize];
+        if let Err(io) = self.res.read_exact(&mut frame) {
+            return Some(Err(io));
+        }
+        match buf[0] {
+            0 => Some(Ok(Stdin(frame))),
+            1 => Some(Ok(Stdout(frame))),
+            2 => Some(Ok(Stderr(frame))),
+            n => {
+                debug!("unexpected kind of chunk: {}", n);
+                assert!(false);
+                None
             }
-            match buf[0] {
-                0 => Some(AttachResponseFrame::Stdin(frame)),
-                1 => Some(AttachResponseFrame::Stdout(frame)),
-                2 => Some(AttachResponseFrame::Stderr(frame)),
-                _ => None,
-            }
-        } else {
-            None
         }
     }
 }

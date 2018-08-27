@@ -1,8 +1,8 @@
 extern crate boondock;
 extern crate hyper;
 
-use std::str;
 use boondock::{ContainerCreateOptions, Docker};
+use std::str;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
@@ -15,6 +15,9 @@ fn main() {
         .unwrap();
 
     for frame in stream {
-        print!("frame:{}", str::from_utf8(frame.as_bytes()).unwrap());
+        print!(
+            "frame:{}",
+            str::from_utf8(frame.unwrap().as_bytes()).unwrap()
+        );
     }
 }
