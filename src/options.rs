@@ -141,6 +141,7 @@ pub struct ContainerHostConfig {
     dns_options: Vec<String>,
     dns_search: Vec<String>,
     // extra_hosts: Not sure the type of this. the provided is null
+    auto_remove: bool,
     volumes_from: Vec<String>,
     cap_add: Vec<String>,
     cap_drop: Vec<String>,
@@ -188,6 +189,7 @@ impl ContainerHostConfig {
             dns: Vec::new(),
             dns_options: Vec::new(),
             dns_search: Vec::new(),
+            auto_remove: false,
             volumes_from: Vec::new(),
             cap_add: Vec::new(),
             cap_drop: Vec::new(),
@@ -305,6 +307,10 @@ impl ContainerHostConfig {
     }
     pub fn dns_search(&mut self, dns_search: String) -> &mut Self {
         self.dns_search.push(dns_search);
+        self
+    }
+    pub fn auto_remove(&mut self, auto_remove: bool) -> &mut Self {
+        self.auto_remove = auto_remove;
         self
     }
     pub fn volumes_from(&mut self, volumes_from: String) -> &mut Self {

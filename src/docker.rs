@@ -733,6 +733,38 @@ mod tests {
         )
     }
 
+    #[test]
+    fn auto_remove_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.7");
+        assert!(
+            docker
+                .create_image(name, tag)
+                .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+                .is_ok()
+        );
+        let mut host_config = ContainerHostConfig::new();
+        host_config.auto_remove(true);
+        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        create.host_config(host_config);
+
+        let container = docker
+            .create_container("boondock_auto_remove_container", &create)
+            .unwrap();
+        assert!(docker.start_container(&container.id).is_ok());
+        assert!(docker.wait_container(&container.id).is_ok());
+        assert!(
+            docker
+                .remove_container("boondock_auto_remove_container", None, None, None)
+                .is_err() // 'no such container' or 'removel container in progress'
+        );
+        assert!(
+            docker
+                .remove_image(&format!("{}:{}", name, tag), None, None)
+                .is_ok()
+        )
+    }
+
     fn pull_image(docker: &Docker, name: &str, tag: &str) {
         assert!(
             docker
