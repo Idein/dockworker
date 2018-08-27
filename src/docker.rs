@@ -357,17 +357,19 @@ impl Docker {
         param.append_pair("stdout", &stdout.to_string());
         param.append_pair("stderr", &stderr.to_string());
 
-        let res = self.http_client().post(
-            self.headers(),
-            &format!("/containers/{}/attach?{}", id, param.finish()),
-            "",
-        )?;
-
-        if res.status.is_success() {
-            Ok(AttachResponseStream::new(res))
-        } else {
-            Err(serde_json::from_reader::<_, DockerError>(res)?.into())
-        }
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/attach?{}", id, param.finish()),
+                "",
+            )
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(AttachResponseStream::new(res))
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
     }
 
     /// List processes running inside a container

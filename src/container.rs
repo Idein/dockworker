@@ -266,7 +266,6 @@ impl Iterator for AttachResponseStream {
         }
         let mut frame_size_raw = &buf[4..];
         let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
-        println!("frame_size: {}", frame_size);
         let mut frame = vec![0; frame_size as usize];
         if let Err(io) = self.res.read_exact(&mut frame) {
             return Some(Err(io));
