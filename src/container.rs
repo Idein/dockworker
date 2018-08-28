@@ -258,7 +258,11 @@ impl Iterator for AttachResponseStream {
         use container::AttachResponseFrame::*;
         let mut buf = [0u8; 8];
         if let Err(err) = self.res.read_exact(&mut buf) {
-            return Some(Err(err));
+            return if err.kind() == io::ErrorKind::UnexpectedEof {
+                None // end of stream
+            } else {
+                Some(Err(err))
+            };
         }
         let mut frame_size_raw = &buf[4..];
         let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();

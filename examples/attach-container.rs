@@ -15,9 +15,9 @@ fn main() {
         .unwrap();
 
     for frame in stream {
-        print!(
-            "frame:{}",
-            str::from_utf8(frame.unwrap().as_bytes()).unwrap()
-        );
+        match frame {
+            Ok(frame) => print!("frame:{}", str::from_utf8(frame.as_bytes()).unwrap()),
+            Err(err) => println!("frame:err:{:?}", err),
+        }
     }
 }
