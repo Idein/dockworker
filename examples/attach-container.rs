@@ -1,12 +1,15 @@
 extern crate boondock;
 extern crate hyper;
 
-use boondock::{ContainerCreateOptions, Docker};
+use boondock::{ContainerCreateOptions, ContainerHostConfig, Docker};
 use std::str;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    let create = ContainerCreateOptions::new("hello-world:linux");
+    let mut host_config = ContainerHostConfig::new();
+    host_config.auto_remove(true);
+    let mut create = ContainerCreateOptions::new("hello-world:linux");
+    create.host_config(host_config);
 
     let container = docker.create_container("testing", &create).unwrap();
     docker.start_container(&container.id).unwrap();
