@@ -38,6 +38,7 @@ pub mod image;
 pub mod process;
 pub mod filesystem;
 pub mod version;
+pub mod signal;
 
 pub use docker::Docker;
 pub use options::*;

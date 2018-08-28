@@ -25,9 +25,9 @@ use system::SystemInfo;
 use tar::Archive;
 use version::Version;
 
-use nix::sys::signal::Signal;
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
+use signal::Signal;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -320,7 +320,7 @@ impl Docker {
     /// /containers/{id}/kill
     pub fn kill_container(&self, id: &str, signal: Signal) -> Result<()> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("signal", &(signal as i32).to_string());
+        param.append_pair("signal", &signal.as_i32().to_string());
         self.http_client()
             .post(
                 self.headers(),
@@ -762,9 +762,7 @@ mod tests {
         );
         assert!(
             docker
-                .remove_image(&format!("{}:{}", name, tag), None, None)
-                .is_ok()
-        )
+                .remove_image(&format!("{}:{}", name, tag), Some(true), None).is_ok());
     }
 
     fn pull_image(docker: &Docker, name: &str, tag: &str) {
