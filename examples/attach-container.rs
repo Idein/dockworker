@@ -11,7 +11,7 @@ fn main() {
     let mut create = ContainerCreateOptions::new("hello-world:linux");
     create.host_config(host_config);
 
-    let container = docker.create_container("testing", &create).unwrap();
+    let container = docker.create_container(Some("testing"), &create).unwrap();
     docker.start_container(&container.id).unwrap();
     let stream = docker
         .attach_container(&container.id, None, true, true, false, true, false)

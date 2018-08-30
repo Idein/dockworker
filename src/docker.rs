@@ -270,21 +270,23 @@ impl Docker {
     /// POST /containers/create
     pub fn create_container(
         &self,
-        name: &str,
+        name: Option<&str>,
         option: &ContainerCreateOptions,
     ) -> Result<CreateContainerResponse> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("name", name);
+        let path = match name {
+            Some(name) => {
+                let mut param = url::form_urlencoded::Serializer::new(String::new());
+                param.append_pair("name", name);
+                format!("/containers/create?{}", param.finish())
+            }
+            None => format!("/containers/create"),
+        };
 
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
         self.http_client()
-            .post(
-                &headers,
-                &format!("/containers/create?{}", param.finish()),
-                &json_body,
-            )
+            .post(&headers, &path, &json_body)
             .and_then(api_result)
     }
 
@@ -384,7 +386,8 @@ impl Docker {
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let top = self.container_top(container)?;
-        Ok(top.Processes
+        Ok(top
+            .Processes
             .iter()
             .map(|process| {
                 let mut p = Process::default();
@@ -570,7 +573,8 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem.to_str()
+                let id = stem
+                    .to_str()
                     .ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
                 return Ok(ImageId::new(id.to_string()));
             }
@@ -722,7 +726,11 @@ mod tests {
         let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
         create.host_config(ContainerHostConfig::new());
 
-        assert!(docker.create_container("boondock_test", &create).is_ok());
+        assert!(
+            docker
+                .create_container(Some("boondock_test"), &create)
+                .is_ok()
+        );
         assert!(
             docker
                 .remove_container("boondock_test", None, None, None)
@@ -751,7 +759,7 @@ mod tests {
         create.host_config(host_config);
 
         let container = docker
-            .create_container("boondock_auto_remove_container", &create)
+            .create_container(Some("boondock_auto_remove_container"), &create)
             .unwrap();
         assert!(docker.start_container(&container.id).is_ok());
         assert!(docker.wait_container(&container.id).is_ok());
@@ -762,7 +770,9 @@ mod tests {
         );
         assert!(
             docker
-                .remove_image(&format!("{}:{}", name, tag), Some(true), None).is_ok());
+                .remove_image(&format!("{}:{}", name, tag), Some(true), None)
+                .is_ok()
+        );
     }
 
     fn pull_image(docker: &Docker, name: &str, tag: &str) {
@@ -815,7 +825,11 @@ mod tests {
         with_image(&docker, name, tag, |name, tag| {
             let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
             create.cmd("ls".to_string());
-            assert!(docker.create_container(container_name, &create).is_ok());
+            assert!(
+                docker
+                    .create_container(Some(container_name), &create)
+                    .is_ok()
+            );
             assert_eq!(
                 docker.wait_container(container_name).unwrap(),
                 ExitStatus::new(0)
