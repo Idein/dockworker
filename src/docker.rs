@@ -267,7 +267,13 @@ impl Docker {
 
     /// Create a container
     ///
-    /// POST /containers/create
+    /// # Summary
+    ///
+    /// * `name` - None: auto naming
+    /// * `option` - create options
+    ///
+    /// # API
+    /// POST /containers/create?{name}
     pub fn create_container(
         &self,
         name: Option<&str>,
@@ -467,7 +473,7 @@ impl Docker {
     /// /images/create?fromImage={image}&tag={tag}
     ///
     /// # NOTE
-    /// When control returns from this function, creating job may have been completed.
+    /// When control returns from this function, creating job may not have been completed.
     /// For waiting the completion of the job, cunsuming response like `create_image("hello-world", "linux").map(|r| r.for_each(|_| ()));`.
     ///
     /// # TODO
