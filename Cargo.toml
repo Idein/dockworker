@@ -15,6 +15,7 @@ keywords = ["docker"]
 
 [badges]
 appveyor = { repository = "eldesh/dockworker", branch = "master", service = "github" }
+circle-ci = { repository = "eldesh/dockworker" }
 maintenance = { status = "actively-developed" }
 
 [features]
