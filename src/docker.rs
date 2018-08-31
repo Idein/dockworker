@@ -734,12 +734,12 @@ mod tests {
 
         assert!(
             docker
-                .create_container(Some("boondock_test"), &create)
+                .create_container(Some("dockworker_test"), &create)
                 .is_ok()
         );
         assert!(
             docker
-                .remove_container("boondock_test", None, None, None)
+                .remove_container("dockworker_test", None, None, None)
                 .is_ok()
         );
         assert!(
@@ -765,13 +765,13 @@ mod tests {
         create.host_config(host_config);
 
         let container = docker
-            .create_container(Some("boondock_auto_remove_container"), &create)
+            .create_container(Some("dockworker_auto_remove_container"), &create)
             .unwrap();
         assert!(docker.start_container(&container.id).is_ok());
         assert!(docker.wait_container(&container.id).is_ok());
         assert!(
             docker
-                .remove_container("boondock_auto_remove_container", None, None, None)
+                .remove_container("dockworker_auto_remove_container", None, None, None)
                 .is_err() // 'no such container' or 'removel container in progress'
         );
         assert!(
@@ -796,7 +796,7 @@ mod tests {
         pull_image(&docker, "alpine", "latest");
 
         {
-            let mut file = File::create("boondock_test_alpine.tar").unwrap();
+            let mut file = File::create("dockworker_test_alpine.tar").unwrap();
             let mut res = docker.export_image("alpine:latest").unwrap();
             io::copy(&mut res, &mut file).unwrap();
         }
@@ -804,10 +804,10 @@ mod tests {
         assert!(docker.remove_image("alpine:latest", None, None).is_ok());
         assert!(
             docker
-                .load_image(false, Path::new("boondock_test_alpine.tar"))
+                .load_image(false, Path::new("dockworker_test_alpine.tar"))
                 .is_ok()
         );
-        assert!(remove_file("boondock_test_alpine.tar").is_ok());
+        assert!(remove_file("dockworker_test_alpine.tar").is_ok());
     }
 
     fn with_image<F>(docker: &Docker, name: &str, tag: &str, f: F)
