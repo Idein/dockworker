@@ -1,11 +1,11 @@
+use hyper;
+use hyper::net::{NetworkConnector, NetworkStream};
 use std::fmt;
 use std::io;
 use std::io::{ErrorKind, Read, Write};
 use std::net::{Ipv4Addr, Shutdown, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use unix_socket::UnixStream;
-use hyper;
-use hyper::net::{NetworkConnector, NetworkStream};
 
 pub struct HttpUnixStream(pub UnixStream);
 

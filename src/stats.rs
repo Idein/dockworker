@@ -1,6 +1,6 @@
-use std::iter;
-use std::io::{BufRead, BufReader};
 use hyper::client::response::Response;
+use std::io::{BufRead, BufReader};
+use std::iter;
 
 use serde_json;
 

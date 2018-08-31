@@ -1,18 +1,18 @@
 #![cfg(test)]
 
-use serde_json;
 use container::{Container, ContainerInfo};
-use process::Top;
-use stats::{Stats, StatsReader};
-use system::SystemInfo;
-use image::Image;
 use filesystem::FilesystemChange;
-use version::Version;
 use hyper::client::response::Response;
-use util::MemoryStream;
-use hyper::Url;
 use hyper::http::h1::{Http11Message, HttpWriter};
+use hyper::Url;
+use image::Image;
+use process::Top;
+use serde_json;
+use stats::{Stats, StatsReader};
 use std::io::Write;
+use system::SystemInfo;
+use util::MemoryStream;
+use version::Version;
 
 #[test]
 fn get_containers() {

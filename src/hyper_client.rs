@@ -1,26 +1,26 @@
+use std::fs::File;
+use std::path::Path;
 use std::result;
 use std::sync::Arc;
-use std::path::Path;
-use std::fs::File;
 
-use hyper::client::IntoUrl;
-use hyper::Client;
-use hyper::Url;
 use hyper::client::pool::{Config, Pool};
-use hyper::header::Headers;
 use hyper::client::response::Response;
+use hyper::client::IntoUrl;
+use hyper::header::Headers;
 use hyper::net::HttpConnector;
 #[cfg(feature = "openssl")]
 use hyper::net::{HttpsConnector, Openssl};
+use hyper::Client;
+use hyper::Url;
 #[cfg(feature = "openssl")]
 use openssl::ssl::{SslContext, SslMethod};
 #[cfg(feature = "openssl")]
 use openssl::x509::X509FileType;
 
-#[cfg(unix)]
-use unix::HttpUnixConnector;
 use docker::*;
 use errors::*;
+#[cfg(unix)]
+use unix::HttpUnixConnector;
 
 /// Http client using hyper
 #[derive(Debug)]

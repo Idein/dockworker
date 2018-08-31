@@ -1,8 +1,8 @@
 extern crate dockworker;
 
-use std::io;
-use std::fs::File;
 use dockworker::{ContainerListOptions, Docker};
+use std::fs::File;
+use std::io;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();

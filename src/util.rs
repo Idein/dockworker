@@ -1,8 +1,8 @@
-use std::vec::Vec;
-use std::io::{Read, Result, Write};
-use std::time::Duration;
-use std::net::{Shutdown, SocketAddr};
 use hyper::net::NetworkStream;
+use std::io::{Read, Result, Write};
+use std::net::{Shutdown, SocketAddr};
+use std::time::Duration;
+use std::vec::Vec;
 
 #[derive(Debug)]
 pub struct MemoryStream {

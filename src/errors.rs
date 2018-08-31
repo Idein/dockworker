@@ -1,10 +1,10 @@
 //! Error-handling with the `error_chain` crate.
 
+use docker;
 use hyper;
+use serde_json;
 use std::env;
 use std::io;
-use serde_json;
-use docker;
 
 error_chain! {
     foreign_links {
