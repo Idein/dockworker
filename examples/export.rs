@@ -1,8 +1,8 @@
-extern crate boondock;
+extern crate dockworker;
 
 use std::io;
 use std::fs::File;
-use boondock::{ContainerListOptions, Docker};
+use dockworker::{ContainerListOptions, Docker};
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();

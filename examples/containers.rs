@@ -1,6 +1,6 @@
-extern crate boondock;
+extern crate dockworker;
 
-use boondock::{Docker, container::ContainerFilters};
+use dockworker::{Docker, container::ContainerFilters};
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();

@@ -1,7 +1,7 @@
-extern crate boondock;
+extern crate dockworker;
 extern crate hyper;
 
-use boondock::{ContainerCreateOptions, ContainerHostConfig, Docker};
+use dockworker::{ContainerCreateOptions, ContainerHostConfig, Docker};
 use std::str;
 
 fn main() {

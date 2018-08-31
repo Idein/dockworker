@@ -1,7 +1,7 @@
-extern crate boondock;
+extern crate dockworker;
 extern crate env_logger;
 
-use boondock::Docker;
+use dockworker::Docker;
 use std::path::Path;
 
 fn main() {
