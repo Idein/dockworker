@@ -14,6 +14,7 @@ readme = "README.md"
 keywords = ["docker"]
 
 [badges]
+appveyor = { repository = "eldesh/dockworker", branch = "master", service = "github" }
 maintenance = { status = "actively-developed" }
 
 [features]
