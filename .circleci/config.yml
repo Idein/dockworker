@@ -17,8 +17,8 @@ jobs:
       - restore_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
       - run: cargo fmt -- --write-mode "diff"
-      - run: RUST_BACKTRACE=1 cargo build --verbose --no-default-features
-      - run: RUST_BACKTRACE=1 cargo test --verbose --no-default-features
+      - run: RUST_BACKTRACE=1 cargo build --verbose
+      - run: RUST_BACKTRACE=1 cargo test --verbose
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
           paths:
