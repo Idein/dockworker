@@ -3,9 +3,9 @@ jobs:
   build:
     working_directory: /tmp/boondock
     docker:
-      - image: idein/rust-stable:bionic-1.25.0
+      - image: idein/rust-stable:1.25.0
         environment:
-          OS_VERSION: bionic
+          OS_VERSION: xenial
     steps:
       - checkout
       - setup_remote_docker
