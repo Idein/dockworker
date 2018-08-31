@@ -9,7 +9,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: apt-get update -y && apt-get install -y docker.io
+      - run: apt-get update -y && apt-get install -y docker.io libssl-dev
       - run: cat Cargo.toml Cargo.lock > /tmp/build-dep
       - run: rustc --version >> /tmp/build-dep
       - run: echo $OS_VERSION >> /tmp/build-dep
