@@ -1,21 +1,20 @@
 [package]
-name = "boondock"
-description = "Docker daemon API (a fork of Graham Lee's rust-docker)"
-version = "0.0.50"
-authors = ["Graham Lee <ghmlee@ghmlee.com>",
+name = "dockworker"
+description = "Docker daemon API client. (a fork of Faraday's boondock)"
+version = "0.0.1"
+authors = ["eldesh <nephits@gmail.com>",
+           "Graham Lee <ghmlee@ghmlee.com>",
            "Toby Lawrence <toby@nuclearfurnace.com>",
            "Eric Kidd <git@randomhacks.net>"]
 license = "Apache-2.0"
-homepage = "https://github.com/faradayio/boondock"
-repository = "https://github.com/faradayio/boondock"
-documentation = "https://docs.rs/boondock"
+homepage = "https://github.com/eldesh/dockworker"
+repository = "https://github.com/eldesh/dockworker"
+documentation = "https://docs.rs/dockworker"
 readme = "README.md"
 keywords = ["docker"]
 
 [badges]
-appveyor = { repository = "faradayio/boondock", branch = "master", service = "github" }
-travis-ci = { repository = "faradayio/boondock", branch = "master" }
-maintenance = { status = "passively-maintained" }
+maintenance = { status = "actively-developed" }
 
 [features]
 # OpenSSL is fairly hard to build on certain platforms, especially if you
