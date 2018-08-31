@@ -86,7 +86,7 @@ dependencies = [
 
 [[package]]
 name = "dockworker"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder 1.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
