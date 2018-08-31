@@ -2,10 +2,7 @@
 name = "dockworker"
 description = "Docker daemon API client. (a fork of Faraday's boondock)"
 version = "0.0.1"
-authors = ["eldesh <nephits@gmail.com>",
-           "Graham Lee <ghmlee@ghmlee.com>",
-           "Toby Lawrence <toby@nuclearfurnace.com>",
-           "Eric Kidd <git@randomhacks.net>"]
+authors = ["eldesh <nephits@gmail.com>"]
 license = "Apache-2.0"
 homepage = "https://github.com/eldesh/dockworker"
 repository = "https://github.com/eldesh/dockworker"

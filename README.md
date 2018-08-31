@@ -12,3 +12,13 @@
     - Linux
     - Windows
 
+
+## Original Project Contributors
+
+`Dockworker` crate is forked from [boondock](https://github.com/faradayio/boondock).
+Heres are contributors to it.
+
+- Graham Lee <ghmlee@ghmlee.com>
+- Toby Lawrence <toby@nuclearfurnace.com>
+- Eric Kidd <git@randomhacks.net>
+
