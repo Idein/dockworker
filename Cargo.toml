@@ -17,9 +17,8 @@ maintenance = { status = "actively-developed" }
 
 [features]
 # OpenSSL is fairly hard to build on certain platforms, especially if you
-# want to produce release binaries.  So we enable it by default, but allow
-# it to be excluded using `default-features = false`.
-default = ["ssl"]
+# want to produce release binaries. So we disable it by default.
+default = []
 
 # Enable OpenSSL both directly and for Hyper.
 ssl = ["openssl", "hyper/ssl"]
