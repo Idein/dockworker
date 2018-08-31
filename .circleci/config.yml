@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: /tmp/boondock
+    working_directory: /tmp/dockworker
     docker:
       - image: idein/rust-stable:1.25.0
         environment:
