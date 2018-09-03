@@ -21,9 +21,10 @@ use image::{Image, ImageId};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
-use system::SystemInfo;
+use system::{AuthRequest, SystemInfo};
 use tar::Archive;
 use version::Version;
+pub use credentials::AuthToken;
 
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
@@ -584,6 +585,31 @@ impl Docker {
             }
         }
         Err(ErrorKind::Unknown("no expected file: XXXXXX.json".to_owned()).into())
+    }
+
+    /// Check auth configuration
+    ///
+    /// # API
+    /// /auth
+    pub fn auth(
+        &self,
+        username: &str,
+        password: &str,
+        email: &str,
+        serveraddress: &str,
+    ) -> Result<AuthToken> {
+        let req = AuthRequest::new(
+            username.to_string(),
+            password.to_string(),
+            email.to_string(),
+            serveraddress.to_string(),
+        );
+        let json_body = serde_json::to_string(&req)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(&headers, "/auth", &json_body)
+            .and_then(api_result)
     }
 
     /// Get system information

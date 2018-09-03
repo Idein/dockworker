@@ -39,6 +39,7 @@ mod test;
 mod unix;
 mod util;
 pub mod version;
+pub mod credentials;
 
 pub use docker::Docker;
 pub use options::*;
