@@ -29,6 +29,7 @@ pub use credentials::AuthToken;
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
 use signal::Signal;
+use header::XRegistryAuth;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -70,6 +71,7 @@ pub struct Docker {
     client: HyperClient,
     /// connection protocol
     protocol: Protocol,
+    /// http headers used for any requests
     headers: Headers,
 }
 
@@ -500,6 +502,40 @@ impl Docker {
         } else {
             Err(serde_json::from_reader::<_, DockerError>(res)?.into())
         }
+    }
+
+    /// Push an image
+    ///
+    /// # API
+    /// /images/{name}/push
+    ///
+    pub fn push_image(
+        &self,
+        name: &str,
+        tag: Option<&str>,
+        username: &str,
+        password: &str,
+        email: &str,
+        serveraddress: &str,
+    ) -> Result<()> {
+        let mut headers = self.headers().clone();
+        headers.set::<XRegistryAuth>(XRegistryAuth::new(
+            username.to_string(),
+            password.to_string(),
+            email.to_string(),
+            serveraddress.to_string(),
+        ));
+        let path = match tag {
+            Some(tag) => {
+                let mut param = url::form_urlencoded::Serializer::new(String::new());
+                param.append_pair("tag", tag);
+                format!("/images/{}/push?{}", name, param.finish())
+            }
+            None => format!("/images/{}/push", name),
+        };
+        self.http_client()
+            .post(&headers, &path, "")
+            .and_then(ignore_result)
     }
 
     /// Remove an image

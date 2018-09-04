@@ -3,6 +3,7 @@
 // Increase the compiler's recursion limit for the `error_chain` crate.
 #![recursion_limit = "1024"]
 
+extern crate base64;
 extern crate byteorder;
 #[macro_use]
 extern crate error_chain;
@@ -23,6 +24,7 @@ extern crate tar;
 extern crate unix_socket;
 extern crate url;
 
+mod header;
 pub mod container;
 mod docker;
 pub mod errors;
