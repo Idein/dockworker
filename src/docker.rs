@@ -512,12 +512,14 @@ impl Docker {
     pub fn push_image(
         &self,
         name: &str,
-        tag: Option<&str>,
+        tag: &str,
         username: &str,
         password: &str,
         email: &str,
         serveraddress: &str,
     ) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("tag", tag);
         let mut headers = self.headers().clone();
         headers.set::<XRegistryAuth>(XRegistryAuth::new(
             username.to_string(),
@@ -525,17 +527,13 @@ impl Docker {
             email.to_string(),
             serveraddress.to_string(),
         ));
-        let path = match tag {
-            Some(tag) => {
-                let mut param = url::form_urlencoded::Serializer::new(String::new());
-                param.append_pair("tag", tag);
-                format!("/images/{}/push?{}", name, param.finish())
-            }
-            None => format!("/images/{}/push", name),
-        };
         self.http_client()
-            .post(&headers, &path, "")
-            .and_then(ignore_result)
+            .post(
+                &headers,
+                &format!("/images/{}/push?{}", name, param.finish()),
+                "",
+            )
+            .and_then(no_content)
     }
 
     /// Remove an image
