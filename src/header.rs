@@ -48,6 +48,7 @@ impl Header for XRegistryAuth {
 impl HeaderFormat for XRegistryAuth {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let json = serde_json::to_string(self).map_err(|_| fmt::Error)?;
-        write!(f, "{}", json)
+        let b64 = base64::encode_config(json.as_bytes(), MIME);
+        write!(f, "{}", b64)
     }
 }
