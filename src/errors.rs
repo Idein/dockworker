@@ -5,6 +5,7 @@ use hyper;
 use serde_json;
 use std::env;
 use std::io;
+use base64;
 
 error_chain! {
     foreign_links {
@@ -14,6 +15,7 @@ error_chain! {
         io::Error, Io;
         serde_json::error::Error, Json;
         docker::DockerError, Docker;
+        base64::DecodeError, Base64;
     }
 
     errors {
