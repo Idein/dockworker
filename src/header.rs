@@ -5,7 +5,7 @@ use std::fmt;
 use hyper::header::{Header, HeaderFormat};
 use hyper::error::Result;
 use hyper::Error;
-use base64::{self, MIME};
+use base64::{self, STANDARD};
 
 /// The http header represent `X-Registry-Auth`
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,7 +31,7 @@ impl Header for XRegistryAuth {
             return Err(Error::Header);
         }
 
-        base64::decode_config(&raw[0], MIME)
+        base64::decode_config(&raw[0], STANDARD)
             .map_err(|_| Error::Header)
             .map(|vec| Self::new(String::from_utf8_lossy(&vec).to_string()))
     }
@@ -39,7 +39,8 @@ impl Header for XRegistryAuth {
 
 impl HeaderFormat for XRegistryAuth {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let b64 = base64::encode_config(self.body.as_bytes(), MIME);
+        let b64 = base64::encode_config(self.body.as_bytes(), STANDARD);
+        debug!("{}: {}", Self::header_name(), b64);
         write!(f, "{}", b64)
     }
 }

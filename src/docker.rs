@@ -21,10 +21,10 @@ use image::{Image, ImageId};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
-use system::SystemInfo;
+use system::{AuthToken, SystemInfo};
 use tar::Archive;
 use version::Version;
-pub use credentials::{AuthToken, Credential, UserPassword};
+pub use credentials::{Credential, UserPassword};
 
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
@@ -529,7 +529,7 @@ impl Docker {
                 &format!("/images/{}/push?{}", name, param.finish()),
                 "",
             )
-            .and_then(no_content)
+            .and_then(ignore_result)
     }
 
     /// Remove an image

@@ -7,15 +7,16 @@ use header::XRegistryAuth;
 
 /// Access credential
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum Credential {
     /// identity token issued by docker registry
-    Token(AuthToken),
+    Token(IdentityToken),
     /// user password
     Password(UserPassword),
 }
 
 impl Credential {
-    pub fn with_token(token: AuthToken) -> Self {
+    pub fn with_token(token: IdentityToken) -> Self {
         Credential::Token(token)
     }
 
@@ -48,16 +49,14 @@ impl UserPassword {
 
 /// Access token for accessing apis
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct AuthToken {
-    Status: String,
-    IdentityToken: String,
+pub struct IdentityToken {
+    identitytoken: String,
 }
 
-impl AuthToken {
+impl IdentityToken {
     #[allow(dead_code)]
     fn token(&self) -> String {
-        self.IdentityToken.clone()
+        self.identitytoken.clone()
     }
 }
 
