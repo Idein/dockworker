@@ -621,6 +621,10 @@ impl Docker {
     ///
     /// # API
     /// /auth
+    ///
+    /// # NOTE
+    /// In some cases, docker daemon returns an empty token with `200 Ok`.
+    /// The empty token could not be used for authenticating users.
     pub fn auth(
         &self,
         username: &str,
