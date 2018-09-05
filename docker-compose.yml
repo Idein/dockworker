@@ -18,10 +18,13 @@ services:
 
   register_user:
     image: registry:2
+    environment:
+      REGISTRY_USER: "someusername"
+      REGISTRY_PASSWORD: "somepassword"
     volumes:
       - registry2_authdb:/auth
     command: |
-      htpasswd -Bbc ${USER} ${PASSWORD} >> /auth/htpasswd
+      sh -c "htpasswd -Bbn $${REGISTRY_USER} $${REGISTRY_PASSWORD} >> /auth/htpasswd"
 
 volumes:
     registry2_authdb:
