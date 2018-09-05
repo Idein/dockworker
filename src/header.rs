@@ -5,25 +5,19 @@ use std::fmt;
 use hyper::header::{Header, HeaderFormat};
 use hyper::error::Result;
 use hyper::Error;
-use serde_json;
 use base64::{self, MIME};
 
+/// The http header represent `X-Registry-Auth`
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct XRegistryAuth {
-    username: String,
-    password: String,
-    email: String,
-    serveraddress: String,
+    /// Header value string.
+    /// This body is sent/recv with enc/dec-ed base64 implicitly
+    body: String,
 }
 
 impl XRegistryAuth {
-    pub fn new(username: String, password: String, email: String, serveraddress: String) -> Self {
-        Self {
-            username,
-            password,
-            email,
-            serveraddress,
-        }
+    pub fn new(body: String) -> Self {
+        Self { body }
     }
 }
 
@@ -39,16 +33,13 @@ impl Header for XRegistryAuth {
 
         base64::decode_config(&raw[0], MIME)
             .map_err(|_| Error::Header)
-            .and_then(|vec| {
-                serde_json::from_str(&String::from_utf8_lossy(&vec)).map_err(|_| Error::Header)
-            })
+            .map(|vec| Self::new(String::from_utf8_lossy(&vec).to_string()))
     }
 }
 
 impl HeaderFormat for XRegistryAuth {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let json = serde_json::to_string(self).map_err(|_| fmt::Error)?;
-        let b64 = base64::encode_config(json.as_bytes(), MIME);
+        let b64 = base64::encode_config(self.body.as_bytes(), MIME);
         write!(f, "{}", b64)
     }
 }
