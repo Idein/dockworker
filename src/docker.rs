@@ -640,7 +640,7 @@ impl Docker {
         );
         let json_body = serde_json::to_string(&req)?;
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.set(ContentType::json());
         self.http_client()
             .post(&headers, "/auth", &json_body)
             .and_then(api_result)
