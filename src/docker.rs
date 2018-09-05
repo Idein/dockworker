@@ -21,7 +21,7 @@ use image::{Image, ImageId};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
-use system::{AuthRequest, SystemInfo};
+use system::SystemInfo;
 use tar::Archive;
 use version::Version;
 pub use credentials::{AuthToken, Credential, UserPassword};
@@ -163,6 +163,10 @@ impl Docker {
             headers: Headers::new(),
             credential: None,
         }
+    }
+
+    pub fn set_credential(&mut self, credential: Credential) {
+        self.credential = Some(credential)
     }
 
     fn headers(&self) -> &Headers {
