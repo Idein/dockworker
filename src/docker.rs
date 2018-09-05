@@ -24,7 +24,7 @@ use stats::StatsReader;
 use system::{AuthRequest, SystemInfo};
 use tar::Archive;
 use version::Version;
-pub use credentials::AuthToken;
+pub use credentials::{AuthToken, Credential, UserPassword};
 
 use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
@@ -64,7 +64,7 @@ enum Protocol {
     Tcp,
 }
 
-/// Client connects to docker daemon
+/// Handle to connection to the docker daemon
 #[derive(Debug)]
 pub struct Docker {
     /// http client
@@ -73,6 +73,8 @@ pub struct Docker {
     protocol: Protocol,
     /// http headers used for any requests
     headers: Headers,
+    /// access credential for accessing apis
+    credential: Option<Credential>,
 }
 
 /// Type of general docker error response
@@ -159,6 +161,7 @@ impl Docker {
             client,
             protocol,
             headers: Headers::new(),
+            credential: None,
         }
     }
 
@@ -509,24 +512,13 @@ impl Docker {
     /// # API
     /// /images/{name}/push
     ///
-    pub fn push_image(
-        &self,
-        name: &str,
-        tag: &str,
-        username: &str,
-        password: &str,
-        email: &str,
-        serveraddress: &str,
-    ) -> Result<()> {
+    pub fn push_image(&self, name: &str, tag: &str) -> Result<()> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("tag", tag);
         let mut headers = self.headers().clone();
-        headers.set::<XRegistryAuth>(XRegistryAuth::new(
-            username.to_string(),
-            password.to_string(),
-            email.to_string(),
-            serveraddress.to_string(),
-        ));
+        if let Some(ref credential) = self.credential {
+            headers.set::<XRegistryAuth>(credential.clone().into());
+        }
         self.http_client()
             .post(
                 &headers,
@@ -632,7 +624,7 @@ impl Docker {
         email: &str,
         serveraddress: &str,
     ) -> Result<AuthToken> {
-        let req = AuthRequest::new(
+        let req = UserPassword::new(
             username.to_string(),
             password.to_string(),
             email.to_string(),

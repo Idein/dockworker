@@ -9,9 +9,20 @@ services:
       REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
       REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
     volumes:
-      - ./auth:/auth
+      - registry2_authdb:/auth
     ports:
       - 5000:5000
     restart: always
     networks:
       - default
+
+  register_user:
+    image: registry:2
+    volumes:
+      - registry2_authdb:/auth
+    command: |
+      htpasswd -Bbc ${USER} ${PASSWORD} >> /auth/htpasswd
+
+volumes:
+    registry2_authdb:
+
