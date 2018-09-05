@@ -16,7 +16,8 @@
 
 ### Api
 
-Supported Apis:
+Supported Api List.
+`Support` means that any wrapper method exists in this crate.
 
 - container
 	- [x] `/containers/json`
@@ -50,7 +51,7 @@ Supported Apis:
 	- [x] `/images/create`
 	- [ ] `/images/{name}/json`
 	- [ ] `/images/{name}/history`
-	- [ ] `/images/{name}/push`
+	- [x] `/images/{name}/push`
 	- [ ] `/images/{name}/tag`
 	- [x] `/images/{name}` # remove
 	- [ ] `/images/search`
@@ -61,7 +62,7 @@ Supported Apis:
 	- [x] `/images/load`
 
 - system
-	- [ ] `/auth`
+	- [x] `/auth`
 	- [x] `/info`
 	- [x] `/version`
 	- [x] `/_ping`
