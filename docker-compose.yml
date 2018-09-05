@@ -1,6 +1,15 @@
 version: '2'
 
+# # register id/pass to the database volume(registry2_authdb)
+# > docker-compose run --rm register_user
+# # boot up docker registry container
+# > docker-compose up -d registry
+# # you can execute examples (and docker-login too)
+# > ./target/debug/examples/push
+
 services:
+  # Docker registry container.
+  # This service is used for examples/login and auth.
   registry:
     image: registry:2
     container_name: registry2
@@ -16,6 +25,7 @@ services:
     networks:
       - default
 
+  # User password db generator for basic authentication.
   register_user:
     image: registry:2
     environment:
