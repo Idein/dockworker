@@ -87,27 +87,6 @@ pub struct SystemInfo {
     // pub ServerVersion: String,
 }
 
-/// response of /auth
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct AuthRequest {
-    username: String,
-    password: String,
-    email: String,
-    serveraddress: String,
-}
-
-impl AuthRequest {
-    pub fn new(username: String, password: String, email: String, serveraddress: String) -> Self {
-        Self {
-            username,
-            password,
-            email,
-            serveraddress,
-        }
-    }
-}
-
 /// Type of the response of `/auth` api
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
