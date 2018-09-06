@@ -255,7 +255,7 @@ impl Docker {
         }
         param.append_pair("size", &(size.unwrap_or(false) as u64).to_string());
         param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
-        println!("filter: {}", serde_json::to_string(&filters).unwrap());
+        debug!("filter: {}", serde_json::to_string(&filters).unwrap());
 
         self.http_client()
             .get(
