@@ -97,7 +97,7 @@ pub struct AuthToken {
 
 impl AuthToken {
     #[allow(dead_code)]
-    fn token(&self) -> String {
+    pub fn token(&self) -> String {
         self.IdentityToken.clone()
     }
 }

@@ -4,6 +4,7 @@
 
 use serde_json;
 use header::XRegistryAuth;
+use system::AuthToken;
 
 /// Access credential
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -55,8 +56,14 @@ pub struct IdentityToken {
 
 impl IdentityToken {
     #[allow(dead_code)]
-    fn token(&self) -> String {
+    pub fn token(&self) -> String {
         self.identitytoken.clone()
+    }
+    #[allow(dead_code)]
+    pub fn from_auth_token(auth_token: &AuthToken) -> Self {
+        Self {
+            identitytoken: auth_token.token(),
+        }
     }
 }
 
