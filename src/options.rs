@@ -6,6 +6,18 @@ use std::time::Duration;
 use std::collections::HashMap;
 use url::form_urlencoded;
 
+use serde::de::{DeserializeOwned, Deserializer};
+use serde::Deserialize;
+
+fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: DeserializeOwned + Default,
+{
+    let actual: Option<T> = Option::deserialize(de)?;
+    Ok(actual.unwrap_or_default())
+}
+
 /// Options for `Docker::containers`.  This uses a "builder" pattern, so
 /// most methods will consume the object and return a new one.
 #[derive(Debug, Clone, Default)]
@@ -565,8 +577,17 @@ pub struct CreateContainerResponse {
     pub warnings: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub enum RemoveImageResponse {
+/// Response of the removing image api
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub enum RemovedImage {
     Untagged(String),
     Deleted(String),
+}
+
+/// Response of the prune image api
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct PrunedImages {
+    #[serde(deserialize_with = "null_to_default")]
+    ImagesDeleted: Vec<RemovedImage>,
+    SpaceReclaimed: i64,
 }

@@ -542,7 +542,7 @@ impl Docker {
         name: &str,
         force: Option<bool>,
         noprune: Option<bool>,
-    ) -> Result<Vec<RemoveImageResponse>> {
+    ) -> Result<Vec<RemovedImage>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("force", &force.unwrap_or(false).to_string());
         param.append_pair("noprune", &noprune.unwrap_or(false).to_string());
@@ -550,6 +550,25 @@ impl Docker {
             .delete(
                 self.headers(),
                 &format!("/images/{}?{}", name, param.finish()),
+            )
+            .and_then(api_result)
+    }
+
+    /// Delete unused images
+    ///
+    /// # API
+    /// /images/prune
+    pub fn prune_image(&self, dangling: bool) -> Result<PrunedImages> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair(
+            "filters",
+            &format!(r#"{{"filters": {{"dangling":{}}} }}"#, dangling.to_string()),
+        );
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/images/prune?{}", param.finish()),
+                "",
             )
             .and_then(api_result)
     }
