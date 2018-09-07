@@ -518,6 +518,10 @@ impl Docker {
 
     /// Push an image
     ///
+    /// # NOTE
+    /// For pushing an image to non default registry, add registry id to prefix of the image name like `<registry>/<image>` .
+    /// But the name of the local cache image is `<image>:<tag>` .
+    ///
     /// # API
     /// /images/{name}/push
     ///
