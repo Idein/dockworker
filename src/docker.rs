@@ -500,11 +500,13 @@ impl Docker {
         param.append_pair("fromImage", image);
         param.append_pair("tag", tag);
 
-        let res = self.http_client().post(
-            self.headers(),
-            &format!("/images/create?{}", param.finish()),
-            "",
-        )?;
+        let mut headers = self.headers().clone();
+        if let Some(ref credential) = self.credential {
+            headers.set::<XRegistryAuth>(credential.clone().into());
+        }
+        let res =
+            self.http_client()
+                .post(&headers, &format!("/images/create?{}", param.finish()), "")?;
         if res.status.is_success() {
             Ok(Box::new(BufReader::new(res).lines().map(|line| {
                 Ok(line?).and_then(|ref line| Ok(serde_json::from_str(line)?))
