@@ -118,9 +118,12 @@ fn no_content(res: Response) -> result::Result<(), Error> {
 }
 
 /// Ignore succeed response
+///
+/// Read whole response body, then ignore it.
 fn ignore_result(res: Response) -> result::Result<(), Error> {
     if res.status.is_success() {
-        Ok(()) // ignore
+        res.bytes().last(); // ignore
+        Ok(())
     } else {
         Err(serde_json::from_reader::<_, DockerError>(res)?.into())
     }
