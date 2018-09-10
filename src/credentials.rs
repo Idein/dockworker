@@ -65,6 +65,12 @@ impl IdentityToken {
             identitytoken: auth_token.token(),
         }
     }
+
+    pub fn from_bare_token(token: String) -> Self {
+        Self {
+            identitytoken: token,
+        }
+    }
 }
 
 impl From<Credential> for XRegistryAuth {
