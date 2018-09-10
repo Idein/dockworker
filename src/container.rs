@@ -338,6 +338,7 @@ impl Iterator for AttachResponseStream {
     fn next(&mut self) -> Option<Self::Item> {
         use container::AttachResponseFrame::*;
         let mut buf = [0u8; 8];
+        // read header
         if let Err(err) = self.res.read_exact(&mut buf) {
             return if err.kind() == io::ErrorKind::UnexpectedEof {
                 None // end of stream
@@ -345,6 +346,7 @@ impl Iterator for AttachResponseStream {
                 Some(Err(err))
             };
         }
+        // read body
         let mut frame_size_raw = &buf[4..];
         let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
         let mut frame = vec![0; frame_size as usize];
@@ -356,8 +358,7 @@ impl Iterator for AttachResponseStream {
             1 => Some(Ok(Stdout(frame))),
             2 => Some(Ok(Stderr(frame))),
             n => {
-                debug!("unexpected kind of chunk: {}", n);
-                assert!(false);
+                error!("unexpected kind of chunk: {}", n);
                 None
             }
         }
