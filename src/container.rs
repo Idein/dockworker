@@ -2,7 +2,7 @@ use byteorder::{BigEndian, ReadBytesExt};
 use hyper::client::response::Response;
 use std;
 use std::collections::HashMap;
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use std::rc::Rc;
 use std::cell::{Ref, RefCell, RefMut};
 
@@ -224,7 +224,7 @@ enum ContainerStdioType {
     Stderr,
 }
 
-/// fragment of response of attach to container api
+/// response fragment of the attach container api
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct AttachResponseFrame {
     type_: ContainerStdioType,
@@ -241,7 +241,7 @@ impl AttachResponseFrame {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ContainerStdio {
     /// io type
     type_: ContainerStdioType,
@@ -252,35 +252,36 @@ struct ContainerStdio {
     stderr_buff: Rc<RefCell<Vec<u8>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ContainerStdin {
     body: ContainerStdio,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ContainerStdout {
     body: ContainerStdio,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ContainerStderr {
     body: ContainerStdio,
 }
 
-#[derive(Debug)]
-pub struct AttachContainer {
-    pub stdin: ContainerStdin,
-    pub stdout: ContainerStdout,
-    pub stderr: ContainerStderr,
+impl ContainerStdin {
+    fn new(body: ContainerStdio) -> Self {
+        Self { body }
+    }
 }
 
-impl AttachContainer {
-    fn new(stdin: ContainerStdin, stdout: ContainerStdout, stderr: ContainerStderr) -> Self {
-        Self {
-            stdin,
-            stdout,
-            stderr,
-        }
+impl ContainerStdout {
+    fn new(body: ContainerStdio) -> Self {
+        Self { body }
+    }
+}
+
+impl ContainerStderr {
+    fn new(body: ContainerStdio) -> Self {
+        Self { body }
     }
 }
 
@@ -302,21 +303,20 @@ impl Read for ContainerStderr {
     }
 }
 
-impl ContainerStdin {
-    fn new(body: ContainerStdio) -> Self {
-        Self { body }
-    }
+#[derive(Debug)]
+pub struct AttachContainer {
+    pub stdin: ContainerStdin,
+    pub stdout: ContainerStdout,
+    pub stderr: ContainerStderr,
 }
 
-impl ContainerStdout {
-    fn new(body: ContainerStdio) -> Self {
-        Self { body }
-    }
-}
-
-impl ContainerStderr {
-    fn new(body: ContainerStdio) -> Self {
-        Self { body }
+impl AttachContainer {
+    fn new(stdin: ContainerStdin, stdout: ContainerStdout, stderr: ContainerStderr) -> Self {
+        Self {
+            stdin,
+            stdout,
+            stderr,
+        }
     }
 }
 
@@ -387,59 +387,15 @@ impl Read for ContainerStdio {
     }
 }
 
-pub mod stdio {
-    use super::*;
-
-    #[derive(Debug)]
-    pub enum Stdio {
-        /// connect to Read object
-        Piped,
-        /// ignore whole contents like /dev/null
-        Null,
-    }
-
-    impl Stdio {
-        pub fn piped() -> Self {
-            Stdio::Piped
-        }
-        pub fn null() -> Self {
-            Stdio::Null
-        }
-    }
-}
-
 /// Response of attach to container api
 #[derive(Debug)]
 pub struct AttachResponse {
     res: Response,
-    stdin: stdio::Stdio,
-    stdout: stdio::Stdio,
-    stderr: stdio::Stdio,
 }
 
 impl AttachResponse {
     pub fn new(res: Response) -> Self {
-        Self {
-            res,
-            stdin: stdio::Stdio::piped(),
-            stdout: stdio::Stdio::piped(),
-            stderr: stdio::Stdio::piped(),
-        }
-    }
-
-    pub fn stdin(&mut self, stdin: stdio::Stdio) -> &mut Self {
-        self.stdin = stdin;
-        self
-    }
-
-    pub fn stdout(&mut self, stdout: stdio::Stdio) -> &mut Self {
-        self.stdout = stdout;
-        self
-    }
-
-    pub fn stderr(&mut self, stderr: stdio::Stdio) -> &mut Self {
-        self.stderr = stderr;
-        self
+        Self { res }
     }
 }
 
