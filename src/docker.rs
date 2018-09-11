@@ -832,7 +832,7 @@ mod tests {
             docker
                 .remove_image(&format!("{}:{}", name, tag), None, None)
                 .is_ok()
-        )
+        );
     }
 
     #[test]
