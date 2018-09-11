@@ -369,18 +369,13 @@ impl Read for ContainerStdio {
                 }
             } else {
                 let size = self.forcused_buff().len();
-                for (i, c) in self.forcused_buff().iter().enumerate() {
-                    buf[i] = *c;
-                }
+                buf[..size].copy_from_slice(&self.forcused_buff());
                 self.forcused_buff_mut().clear();
                 return Ok(size);
             }
         }
         let size = buf.len();
-        for (i, p) in buf.iter_mut().enumerate() {
-            let src = self.forcused_buff()[i];
-            *p = src;
-        }
+        buf.copy_from_slice(&self.forcused_buff()[..size]);
         let mut buf = self.forcused_buff_mut();
         buf.drain(..size);
         Ok(size)
