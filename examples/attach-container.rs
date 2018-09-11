@@ -1,8 +1,7 @@
 extern crate dockworker;
 extern crate hyper;
 
-use dockworker::{ContainerCreateOptions, ContainerHostConfig, Docker,
-                 container::{self, AttachContainer}};
+use dockworker::{ContainerCreateOptions, ContainerHostConfig, Docker, container::AttachContainer};
 use std::io::{BufRead, BufReader};
 
 fn main() {
@@ -14,12 +13,9 @@ fn main() {
 
     let container = docker.create_container(Some("testing"), &create).unwrap();
     docker.start_container(&container.id).unwrap();
-    let mut res = docker
+    let res = docker
         .attach_container(&container.id, None, true, true, false, true, false)
         .unwrap();
-    res.stdin(container::stdio::Stdio::null())
-        .stdout(container::stdio::Stdio::piped())
-        .stderr(container::stdio::Stdio::null());
     let cont: AttachContainer = res.into();
     let mut line_reader = BufReader::new(cont.stdout);
 
