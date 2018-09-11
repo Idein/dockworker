@@ -13,7 +13,7 @@ use std::result;
 use std::time::Duration;
 use url;
 
-use container::{AttachResponseStream, Container, ContainerFilters, ContainerInfo, ExitStatus};
+use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
@@ -367,7 +367,7 @@ impl Docker {
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Result<AttachResponseStream> {
+    ) -> Result<AttachResponse> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         if let Some(keys) = detachKeys {
             param.append_pair("detachKeys", keys);
@@ -386,7 +386,7 @@ impl Docker {
             )
             .and_then(|res| {
                 if res.status.is_success() {
-                    Ok(AttachResponseStream::new(res))
+                    Ok(AttachResponse::new(res))
                 } else {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }

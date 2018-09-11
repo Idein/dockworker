@@ -2,7 +2,9 @@ use byteorder::{BigEndian, ReadBytesExt};
 use hyper::client::response::Response;
 use std;
 use std::collections::HashMap;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -234,106 +236,183 @@ impl AttachResponseFrame {
     }
 }
 
-/// response of attach to container api
 #[derive(Debug)]
-pub struct AttachResponseStream {
-    res: Response,
-}
+pub struct ContainerStdin {}
 
 #[derive(Debug)]
-pub struct AttachResponseStreamReader {
-    res: Response,
-    buf: Vec<u8>,
+pub struct ContainerStdout {
+    /// shared source (response)
+    src: Rc<RefCell<AttachResponseIter>>,
+    stdin_buff: Rc<RefCell<Vec<u8>>>,
+    stdout_buff: Rc<RefCell<Vec<u8>>>,
+    stderr_buff: Rc<RefCell<Vec<u8>>>,
 }
 
-impl AttachResponseStream {
-    pub fn new(res: Response) -> Self {
-        Self { res }
-    }
+#[derive(Debug)]
+pub struct ContainerStderr {}
+
+#[derive(Debug)]
+pub struct AttachContainer {
+    pub stdin: ContainerStdin,
+    pub stdout: ContainerStdout,
+    pub stderr: ContainerStderr,
 }
 
-impl AttachResponseStreamReader {
-    pub fn new(res: Response, buf: Vec<u8>) -> Self {
-        Self { res, buf }
-    }
-
-    fn next(&mut self) -> Option<io::Result<AttachResponseFrame>> {
-        use container::AttachResponseFrame::*;
-        let mut buf = [0u8; 8];
-        // read header
-        if let Err(err) = self.res.read_exact(&mut buf) {
-            return if err.kind() == io::ErrorKind::UnexpectedEof {
-                None // end of stream
-            } else {
-                Some(Err(err))
-            };
-        }
-        // read body
-        let mut frame_size_raw = &buf[4..];
-        let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
-        let mut frame = vec![0; frame_size as usize];
-        if let Err(io) = self.res.read_exact(&mut frame) {
-            return Some(Err(io));
-        }
-        match buf[0] {
-            0 => Some(Ok(Stdin(frame))),
-            1 => Some(Ok(Stdout(frame))),
-            2 => Some(Ok(Stderr(frame))),
-            n => {
-                error!("unexpected kind of chunk: {}", n);
-                None
-            }
+impl AttachContainer {
+    fn new(stdin: ContainerStdin, stdout: ContainerStdout, stderr: ContainerStderr) -> Self {
+        Self {
+            stdin,
+            stdout,
+            stderr,
         }
     }
 }
 
-impl From<AttachResponseStream> for AttachResponseStreamReader {
-    fn from(res: AttachResponseStream) -> Self {
-        Self::new(res.res, Vec::new())
+impl Read for ContainerStdin {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        unimplemented!("ContainerStdin::Read")
     }
 }
 
-impl Read for AttachResponseStreamReader {
+impl ContainerStdout {
+    fn new(
+        src: Rc<RefCell<AttachResponseIter>>,
+        stdin_buff: Rc<RefCell<Vec<u8>>>,
+        stdout_buff: Rc<RefCell<Vec<u8>>>,
+        stderr_buff: Rc<RefCell<Vec<u8>>>,
+    ) -> Self {
+        Self {
+            src,
+            stdin_buff,
+            stdout_buff,
+            stderr_buff,
+        }
+    }
+}
+
+impl Read for ContainerStdout {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         use container::AttachResponseFrame::*;
-
-        // println!("read: len({}) -> len({})", self.buf.len(), buf.len());
-        while self.buf.len() < buf.len() {
-            // println!("read: len({}) < len({})", self.buf.len(), buf.len());
-            match self.next() {
-                Some(Ok(Stdout(mut vec))) => {
-                    // println!("vec: {}", String::from_utf8_lossy(&vec));
-                    self.buf.append(&mut vec);
+        while self.stdout_buff.borrow().len() < buf.len() {
+            if let Some(xs) = self.src.borrow_mut().next() {
+                match xs? {
+                    Stdin(mut chunk) => self.stdin_buff.borrow_mut().append(&mut chunk),
+                    Stdout(mut chunk) => self.stdout_buff.borrow_mut().append(&mut chunk),
+                    Stderr(mut chunk) => self.stderr_buff.borrow_mut().append(&mut chunk),
                 }
-                Some(Ok(other)) => {
-                    // println!("read: skip: Ok(other)");
+            } else {
+                let size = self.stdout_buff.borrow().len();
+                for (i, c) in self.stdout_buff.borrow().iter().enumerate() {
+                    buf[i] = *c;
                 }
-                Some(Err(e)) => return Err(e),
-                None => {
-                    // println!("read: None");
-                    let size = self.buf.len();
-                    for (i, c) in self.buf.iter().enumerate() {
-                        buf[i] = *c;
-                    }
-                    self.buf.clear();
-                    return Ok(size);
-                }
+                self.stdout_buff.borrow_mut().clear();
+                return Ok(size);
             }
         }
-        // println!("read: len({}) >= len({})", self.buf.len(), buf.len());
         let size = buf.len();
         for (i, p) in buf.iter_mut().enumerate() {
-            let src = self.buf[i]; // by !(self.buf.len() < buf.len())
-                                   // print!("{},", src);
+            let src = self.stdout_buff.borrow()[i];
             *p = src;
         }
-        self.buf.drain(..size);
-        // println!("");
+        let mut buf = self.stdout_buff.borrow_mut();
+        buf.drain(..size);
         Ok(size)
     }
 }
 
-impl Iterator for AttachResponseStream {
+impl Read for ContainerStderr {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        unimplemented!("ContainerStdin::Read")
+    }
+}
+
+pub mod stdio {
+    use super::*;
+
+    #[derive(Debug)]
+    pub enum Stdio {
+        /// connect to Read object
+        Piped,
+        /// ignore whole contents like /dev/null
+        Null,
+    }
+
+    impl Stdio {
+        pub fn piped() -> Self {
+            Stdio::Piped
+        }
+        pub fn null() -> Self {
+            Stdio::Null
+        }
+    }
+}
+
+/// Response of attach to container api
+#[derive(Debug)]
+pub struct AttachResponse {
+    res: Response,
+    stdin: stdio::Stdio,
+    stdout: stdio::Stdio,
+    stderr: stdio::Stdio,
+}
+
+impl AttachResponse {
+    pub fn new(res: Response) -> Self {
+        Self {
+            res,
+            stdin: stdio::Stdio::piped(),
+            stdout: stdio::Stdio::piped(),
+            stderr: stdio::Stdio::piped(),
+        }
+    }
+
+    pub fn stdin(&mut self, stdin: stdio::Stdio) -> &mut Self {
+        self.stdin = stdin;
+        self
+    }
+
+    pub fn stdout(&mut self, stdout: stdio::Stdio) -> &mut Self {
+        self.stdout = stdout;
+        self
+    }
+
+    pub fn stderr(&mut self, stderr: stdio::Stdio) -> &mut Self {
+        self.stderr = stderr;
+        self
+    }
+}
+
+impl From<AttachResponse> for AttachContainer {
+    fn from(res: AttachResponse) -> Self {
+        let iter = Rc::new(RefCell::new(res.res.into())); // into_iter
+        let stdin_buff = Rc::new(RefCell::new(Vec::new()));
+        let stdout_buff = Rc::new(RefCell::new(Vec::new()));
+        let stderr_buff = Rc::new(RefCell::new(Vec::new()));
+        let stdin = ContainerStdin {};
+        let stdout = ContainerStdout::new(Rc::clone(&iter), stdin_buff, stdout_buff, stderr_buff);
+        let stderr = ContainerStderr {};
+        AttachContainer::new(stdin, stdout, stderr)
+    }
+}
+
+#[derive(Debug)]
+struct AttachResponseIter {
+    res: Response,
+}
+
+impl AttachResponseIter {
+    fn new(res: Response) -> Self {
+        Self { res }
+    }
+}
+
+impl From<Response> for AttachResponseIter {
+    fn from(res: Response) -> Self {
+        Self::new(res)
+    }
+}
+
+impl Iterator for AttachResponseIter {
     type Item = io::Result<AttachResponseFrame>;
     fn next(&mut self) -> Option<Self::Item> {
         use container::AttachResponseFrame::*;
