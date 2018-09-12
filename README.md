@@ -55,7 +55,7 @@ Supported Api List.
 	- [ ] `/images/{name}/tag`
 	- [x] `/images/{name}` # remove
 	- [ ] `/images/search`
-	- [ ] `/images/prune`
+	- [x] `/images/prune`
 	- [ ] `/commit`
 	- [x] `/images/{name}/get`
 	- [ ] `/images/get`
