@@ -354,31 +354,49 @@ impl ContainerStdio {
             Stderr => self.stderr_buff.borrow_mut(),
         }
     }
+
+    // read next chunk from response to the inner buffer
+    fn readin_next(&mut self) -> io::Result<usize> {
+        use container::ContainerStdioType::*;
+        if let Some(xs) = self.src.borrow_mut().next() {
+            let AttachResponseFrame { type_, mut frame } = xs?;
+            let len = frame.len();
+            match type_ {
+                Stdin => self.stdin_buff.borrow_mut().append(&mut frame),
+                Stdout => self.stdout_buff.borrow_mut().append(&mut frame),
+                Stderr => self.stderr_buff.borrow_mut().append(&mut frame),
+            }
+            Ok(len)
+        } else {
+            Ok(0)
+        }
+    }
 }
 
 impl Read for ContainerStdio {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         use container::ContainerStdioType::*;
-        while self.forcused_buff().len() < buf.len() {
-            if let Some(xs) = self.src.borrow_mut().next() {
-                let AttachResponseFrame { type_, mut frame } = xs?;
-                match type_ {
-                    Stdin => self.stdin_buff.borrow_mut().append(&mut frame),
-                    Stdout => self.stdout_buff.borrow_mut().append(&mut frame),
-                    Stderr => self.stderr_buff.borrow_mut().append(&mut frame),
-                }
-            } else {
-                let size = self.forcused_buff().len();
-                buf[..size].copy_from_slice(&self.forcused_buff());
-                self.forcused_buff_mut().clear();
-                return Ok(size);
+
+        if self.forcused_buff().len() == 0 {
+            match self.readin_next() {
+                Ok(0) => return Ok(0),
+                Err(e) => return Err(e),
+                _ => {}
             }
         }
-        let size = buf.len();
-        buf.copy_from_slice(&self.forcused_buff()[..size]);
-        let mut buf = self.forcused_buff_mut();
-        buf.drain(..size);
-        Ok(size)
+        let inner_buf_len = self.forcused_buff().len(); // > 0
+
+        if inner_buf_len <= buf.len() {
+            buf[..inner_buf_len].copy_from_slice(&self.forcused_buff()); // copy
+            self.forcused_buff_mut().clear(); // clear inner buffer
+            return Ok(inner_buf_len);
+        } else {
+            // inner_buf_len > buf.len()
+            buf.copy_from_slice(&self.forcused_buff()[..inner_buf_len]); // copy (fill buf)
+            let mut buf = self.forcused_buff_mut();
+            buf.drain(..inner_buf_len); // delete _size_ elementes from the head of buf
+            Ok(inner_buf_len)
+        }
     }
 }
 
@@ -446,6 +464,7 @@ impl Iterator for AttachResponseIter {
     type Item = io::Result<AttachResponseFrame>;
     fn next(&mut self) -> Option<Self::Item> {
         use container::ContainerStdioType::*;
+
         let mut buf = [0u8; 8];
         // read header
         if let Err(err) = self.res.read_exact(&mut buf) {
