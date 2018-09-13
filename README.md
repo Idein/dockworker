@@ -70,6 +70,23 @@ Supported Api List.
 	- [ ] `/system/df`
 
 
+## Test
+
+Executing unit tests:
+
+```shell
+$ docker test
+```
+
+For testing the __attach api__, specific docker container is required.
+The container is able to be built by docker-compose like below:
+
+```shell
+$ docker-compose build iostream
+$ docker test -- --ignored
+```
+
+
 ## Original Project Contributors
 
 `Dockworker` crate is forked from [boondock](https://github.com/faradayio/boondock).
