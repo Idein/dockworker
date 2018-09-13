@@ -358,7 +358,8 @@ impl ContainerStdio {
     // read next chunk from response to the inner buffer
     fn readin_next(&mut self) -> io::Result<usize> {
         use container::ContainerStdioType::*;
-        if let Some(xs) = self.src.borrow_mut().next() {
+
+        while let Some(xs) = self.src.borrow_mut().next() {
             let AttachResponseFrame { type_, mut frame } = xs?;
             let len = frame.len();
             match type_ {
@@ -366,10 +367,12 @@ impl ContainerStdio {
                 Stdout => self.stdout_buff.borrow_mut().append(&mut frame),
                 Stderr => self.stderr_buff.borrow_mut().append(&mut frame),
             }
-            Ok(len)
-        } else {
-            Ok(0)
+            if type_ == self.type_ {
+                return Ok(len);
+            }
         }
+
+        Ok(0) // end of stream
     }
 }
 
@@ -385,11 +388,13 @@ impl Read for ContainerStdio {
         let inner_buf_len = self.forcused_buff().len(); // > 0
 
         if inner_buf_len <= buf.len() {
+            debug!("{} <= {}", inner_buf_len, buf.len());
             buf[..inner_buf_len].copy_from_slice(&self.forcused_buff()); // copy
             self.forcused_buff_mut().clear(); // clear inner buffer
             Ok(inner_buf_len)
         } else {
             // inner_buf_len > buf.len()
+            debug!("{} > {}", inner_buf_len, buf.len());
             let buf_len = buf.len();
             buf.copy_from_slice(&self.forcused_buff()[..buf_len]); // copy (fill buf)
             let mut inner_buf = self.forcused_buff_mut();
