@@ -9,16 +9,30 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: apt-get update -y && apt-get install -y docker.io libssl-dev
-      - run: cat Cargo.toml Cargo.lock > /tmp/build-dep
-      - run: rustc --version >> /tmp/build-dep
-      - run: echo $OS_VERSION >> /tmp/build-dep
-      - run: apt list --installed >> /tmp/build-dep
+      - run: apt-get update -y && apt-get install -y docker.io libssl-dev docker-compose --no-install-recommends
+      - run:
+          name: Generate cache key
+          command: |
+            cat Cargo.toml Cargo.lock > /tmp/build-dep
+            rustc --version >> /tmp/build-dep
+            echo $OS_VERSION >> /tmp/build-dep
+            apt list --installed >> /tmp/build-dep
       - restore_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
-      - run: cargo fmt -- --write-mode "diff"
-      - run: RUST_BACKTRACE=1 cargo build --verbose --features ssl
-      - run: RUST_BACKTRACE=1 cargo test --verbose --features ssl
+      - run:
+          name: Checking source code style
+          command: cargo fmt -- --write-mode "diff"
+      - run:
+          name: Build project
+          command: RUST_BACKTRACE=1 cargo build --verbose --features ssl
+      - run:
+          name: Unit testing
+          command: RUST_BACKTRACE=1 cargo test --verbose --features ssl
+      - run:
+          name: More unit testing
+          command: |
+            docker-compose build iostream
+            RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
           paths:
