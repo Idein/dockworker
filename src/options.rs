@@ -586,6 +586,7 @@ pub enum RemovedImage {
 
 /// Response of the prune image api
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct PrunedImages {
     #[serde(deserialize_with = "null_to_default")]
     ImagesDeleted: Vec<RemovedImage>,

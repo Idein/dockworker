@@ -375,8 +375,6 @@ impl ContainerStdio {
 
 impl Read for ContainerStdio {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        use container::ContainerStdioType::*;
-
         if self.forcused_buff().len() == 0 {
             match self.readin_next() {
                 Ok(0) => return Ok(0),
