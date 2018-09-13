@@ -390,10 +390,11 @@ impl Read for ContainerStdio {
             Ok(inner_buf_len)
         } else {
             // inner_buf_len > buf.len()
-            buf.copy_from_slice(&self.forcused_buff()[..inner_buf_len]); // copy (fill buf)
-            let mut buf = self.forcused_buff_mut();
-            buf.drain(..inner_buf_len); // delete _size_ elementes from the head of buf
-            Ok(buf.len())
+            let buf_len = buf.len();
+            buf.copy_from_slice(&self.forcused_buff()[..buf_len]); // copy (fill buf)
+            let mut inner_buf = self.forcused_buff_mut();
+            inner_buf.drain(..buf_len); // delete _size_ elementes from the head of buf
+            Ok(buf_len)
         }
     }
 }
