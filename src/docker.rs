@@ -770,7 +770,11 @@ impl HaveHttpClient for Docker {
 mod tests {
     use super::*;
     use std::fs::{remove_file, File};
-    use std::io;
+    use std::io::{self, Read};
+    use std::iter::Iterator;
+    use std::path::PathBuf;
+
+    use container;
 
     #[test]
     fn test_server_access() {
@@ -932,5 +936,55 @@ mod tests {
                     .is_ok()
             );
         })
+    }
+
+    /// This is executed after `docker-compose build iostream`
+    #[test]
+    #[ignore]
+    fn attach_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+
+        // expected files
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker");
+        let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
+        let image_name = "test-iostream:latest";
+
+        let mut host_config = ContainerHostConfig::new();
+        //host_config.auto_remove(true);
+        let mut create = ContainerCreateOptions::new(image_name);
+        create
+            .cmd(exps[0].to_owned())
+            .cmd(exps[1].to_owned())
+            .host_config(host_config);
+
+        let container = docker.create_container(None, &create).unwrap();
+        docker.start_container(&container.id).unwrap();
+        let res = docker
+            .attach_container(&container.id, None, true, true, false, true, true)
+            .unwrap();
+        let cont: container::AttachContainer = res.into();
+
+        // expected files
+        let exp_stdout = File::open(root.join(exps[0])).unwrap();
+        let exp_stderr = File::open(root.join(exps[1])).unwrap();
+
+        assert!(
+            exp_stdout
+                .bytes()
+                .map(|e| e.ok())
+                .eq(cont.stdout.bytes().map(|e| e.ok()))
+        );
+        assert!(
+            exp_stderr
+                .bytes()
+                .map(|e| e.ok())
+                .eq(cont.stderr.bytes().map(|e| e.ok()))
+        );
+
+        docker.wait_container(&container.id).unwrap();
+        docker
+            .remove_container(&container.id, None, None, None)
+            .unwrap();
+        docker.remove_image(image_name, None, None).unwrap();
     }
 }
