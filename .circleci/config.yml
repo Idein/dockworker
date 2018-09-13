@@ -31,7 +31,7 @@ jobs:
       - run:
           name: More unit testing
           command: |
-            docker-compose build iostream
+            cd docker && docker build -t test-iostream:latest .
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
