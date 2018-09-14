@@ -124,6 +124,21 @@ impl HttpClient for HyperClient {
         Ok(res)
     }
 
+    fn put(
+        &self,
+        headers: &Headers,
+        path: &str,
+        body: &str,
+    ) -> result::Result<Response, Self::Err> {
+        let url = self.base.join(path)?;
+        let res = self.client
+            .put(url)
+            .headers(headers.clone())
+            .body(body)
+            .send()?;
+        Ok(res)
+    }
+
     fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err> {
         let url = self.base.join(path)?;
         let res = self.client

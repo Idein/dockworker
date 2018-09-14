@@ -142,6 +142,9 @@ pub trait HttpClient {
         body: &str,
     ) -> result::Result<Response, Self::Err>;
 
+    fn put(&self, headers: &Headers, path: &str, body: &str)
+        -> result::Result<Response, Self::Err>;
+
     fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
 
     fn post_file(
