@@ -142,8 +142,12 @@ pub trait HttpClient {
         body: &str,
     ) -> result::Result<Response, Self::Err>;
 
-    fn put(&self, headers: &Headers, path: &str, body: &str)
-        -> result::Result<Response, Self::Err>;
+    fn put(
+        &self,
+        headers: &Headers,
+        path: &str,
+        body: &Path,
+    ) -> result::Result<Response, Self::Err>;
 
     fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
 
@@ -478,6 +482,33 @@ impl Docker {
             .delete(
                 self.headers(),
                 &format!("/containers/{}?{}", id, param.finish()),
+            )
+            .and_then(no_content)
+    }
+
+    /// Extract an archive of files or folders to a directory in a container
+    ///
+    /// # Summary
+    ///
+    ///
+    /// # API
+    /// /containers/{id}/archive
+    #[allow(non_snake_case)]
+    pub fn put_file(
+        &self,
+        id: &str,
+        src: &Path,
+        dst: &Path,
+        noOverwriteDirNonDir: bool,
+    ) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("path", &dst.to_string_lossy());
+        param.append_pair("noOverwriteDirNonDir", &noOverwriteDirNonDir.to_string());
+        self.http_client()
+            .put(
+                self.headers(),
+                &format!("/containers/{}/archive?{}", id, param.finish()),
+                src,
             )
             .and_then(no_content)
     }
