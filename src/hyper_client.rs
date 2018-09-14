@@ -128,13 +128,14 @@ impl HttpClient for HyperClient {
         &self,
         headers: &Headers,
         path: &str,
-        body: &str,
+        body: &Path,
     ) -> result::Result<Response, Self::Err> {
+        let mut content = File::open(body)?;
         let url = self.base.join(path)?;
         let res = self.client
             .put(url)
             .headers(headers.clone())
-            .body(body)
+            .body(&mut content)
             .send()?;
         Ok(res)
     }
