@@ -1,5 +1,22 @@
 version: 2
 jobs:
+  build_image:
+    working_directory: /tmp/dockworker
+    machine:
+      image: circleci/classic:201808-01
+    steps:
+      - checkout
+      - run:
+          name: Build the docker container
+          command: |
+            docker-compose build iostream
+            docker save -o test-iostream test-iostream:latest
+
+      - persist_to_workspace:
+          root: /tmp/dockworker
+          paths:
+            - test-iostream
+
   build:
     working_directory: /tmp/dockworker
     docker:
@@ -9,6 +26,8 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
+      - attach_workspace:
+          at: /tmp/dockworker
       - run: apt-get update -y && apt-get install -y docker.io libssl-dev docker-compose --no-install-recommends
       - run:
           name: Generate cache key
@@ -31,7 +50,7 @@ jobs:
       - run:
           name: More unit testing
           command: |
-            cd docker && docker build -t test-iostream:latest .
+            docker load -i test-iostream
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
@@ -43,5 +62,8 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build
+      - build:
+          requires:
+            - build_image
+      - build_image
  
