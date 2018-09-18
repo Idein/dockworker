@@ -22,7 +22,7 @@ use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
 use system::{AuthToken, SystemInfo};
-use tar::Archive;
+use tar::{self, Archive};
 use version::Version;
 pub use credentials::{Credential, UserPassword};
 
@@ -486,10 +486,37 @@ impl Docker {
             .and_then(no_content)
     }
 
+    /// Get an archive of a filesystem resource in a container
+    ///
+    /// # API
+    /// /containers/{id}/archive
+    pub fn get_file(&self, id: &str, path: &Path) -> Result<tar::Archive<Box<Read>>> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        debug!("get_file({}, {})", id, path.display());
+        param.append_pair("path", path.to_str().unwrap_or("")); // FIXME: cause an invalid path error
+        self.http_client()
+            .get(
+                self.headers(),
+                &format!("/containers/{}/archive?{}", id, param.finish()),
+            )
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(tar::Archive::new(Box::new(res) as Box<Read>))
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
+    }
+
     /// Extract an archive of files or folders to a directory in a container
     ///
     /// # Summary
+    /// Extract given src file into the container specified with id.
+    /// The input file must be a tar archive with id(no compress), gzip, bzip2 or xz.
     ///
+    /// * id  : container name or ID
+    /// * src : path to a source *file*
+    /// * dst : path to a *directory* in the container to extract the archive's contents into
     ///
     /// # API
     /// /containers/{id}/archive
@@ -501,6 +528,13 @@ impl Docker {
         dst: &Path,
         noOverwriteDirNonDir: bool,
     ) -> Result<()> {
+        debug!(
+            "put_file({}, {}, {}, {})",
+            id,
+            src.display(),
+            dst.display(),
+            noOverwriteDirNonDir
+        );
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("path", &dst.to_string_lossy());
         param.append_pair("noOverwriteDirNonDir", &noOverwriteDirNonDir.to_string());
@@ -510,7 +544,7 @@ impl Docker {
                 &format!("/containers/{}/archive?{}", id, param.finish()),
                 src,
             )
-            .and_then(no_content)
+            .and_then(ignore_result)
     }
 
     /// Create an image by pulling it from registry
