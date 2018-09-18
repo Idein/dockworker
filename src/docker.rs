@@ -836,11 +836,17 @@ impl HaveHttpClient for Docker {
 
 #[cfg(all(test, unix))]
 mod tests {
+    extern crate rand;
+
     use super::*;
     use std::fs::{remove_file, File};
-    use std::io::{self, Read};
-    use std::iter::Iterator;
+    use std::io::{self, Read, Write};
+    use std::iter::{self, Iterator};
     use std::path::PathBuf;
+    use std::env;
+
+    use self::rand::Rng;
+    use tar::Builder as TarBuilder;
 
     use container;
 
@@ -1006,6 +1012,85 @@ mod tests {
         })
     }
 
+    // generate a file on path which is constructed from size chars alphanum seq
+    fn gen_rand_file(path: &Path, size: usize) -> io::Result<()> {
+        let mut rng = rand::thread_rng();
+        let mut file = File::create(path)?;
+        let vec: String = iter::repeat(())
+            .map(|_| rng.sample(rand::distributions::Alphanumeric))
+            .take(size)
+            .collect();
+        file.write_all(vec.as_bytes())
+    }
+
+    fn equal_file(patha: &Path, pathb: &Path) -> bool {
+        let filea = File::open(patha).unwrap();
+        let fileb = File::open(pathb).unwrap();
+        filea
+            .bytes()
+            .map(|e| e.ok())
+            .eq(fileb.bytes().map(|e| e.ok()))
+    }
+
+    #[test]
+    fn put_file_to_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.6");
+
+        let temp_dir = env::temp_dir();
+        let test_file = &temp_dir.join("test_file");
+
+        with_image(&docker, name, tag, |name, tag| {
+            let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+            let container = docker.create_container(None, &create).unwrap();
+            assert!(docker.start_container(&container.id).is_ok());
+
+            gen_rand_file(test_file, 1024).unwrap();
+            {
+                let mut builder =
+                    TarBuilder::new(File::create(test_file.with_extension("tar")).unwrap());
+                builder
+                    .append_file(
+                        test_file.strip_prefix("/").unwrap(),
+                        &mut File::open(test_file).unwrap(),
+                    )
+                    .unwrap();
+            }
+
+            assert!(match docker.get_file(&container.id, test_file) {
+                Ok(_) => false,
+                Err(Error(ErrorKind::Docker(_), _)) => true, // not found
+                Err(_) => false,
+            });
+
+            docker
+                .put_file(
+                    &container.id,
+                    &test_file.with_extension("tar"),
+                    Path::new("/"),
+                    true,
+                )
+                .unwrap();
+
+            docker
+                .get_file(&container.id, test_file)
+                .unwrap()
+                .unpack(temp_dir.join("put"))
+                .unwrap();
+
+            docker.wait_container(&container.id).unwrap();
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        });
+
+        assert!(equal_file(
+            test_file,
+            &temp_dir.join("put").join(test_file.file_name().unwrap())
+        ));
+    }
+
     /// This is executed after `docker-compose build iostream`
     #[test]
     #[ignore]
@@ -1017,7 +1102,7 @@ mod tests {
         let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
         let image_name = "test-iostream:latest";
 
-        let mut host_config = ContainerHostConfig::new();
+        let host_config = ContainerHostConfig::new();
         //host_config.auto_remove(true);
         let mut create = ContainerCreateOptions::new(image_name);
         create
