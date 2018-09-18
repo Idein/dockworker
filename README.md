@@ -41,7 +41,7 @@ Supported Api List.
 	- [ ] `/containers/{id}/attach/ws`
 	- [x] `/containers/{id}/wait`
 	- [x] `/containers/{id}` # remove
-	- [ ] `/containers/{id}/archive`
+	- [x] `/containers/{id}/archive`
 	- [ ] `/containers/{id}/prune`
 
 - image
