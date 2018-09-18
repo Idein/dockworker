@@ -121,22 +121,6 @@ impl HttpClient for HyperClient {
         Ok(res)
     }
 
-    fn put(
-        &self,
-        headers: &Headers,
-        path: &str,
-        body: &Path,
-    ) -> result::Result<Response, Self::Err> {
-        let mut content = File::open(body)?;
-        let url = self.base.join(path)?;
-        let res = self.client
-            .put(url)
-            .headers(headers.clone())
-            .body(&mut content)
-            .send()?;
-        Ok(res)
-    }
-
     fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err> {
         let url = self.base.join(path)?;
         let res = self.client.delete(url).headers(headers.clone()).send()?;
@@ -153,6 +137,22 @@ impl HttpClient for HyperClient {
         let url = self.base.join(path)?;
         let res = self.client
             .post(url)
+            .headers(headers.clone())
+            .body(&mut content)
+            .send()?;
+        Ok(res)
+    }
+
+    fn put_file(
+        &self,
+        headers: &Headers,
+        path: &str,
+        file: &Path,
+    ) -> result::Result<Response, Self::Err> {
+        let mut content = File::open(file)?;
+        let url = self.base.join(path)?;
+        let res = self.client
+            .put(url)
             .headers(headers.clone())
             .body(&mut content)
             .send()?;

@@ -142,16 +142,16 @@ pub trait HttpClient {
         body: &str,
     ) -> result::Result<Response, Self::Err>;
 
-    fn put(
-        &self,
-        headers: &Headers,
-        path: &str,
-        body: &Path,
-    ) -> result::Result<Response, Self::Err>;
-
     fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
 
     fn post_file(
+        &self,
+        headers: &Headers,
+        path: &str,
+        file: &Path,
+    ) -> result::Result<Response, Self::Err>;
+
+    fn put_file(
         &self,
         headers: &Headers,
         path: &str,
@@ -505,7 +505,7 @@ impl Docker {
         param.append_pair("path", &dst.to_string_lossy());
         param.append_pair("noOverwriteDirNonDir", &noOverwriteDirNonDir.to_string());
         self.http_client()
-            .put(
+            .put_file(
                 self.headers(),
                 &format!("/containers/{}/archive?{}", id, param.finish()),
                 src,
