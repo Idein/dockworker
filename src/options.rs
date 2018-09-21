@@ -101,6 +101,13 @@ impl RestartPolicy {
             MaximumRetryCount: maximum_retry_count,
         }
     }
+
+    pub fn unless_stopped() -> Self {
+        Self {
+            Name: "unless-stopped".to_owned(),
+            MaximumRetryCount: 0,
+        }
+    }
 }
 
 #[cfg(test)]
