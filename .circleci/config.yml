@@ -20,22 +20,31 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: idein/rust-stable:1.25.0
+      - image: eldesh/rust:1.25.0
         environment:
-          OS_VERSION: xenial
+          DOCKER_VERSION: 18.03.1-ce
     steps:
       - checkout
       - setup_remote_docker
       - attach_workspace:
           at: /tmp/dockworker
-      - run: apt-get update -y && apt-get install -y docker.io libssl-dev docker-compose --no-install-recommends
+      - run:
+          name: Setup Packages
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates curl libssl-dev
+      - run:
+          name: Install Docker Client
+          command: |
+            # client only
+            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | sudo tar -zxf - --strip 1 -C /usr/local/bin docker/docker
       - run:
           name: Generate cache key
           command: |
-            cat Cargo.toml Cargo.lock > /tmp/build-dep
-            rustc --version >> /tmp/build-dep
-            echo $OS_VERSION >> /tmp/build-dep
-            apt list --installed >> /tmp/build-dep
+            cat Cargo.toml Cargo.lock >  /tmp/build-dep
+            rustc --version           >> /tmp/build-dep
+            echo $OS_VERSION          >> /tmp/build-dep
+            apt list --installed      >> /tmp/build-dep
       - restore_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
       - run:
