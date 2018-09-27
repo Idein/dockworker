@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::time::Duration;
+use std::ffi::OsString;
 
 use std::collections::HashMap;
 use url::form_urlencoded;
@@ -390,11 +391,11 @@ pub struct ContainerCreateOptions {
     tty: bool,
     open_stdin: bool,
     stdin_once: bool,
-    env: Vec<String>,
+    env: Vec<OsString>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    cmd: Vec<String>,
+    cmd: Vec<OsString>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    entrypoint: Vec<String>,
+    entrypoint: Vec<OsString>,
     image: String,
     labels: HashMap<String, String>,
     // volumes: HashMap<String, Any>, not sure the type that this would need to be.
@@ -484,19 +485,19 @@ impl ContainerCreateOptions {
     }
 
     /// push back an envvar entry
-    pub fn env(&mut self, env: String) -> &mut Self {
+    pub fn env(&mut self, env: OsString) -> &mut Self {
         self.env.push(env);
         self
     }
 
     /// push back a cmd argment
-    pub fn cmd(&mut self, cmd: String) -> &mut Self {
+    pub fn cmd(&mut self, cmd: OsString) -> &mut Self {
         self.cmd.push(cmd);
         self
     }
 
     /// update entrypoint
-    pub fn entrypoint(&mut self, entrypoint: Vec<String>) -> &mut Self {
+    pub fn entrypoint(&mut self, entrypoint: Vec<OsString>) -> &mut Self {
         self.entrypoint = entrypoint;
         self
     }
