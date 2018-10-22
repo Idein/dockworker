@@ -808,6 +808,8 @@ mod tests {
     use std::iter::{self, Iterator};
     use std::path::PathBuf;
     use std::env;
+    use std::convert::From;
+    use std::time::Duration;
 
     use self::rand::Rng;
     use tar::Builder as TarBuilder;
@@ -1062,7 +1064,7 @@ mod tests {
         let docker = Docker::connect_with_defaults().unwrap();
 
         // expected files
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker/attach");
         let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
         let image_name = "test-iostream:latest";
 
@@ -1103,5 +1105,61 @@ mod tests {
             .remove_container(&container.id, None, None, None)
             .unwrap();
         docker.remove_image(image_name, None, None).unwrap();
+    }
+
+    /// This is executed after `docker-compose build signal`
+    #[test]
+    #[ignore]
+    fn signal_container() {
+        use nix::sys::signal::Signal::*;
+        let docker = Docker::connect_with_defaults().unwrap();
+
+        let image_name = "test-signal:latest";
+        let host_config = ContainerHostConfig::new();
+        let mut create = ContainerCreateOptions::new(image_name);
+        create.host_config(host_config);
+
+        let container = docker.create_container(None, &create).unwrap();
+        docker.start_container(&container.id).unwrap();
+        let res = docker
+            .attach_container(&container.id, None, true, true, false, true, true)
+            .unwrap();
+        let cont: container::AttachContainer = res.into();
+        let signals = [SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGTERM];
+        let signalstrs = vec![
+            "HUP".to_string(),
+            "INT".to_string(),
+            "USR1".to_string(),
+            "USR2".to_string(),
+            "TERM".to_string(),
+        ];
+
+        signals.iter().for_each(|sig| {
+            docker
+                .kill_container(&container.id, Signal::from(sig.clone()))
+                .ok();
+        });
+
+        let stdout_buffer = BufReader::new(cont.stdout);
+        assert!(
+            stdout_buffer
+                .lines()
+                .map(|line| {
+                    println!("line: {:?}", &line);
+                    line.unwrap()
+                })
+                .eq(signalstrs)
+        );
+
+        println!("wait");
+        assert_eq!(
+            docker.wait_container(&container.id).unwrap(),
+            ExitStatus::new(15)
+        );
+
+        println!("remove container");
+        docker
+            .remove_container(&container.id, None, None, None)
+            .unwrap();
     }
 }

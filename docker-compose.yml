@@ -10,8 +10,14 @@ version: '2'
 services:
   iostream:
     build:
-      context: ./docker
+      context: ./docker/attach
     image: test-iostream:latest
+
+  signal:
+    build:
+      context: ./docker/signal
+    image: test-signal:latest
+
 
   # Docker registry container.
   # This service is used for examples/login and auth.
