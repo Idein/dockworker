@@ -8,6 +8,7 @@ use url::form_urlencoded;
 
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
@@ -79,19 +80,55 @@ impl ContainerListOptions {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
-pub struct RestartPolicy {
+pub struct RestartPolicyImpl {
     Name: String,
     MaximumRetryCount: u16,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct RestartPolicy(pub RestartPolicyImpl);
+
 impl Default for RestartPolicy {
     fn default() -> Self {
-        Self {
-            Name: "no".to_owned(),
-            MaximumRetryCount: 0,
+        Self { None }
+    }
+}
+
+impl Serialize for RestartPolicy {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            None => serializer.serialize_unit(),
+            Some(RestartPolicyImpl {
+                Name,
+                MaximumRetryCount,
+            }) => {
+                let mut state = serializer.serialize_struct("RestartPolicy", 2)?;
+                state.serialize_field("Name", &self.Name)?;
+                state.serialize_field("MaximumRetryCount", &self.MaximumRetryCount)?;
+                state.end()
+            }
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_serialize_restart_policy() {
+        let policy_some = RestartPolicy { Some(RestartPolicyImpl { Name: "", MaximumRetryCount: 0 }) };
+        println!("policy: {}", serde_json::to_str(&policy_some).unwrap());
+        let policy_none = RestartPolicy::default();
+        println!("policy: {}", serde_json::to_str(&policy_none).unwrap());
+    }
+}
+
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[allow(non_snake_case)]
