@@ -1,8 +1,3 @@
-use hyper::client::response::Response;
-use hyper::client::IntoUrl;
-use hyper::header::{ContentType, Headers};
-use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::status::StatusCode;
 use std::env;
 use std::ffi::OsStr;
 use std::fmt;
@@ -30,6 +25,8 @@ use serde::de::DeserializeOwned;
 use serde_json::{self, Value};
 use signal::Signal;
 use header::XRegistryAuth;
+use http_client::{HaveHttpClient, HttpClient};
+use hyper_client::{ContentType, Headers, IntoUrl, Mime, Response, StatusCode, SubLevel, TopLevel};
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -127,42 +124,6 @@ fn ignore_result(res: Response) -> result::Result<(), Error> {
     } else {
         Err(serde_json::from_reader::<_, DockerError>(res)?.into())
     }
-}
-
-/// A http client
-pub trait HttpClient {
-    type Err: ::std::error::Error + Send + 'static;
-
-    fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
-
-    fn post(
-        &self,
-        headers: &Headers,
-        path: &str,
-        body: &str,
-    ) -> result::Result<Response, Self::Err>;
-
-    fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
-
-    fn post_file(
-        &self,
-        headers: &Headers,
-        path: &str,
-        file: &Path,
-    ) -> result::Result<Response, Self::Err>;
-
-    fn put_file(
-        &self,
-        headers: &Headers,
-        path: &str,
-        file: &Path,
-    ) -> result::Result<Response, Self::Err>;
-}
-
-/// Access to inner HttpClient
-pub trait HaveHttpClient {
-    type Client: HttpClient;
-    fn http_client(&self) -> &Self::Client;
 }
 
 impl Docker {
