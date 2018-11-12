@@ -22,11 +22,12 @@ use version::Version;
 pub use credentials::{Credential, UserPassword};
 
 use serde::de::DeserializeOwned;
-use serde_json::{self, Value};
+use serde_json;
 use signal::Signal;
 use header::XRegistryAuth;
 use http_client::{HaveHttpClient, HttpClient};
 use hyper_client::{ContentType, Headers, IntoUrl, Mime, Response, StatusCode, SubLevel, TopLevel};
+use response::Response as DockerResponse;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -524,7 +525,7 @@ impl Docker {
         &self,
         image: &str,
         tag: &str,
-    ) -> Result<Box<Iterator<Item = Result<Value>>>> {
+    ) -> Result<Box<Iterator<Item = Result<DockerResponse>>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("fromImage", image);
         param.append_pair("tag", tag);
@@ -537,9 +538,11 @@ impl Docker {
             self.http_client()
                 .post(&headers, &format!("/images/create?{}", param.finish()), "")?;
         if res.status.is_success() {
-            Ok(Box::new(BufReader::new(res).lines().map(|line| {
-                Ok(line?).and_then(|ref line| Ok(serde_json::from_str(line)?))
-            })))
+            Ok(Box::new(
+                BufReader::new(res)
+                    .lines()
+                    .map(|line| Ok(serde_json::from_str(&line?)?)),
+            ))
         } else {
             Err(serde_json::from_reader::<_, DockerError>(res)?.into())
         }
@@ -835,7 +838,7 @@ mod tests {
         let (name, tag) = ("debian", "latest");
         let sts = docker
             .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)));
+            .map(|sts| sts.for_each(|st| assert!(st.is_ok())));
         assert!(sts.is_ok());
         assert!(
             docker
