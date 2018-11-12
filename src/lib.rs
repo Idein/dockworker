@@ -24,6 +24,7 @@ extern crate tar;
 extern crate unix_socket;
 extern crate url;
 
+mod response;
 mod header;
 pub mod container;
 mod docker;
