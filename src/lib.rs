@@ -30,6 +30,7 @@ mod docker;
 pub mod errors;
 pub mod filesystem;
 mod hyper_client;
+mod http_client;
 pub mod image;
 mod options;
 pub mod process;
