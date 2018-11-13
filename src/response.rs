@@ -1,40 +1,43 @@
 ///! Response from Dockerd
 ///!
 
+use std::fmt;
+
 use serde_json::value as json;
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 pub struct ProgressDetail {
     pub current: u64,
     pub total: u64,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Progress {
-    /// image tag or hash of image layer
+    /// image tag or hash of image layer or ...
     pub id: String,
     /// progress bar
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub progress: Option<String>,
+    /// progress detail
+    #[serde(deserialize_with = "progress_detail_opt::deserialize")]
     pub progressDetail: Option<ProgressDetail>,
     /// message or auxiliary info
     pub status: String,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 pub struct Status {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     pub status: String,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 pub struct ErrorDetail {
     pub message: String,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Error {
     pub error: String,
@@ -53,4 +56,140 @@ pub enum Response {
     Error(Error),
     /// unknown response
     Unknown(json::Value),
+}
+
+impl Response {
+    pub fn as_error(&self) -> Option<&Error> {
+        use self::Response::*;
+        if let &Error(ref err) = self {
+            Some(err)
+        } else {
+            None
+        }
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.as_error().is_some()
+    }
+}
+
+mod progress_detail_opt {
+    use super::*;
+    use serde::de::{self, Deserializer, MapAccess, Visitor};
+
+    pub fn deserialize<'de, D>(de: D) -> Result<Option<ProgressDetail>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct OptVisitor;
+
+        impl<'de> Visitor<'de> for OptVisitor {
+            type Value = Option<ProgressDetail>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("Option<ProgressDetail>")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut current = None;
+                let mut total = None;
+
+                match map.next_key()? {
+                    Some(mut key) => loop {
+                        match key {
+                            "current" => {
+                                if current.is_some() { 
+                                    return Err(de::Error::duplicate_field("current"))
+                                }
+                                current = Some(map.next_value()?);
+                            }
+                            "total" => {
+                                if total.is_some() {
+                                    return Err(de::Error::duplicate_field("total"))
+                                }
+                                total = Some(map.next_value()?);
+                            }
+                            _ => return Err(de::Error::unknown_field(key, FIELDS)),
+                        };
+                        if let Some(key_) = map.next_key()? {
+                            key = key_;
+                        } else {
+                            break;
+                        }
+                    },
+                    None => return Ok(None), // {}
+                }
+
+                let current = current.ok_or_else(|| de::Error::missing_field("current"))?;
+                let total = total.ok_or_else(|| de::Error::missing_field("total"))?;
+
+                Ok(Some(ProgressDetail { current, total }))
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["current", "total"];
+        de.deserialize_map(OptVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+    use self::Response as R;
+
+    #[test]
+    fn progress() {
+        let s = r#"{"status":"Downloading","progressDetail":{"current":1596117,"total":86451485},"progress":"[\u003e                                                  ]  1.596MB/86.45MB","id":"66aa7ce9b58b"}"#;
+        assert_eq!(
+            R::Progress(Progress {
+                id: "66aa7ce9b58b".to_owned(),
+                progress:
+                    "[\u{003e}                                                  ]  1.596MB/86.45MB"
+                        .to_owned()
+                        .into(),
+                status: "Downloading".to_owned(),
+                progressDetail: Some(ProgressDetail {
+                    current: 1596117,
+                    total: 86451485,
+                }),
+            }),
+            serde_json::from_str(s).unwrap()
+        )
+    }
+
+    #[test]
+    fn progress_empty() {
+        let s = r#"{"status":"Already exists","progressDetail":{},"id":"18b8eb7e7f01"}"#;
+        assert_eq!(
+            Progress {
+                id: "18b8eb7e7f01".to_owned(),
+                progress: None,
+                progressDetail: None,
+                status: "Already exists".to_owned(),
+            },
+            serde_json::from_str(s).unwrap()
+        );
+    }
+
+    #[test]
+    fn status() {
+        let s = r#"{"status":"Pulling from eldesh/smlnj","id":"110.78"}"#;
+        assert_eq!(
+            R::Status(Status {
+                id: Some("110.78".to_owned()),
+                status: "Pulling from eldesh/smlnj".to_owned(),
+            }),
+            serde_json::from_str(s).unwrap()
+        )
+    }
+
+    #[test]
+    fn error() {
+        let s = r#"{"errorDetail":{"message":"failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device"},"error":"failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device"}"#;
+        assert_eq!(R::Error(Error { error: "failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device".to_owned(), errorDetail: ErrorDetail { message: "failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device".to_owned() } }), serde_json::from_str(s).unwrap())
+    }
 }
