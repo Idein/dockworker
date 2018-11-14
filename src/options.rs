@@ -665,5 +665,5 @@ pub struct HistoryImage {
     pub created_by: String,
     pub tags: Option<Vec<String>>,
     pub size: u64,
-    pub comment: Option<String>
+    pub comment: Option<String>,
 }
