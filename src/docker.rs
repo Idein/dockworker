@@ -106,6 +106,29 @@ fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
     }
 }
 
+
+/// Deserialize from json string
+fn missing_to_none(res: result::Result<Vec<HistoryImage>,Error>) -> result::Result<Vec<HistoryImage>,Error> {
+    match res {
+        Ok(history) => {
+            let missing = Some("<missing>".into());
+            let no_comment = Some("".into());
+
+            let mut history = history;
+            for change in history.iter_mut() {
+                if missing.eq(&change.id) {
+                    change.id = None;
+                }
+                if no_comment.eq(&change.comment) {
+                    change.comment = None;
+                }
+            }
+            Ok(history)
+        },
+        Err(e) => Err(e)
+    }
+}
+
 /// Expect 204 NoContent
 fn no_content(res: Response) -> result::Result<(), Error> {
     if res.status == StatusCode::NoContent {
@@ -612,6 +635,25 @@ impl Docker {
                 "",
             )
             .and_then(api_result)
+    }
+
+    /// History of an image
+    ///
+    /// # API
+    /// /images/{name}/history
+    ///
+    pub fn history_image(
+        &self,
+        name: &str
+    ) -> Result<Vec<HistoryImage>> {
+        let result = self.http_client()
+            .get(
+                self.headers(),
+                &format!("/images/{}/history", name)
+            )
+            .and_then(api_result);
+
+        missing_to_none(result)
     }
 
     /// List images
