@@ -52,10 +52,13 @@ jobs:
           command: cargo fmt -- --write-mode "diff"
       - run:
           name: Build project
-          command: RUST_BACKTRACE=1 cargo build --examples --verbose --features ssl
+          command: |
+            RUST_BACKTRACE=1 cargo build --verbose --features ssl
+            RUST_BACKTRACE=1 cargo build --examples -j 8
       - run:
           name: Unit testing
-          command: RUST_BACKTRACE=1 cargo test --verbose --features ssl
+          command: |
+            RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl
       - run:
           name: More unit testing
           command: |
