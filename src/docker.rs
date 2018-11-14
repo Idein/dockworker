@@ -809,7 +809,6 @@ mod tests {
     use std::path::PathBuf;
     use std::env;
     use std::convert::From;
-    use std::time::Duration;
 
     use self::rand::Rng;
     use tar::Builder as TarBuilder;
@@ -1135,6 +1134,7 @@ mod tests {
         ];
 
         signals.iter().for_each(|sig| {
+            trace!("cause signal: {:?}", sig);
             docker
                 .kill_container(&container.id, Signal::from(sig.clone()))
                 .ok();
@@ -1144,20 +1144,17 @@ mod tests {
         assert!(
             stdout_buffer
                 .lines()
-                .map(|line| {
-                    println!("line: {:?}", &line);
-                    line.unwrap()
-                })
+                .map(|line| line.unwrap())
                 .eq(signalstrs)
         );
 
-        println!("wait");
+        trace!("wait");
         assert_eq!(
             docker.wait_container(&container.id).unwrap(),
             ExitStatus::new(15)
         );
 
-        println!("remove container");
+        trace!("remove container");
         docker
             .remove_container(&container.id, None, None, None)
             .unwrap();
