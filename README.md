@@ -83,7 +83,7 @@ The container is able to be built by docker-compose like below:
 
 ```shell
 $ docker-compose build iostream
-$ docker test -- --ignored
+$ cargo test -- --ignored
 ```
 
 
