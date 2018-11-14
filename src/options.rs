@@ -2,13 +2,13 @@
 
 use std::path::PathBuf;
 use std::time::Duration;
-
+use std::fmt;
 use std::collections::HashMap;
 use url::form_urlencoded;
 
-use serde::de::{DeserializeOwned, Deserializer};
+use serde::de::{self, DeserializeOwned, Deserializer, MapAccess, Visitor};
 use serde::Deserialize;
-use serde::ser::{Serialize, Serializer, SerializeStruct};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
@@ -80,18 +80,17 @@ impl ContainerListOptions {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
-pub struct RestartPolicyImpl {
+pub struct RestartPolicyDetail {
     Name: String,
     MaximumRetryCount: u16,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct RestartPolicy(pub RestartPolicyImpl);
+#[derive(Debug, Clone)]
+pub struct RestartPolicy(Option<RestartPolicyDetail>);
 
 impl Default for RestartPolicy {
     fn default() -> Self {
-        Self { None }
+        RestartPolicy(None)
     }
 }
 
@@ -100,18 +99,81 @@ impl Serialize for RestartPolicy {
     where
         S: Serializer,
     {
-        match self {
-            None => serializer.serialize_unit(),
-            Some(RestartPolicyImpl {
-                Name,
-                MaximumRetryCount,
+        match &self.0 {
+            &None => serializer.serialize_unit(),
+            &Some(RestartPolicyDetail {
+                ref Name,
+                ref MaximumRetryCount,
             }) => {
                 let mut state = serializer.serialize_struct("RestartPolicy", 2)?;
-                state.serialize_field("Name", &self.Name)?;
-                state.serialize_field("MaximumRetryCount", &self.MaximumRetryCount)?;
+                state.serialize_field("Name", &Name)?;
+                state.serialize_field("MaximumRetryCount", &MaximumRetryCount)?;
                 state.end()
             }
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for RestartPolicy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct OptVisitor;
+
+        impl<'de> Visitor<'de> for OptVisitor {
+            type Value = RestartPolicy;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("RestartPolicy")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Self::Value, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut name = None;
+                let mut maximum_retry_count = None;
+
+                match map.next_key()? {
+                    Some(mut key) => loop {
+                        match key {
+                            "Name" => {
+                                if name.is_some() {
+                                    return Err(de::Error::duplicate_field("Name"));
+                                }
+                                name = Some(map.next_value()?);
+                            }
+                            "MaximumRetryCount" => {
+                                if maximum_retry_count.is_some() {
+                                    return Err(de::Error::duplicate_field("MaximumRetryCount"));
+                                }
+                                maximum_retry_count = Some(map.next_value()?);
+                            }
+                            _ => return Err(de::Error::unknown_field(key, FIELDS)),
+                        };
+                        if let Some(key_) = map.next_key()? {
+                            key = key_;
+                        } else {
+                            break;
+                        }
+                    },
+                    None => return Ok(RestartPolicy(None)), // {}
+                }
+
+                let name = name.ok_or_else(|| de::Error::missing_field("Name"))?;
+                let maximum_retry_count = maximum_retry_count
+                    .ok_or_else(|| de::Error::missing_field("MaximumRetryCount"))?;
+
+                Ok(RestartPolicy(Some(RestartPolicyDetail {
+                    Name: name,
+                    MaximumRetryCount: maximum_retry_count,
+                })))
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["Name", "MaximumRetryCount"];
+        deserializer.deserialize_map(OptVisitor)
     }
 }
 
@@ -122,13 +184,15 @@ mod tests {
 
     #[test]
     fn test_serialize_restart_policy() {
-        let policy_some = RestartPolicy { Some(RestartPolicyImpl { Name: "", MaximumRetryCount: 0 }) };
-        println!("policy: {}", serde_json::to_str(&policy_some).unwrap());
+        let policy_some = RestartPolicy(Some(RestartPolicyDetail {
+            Name: "always".to_owned(),
+            MaximumRetryCount: 0,
+        }));
+        println!("policy: {}", serde_json::to_string(&policy_some).unwrap());
         let policy_none = RestartPolicy::default();
-        println!("policy: {}", serde_json::to_str(&policy_none).unwrap());
+        println!("policy: {}", serde_json::to_string(&policy_none).unwrap());
     }
 }
-
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[allow(non_snake_case)]
