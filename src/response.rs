@@ -2,6 +2,7 @@
 ///!
 
 use std::fmt;
+use std::error::Error as StdError;
 
 use serde_json::value as json;
 
@@ -58,6 +59,22 @@ pub enum Response {
     Unknown(json::Value),
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}: {}", self.error, self.errorDetail.message)
+    }
+}
+
+impl StdError for Error {
+    fn description(&self) -> &str {
+        &self.error
+    }
+
+    fn cause(&self) -> Option<&::std::error::Error> {
+        None
+    }
+}
+
 impl Response {
     pub fn as_error(&self) -> Option<&Error> {
         use self::Response::*;
@@ -66,10 +83,6 @@ impl Response {
         } else {
             None
         }
-    }
-
-    pub fn is_error(&self) -> bool {
-        self.as_error().is_some()
     }
 }
 
