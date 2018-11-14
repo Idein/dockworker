@@ -108,9 +108,10 @@ fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
     }
 }
 
-
 /// Deserialize from json string
-fn missing_to_none(res: result::Result<Vec<HistoryImage>,Error>) -> result::Result<Vec<HistoryImage>,Error> {
+fn missing_to_none(
+    res: result::Result<Vec<HistoryImage>, Error>,
+) -> result::Result<Vec<HistoryImage>, Error> {
     match res {
         Ok(history) => {
             let missing = Some("<missing>".into());
@@ -126,8 +127,8 @@ fn missing_to_none(res: result::Result<Vec<HistoryImage>,Error>) -> result::Resu
                 }
             }
             Ok(history)
-        },
-        Err(e) => Err(e)
+        }
+        Err(e) => Err(e),
     }
 }
 
@@ -678,15 +679,9 @@ impl Docker {
     /// # API
     /// /images/{name}/history
     ///
-    pub fn history_image(
-        &self,
-        name: &str
-    ) -> Result<Vec<HistoryImage>> {
+    pub fn history_image(&self, name: &str) -> Result<Vec<HistoryImage>> {
         let result = self.http_client()
-            .get(
-                self.headers(),
-                &format!("/images/{}/history", name)
-            )
+            .get(self.headers(), &format!("/images/{}/history", name))
             .and_then(api_result);
 
         missing_to_none(result)
