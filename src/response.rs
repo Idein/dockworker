@@ -101,14 +101,14 @@ mod progress_detail_opt {
                     Some(mut key) => loop {
                         match key {
                             "current" => {
-                                if current.is_some() { 
-                                    return Err(de::Error::duplicate_field("current"))
+                                if current.is_some() {
+                                    return Err(de::Error::duplicate_field("current"));
                                 }
                                 current = Some(map.next_value()?);
                             }
                             "total" => {
                                 if total.is_some() {
-                                    return Err(de::Error::duplicate_field("total"))
+                                    return Err(de::Error::duplicate_field("total"));
                                 }
                                 total = Some(map.next_value()?);
                             }
@@ -142,8 +142,16 @@ mod tests {
     use self::Response as R;
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn progress() {
-        let s = r#"{"status":"Downloading","progressDetail":{"current":1596117,"total":86451485},"progress":"[\u003e                                                  ]  1.596MB/86.45MB","id":"66aa7ce9b58b"}"#;
+        let s = r#"{
+            "status": "Downloading",
+            "progressDetail":{
+                "current":1596117,
+                "total":86451485
+            },
+            "progress":"[\u003e                                                  ]  1.596MB/86.45MB","id":"66aa7ce9b58b"
+        }"#;
         assert_eq!(
             R::Progress(Progress {
                 id: "66aa7ce9b58b".to_owned(),
@@ -188,8 +196,22 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn error() {
-        let s = r#"{"errorDetail":{"message":"failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device"},"error":"failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device"}"#;
-        assert_eq!(R::Error(Error { error: "failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device".to_owned(), errorDetail: ErrorDetail { message: "failed to register layer: Error processing tar file(exit status 1): write /smlsharp/smlsharp-3.4.0/src/compiler/smlsharp: no space left on device".to_owned() } }), serde_json::from_str(s).unwrap())
+        let s = r#"{
+            "errorDetail":{
+                "message":"failed to register layer: Error processing tar file(exit status 1): write /foo/bar: no space left on device"
+            },
+            "error":"failed to register layer: Error processing tar file(exit status 1): write /foo/bar: no space left on device"
+        }"#;
+        assert_eq!(
+            R::Error(Error {
+                error: "failed to register layer: Error processing tar file(exit status 1): write /foo/bar: no space left on device".to_owned(),
+                errorDetail: ErrorDetail {
+                    message: "failed to register layer: Error processing tar file(exit status 1): write /foo/bar: no space left on device".to_owned(),
+                },
+            }),
+            serde_json::from_str(s).unwrap()
+        )
     }
 }
