@@ -59,7 +59,7 @@ mod windows {
 
         pub fn iterator() -> SignalIterator {
             use self::Signal::*;
-            SignalIterator::new(vec![SIGKILL, SIGTERM])
+            SignalIterator(vec![SIGKILL, SIGTERM])
         }
     }
 
