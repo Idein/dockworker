@@ -2,7 +2,6 @@
 
 use std::path::PathBuf;
 use std::time::Duration;
-
 use std::collections::HashMap;
 use url::form_urlencoded;
 
@@ -77,19 +76,83 @@ impl ContainerListOptions {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Restart policy of a container.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct RestartPolicy {
-    Name: String,
-    MaximumRetryCount: u16,
+    /// Restart type
+    /// This option can be "no", "always", "on-failure" or "unless-stopped"
+    pub Name: String,
+    /// Maximum retry count. This value is used only when "on-failure" mode
+    pub MaximumRetryCount: u16,
 }
 
 impl Default for RestartPolicy {
     fn default() -> Self {
-        Self {
-            Name: "no".to_owned(),
-            MaximumRetryCount: 0,
+        Self::new("no".to_owned(), 0)
+    }
+}
+
+impl RestartPolicy {
+    pub fn new(name: String, maximum_retry_count: u16) -> Self {
+        RestartPolicy {
+            Name: name,
+            MaximumRetryCount: maximum_retry_count,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn deser_restart_policy() {
+        let no = r#"{"MaximumRetryCount":0, "Name":"no"}"#;
+        assert_eq!(RestartPolicy::default(), serde_json::from_str(no).unwrap());
+        let always = r#"{"MaximumRetryCount":0, "Name":"always"}"#;
+        assert_eq!(
+            RestartPolicy::new("always".to_owned(), 0),
+            serde_json::from_str(always).unwrap()
+        );
+        let onfailure = r#"{"MaximumRetryCount":10, "Name":"on-failure"}"#;
+        assert_eq!(
+            RestartPolicy::new("on-failure".to_owned(), 10),
+            serde_json::from_str(onfailure).unwrap()
+        );
+        let unlessstopped = r#"{"MaximumRetryCount":0, "Name":"unless-stopped"}"#;
+        assert_eq!(
+            RestartPolicy::new("unless-stopped".to_owned(), 0),
+            serde_json::from_str(unlessstopped).unwrap()
+        );
+    }
+
+    #[test]
+    fn iso_restart_policy() {
+        let no = RestartPolicy::default();
+        assert_eq!(
+            serde_json::from_str::<RestartPolicy>(&serde_json::to_string(&no).unwrap()).unwrap(),
+            no
+        );
+        let always = RestartPolicy::new("always".to_owned(), 0);
+        assert_eq!(
+            serde_json::from_str::<RestartPolicy>(&serde_json::to_string(&always).unwrap())
+                .unwrap(),
+            always
+        );
+        let onfailure = RestartPolicy::new("on-failure".to_owned(), 10);
+        assert_eq!(
+            serde_json::from_str::<RestartPolicy>(&serde_json::to_string(&onfailure).unwrap())
+                .unwrap(),
+            onfailure
+        );
+        let unlessstopped = RestartPolicy::new("unless-stopped".to_owned(), 0);
+        assert_eq!(
+            serde_json::from_str::<RestartPolicy>(&serde_json::to_string(&unlessstopped).unwrap())
+                .unwrap(),
+            unlessstopped
+        );
     }
 }
 

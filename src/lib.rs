@@ -1,6 +1,6 @@
-//! Docker
-#![doc(html_root_url = "https://ghmlee.github.io/rust-docker/doc")]
-// Increase the compiler's recursion limit for the `error_chain` crate.
+//! Docker Engine API client
+
+// for the `error_chain` crate.
 #![recursion_limit = "1024"]
 
 extern crate base64;
@@ -24,12 +24,14 @@ extern crate tar;
 extern crate unix_socket;
 extern crate url;
 
+mod response;
 mod header;
 pub mod container;
 mod docker;
 pub mod errors;
 pub mod filesystem;
 mod hyper_client;
+mod http_client;
 pub mod image;
 mod options;
 pub mod process;

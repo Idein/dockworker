@@ -78,12 +78,14 @@ Executing unit tests:
 $ docker test
 ```
 
-For testing the __attach api__, specific docker container is required.
-The container is able to be built by docker-compose like below:
+### Depends on docker
+
+Some test cases depend on docker are disabled by default.
+These containers required from test cases are built by `docker-compose` like below:
 
 ```shell
-$ docker-compose build iostream
-$ docker test -- --ignored
+$ docker-compose build
+$ cargo test -- --ignored
 ```
 
 

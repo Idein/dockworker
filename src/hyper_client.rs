@@ -3,10 +3,12 @@ use std::path::Path;
 use std::result;
 use std::sync::Arc;
 
-use hyper::client::pool::{Config, Pool};
-use hyper::client::response::Response;
-use hyper::client::IntoUrl;
-use hyper::header::Headers;
+pub use hyper::mime::{Mime, SubLevel, TopLevel};
+pub use hyper::status::StatusCode;
+pub use hyper::client::pool::{Config, Pool};
+pub use hyper::client::response::Response;
+pub use hyper::client::IntoUrl;
+pub use hyper::header::{ContentType, Headers};
 use hyper::net::HttpConnector;
 #[cfg(feature = "openssl")]
 use hyper::net::{HttpsConnector, Openssl};
@@ -17,7 +19,7 @@ use openssl::ssl::{SslContext, SslMethod};
 #[cfg(feature = "openssl")]
 use openssl::x509::X509FileType;
 
-use docker::*;
+use http_client::HttpClient;
 use errors::*;
 #[cfg(unix)]
 use unix::HttpUnixConnector;

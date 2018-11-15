@@ -1,8 +1,3 @@
-use hyper::client::response::Response;
-use hyper::client::IntoUrl;
-use hyper::header::{ContentType, Headers};
-use hyper::mime::{Mime, SubLevel, TopLevel};
-use hyper::status::StatusCode;
 use std::env;
 use std::ffi::OsStr;
 use std::fmt;
@@ -27,9 +22,12 @@ use version::Version;
 pub use credentials::{Credential, UserPassword};
 
 use serde::de::DeserializeOwned;
-use serde_json::{self, Value};
+use serde_json;
 use signal::Signal;
 use header::XRegistryAuth;
+use http_client::{HaveHttpClient, HttpClient};
+use hyper_client::{ContentType, Headers, IntoUrl, Mime, Response, StatusCode, SubLevel, TopLevel};
+use response::Response as DockerResponse;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -127,42 +125,6 @@ fn ignore_result(res: Response) -> result::Result<(), Error> {
     } else {
         Err(serde_json::from_reader::<_, DockerError>(res)?.into())
     }
-}
-
-/// A http client
-pub trait HttpClient {
-    type Err: ::std::error::Error + Send + 'static;
-
-    fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
-
-    fn post(
-        &self,
-        headers: &Headers,
-        path: &str,
-        body: &str,
-    ) -> result::Result<Response, Self::Err>;
-
-    fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
-
-    fn post_file(
-        &self,
-        headers: &Headers,
-        path: &str,
-        file: &Path,
-    ) -> result::Result<Response, Self::Err>;
-
-    fn put_file(
-        &self,
-        headers: &Headers,
-        path: &str,
-        file: &Path,
-    ) -> result::Result<Response, Self::Err>;
-}
-
-/// Access to inner HttpClient
-pub trait HaveHttpClient {
-    type Client: HttpClient;
-    fn http_client(&self) -> &Self::Client;
 }
 
 impl Docker {
@@ -563,7 +525,7 @@ impl Docker {
         &self,
         image: &str,
         tag: &str,
-    ) -> Result<Box<Iterator<Item = Result<Value>>>> {
+    ) -> Result<Box<Iterator<Item = Result<DockerResponse>>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("fromImage", image);
         param.append_pair("tag", tag);
@@ -576,9 +538,11 @@ impl Docker {
             self.http_client()
                 .post(&headers, &format!("/images/create?{}", param.finish()), "")?;
         if res.status.is_success() {
-            Ok(Box::new(BufReader::new(res).lines().map(|line| {
-                Ok(line?).and_then(|ref line| Ok(serde_json::from_str(line)?))
-            })))
+            Ok(Box::new(
+                BufReader::new(res)
+                    .lines()
+                    .map(|line| Ok(serde_json::from_str(&line?)?)),
+            ))
         } else {
             Err(serde_json::from_reader::<_, DockerError>(res)?.into())
         }
@@ -863,6 +827,7 @@ mod tests {
     use std::iter::{self, Iterator};
     use std::path::PathBuf;
     use std::env;
+    use std::convert::From;
 
     use self::rand::Rng;
     use tar::Builder as TarBuilder;
@@ -893,7 +858,7 @@ mod tests {
         let (name, tag) = ("debian", "latest");
         let sts = docker
             .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)));
+            .map(|sts| sts.for_each(|st| assert!(st.is_ok())));
         assert!(sts.is_ok());
         assert!(
             docker
@@ -1117,7 +1082,7 @@ mod tests {
         let docker = Docker::connect_with_defaults().unwrap();
 
         // expected files
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker");
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker/attach");
         let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
         let image_name = "test-iostream:latest";
 
@@ -1158,5 +1123,59 @@ mod tests {
             .remove_container(&container.id, None, None, None)
             .unwrap();
         docker.remove_image(image_name, None, None).unwrap();
+    }
+
+    /// This is executed after `docker-compose build signal`
+    #[test]
+    #[ignore]
+    fn signal_container() {
+        use nix::sys::signal::Signal::*;
+        let docker = Docker::connect_with_defaults().unwrap();
+
+        let image_name = "test-signal:latest";
+        let host_config = ContainerHostConfig::new();
+        let mut create = ContainerCreateOptions::new(image_name);
+        create.host_config(host_config);
+
+        let container = docker.create_container(None, &create).unwrap();
+        docker.start_container(&container.id).unwrap();
+        let res = docker
+            .attach_container(&container.id, None, true, true, false, true, true)
+            .unwrap();
+        let cont: container::AttachContainer = res.into();
+        let signals = [SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGTERM];
+        let signalstrs = vec![
+            "HUP".to_string(),
+            "INT".to_string(),
+            "USR1".to_string(),
+            "USR2".to_string(),
+            "TERM".to_string(),
+        ];
+
+        signals.iter().for_each(|sig| {
+            trace!("cause signal: {:?}", sig);
+            docker
+                .kill_container(&container.id, Signal::from(sig.clone()))
+                .ok();
+        });
+
+        let stdout_buffer = BufReader::new(cont.stdout);
+        assert!(
+            stdout_buffer
+                .lines()
+                .map(|line| line.unwrap())
+                .eq(signalstrs)
+        );
+
+        trace!("wait");
+        assert_eq!(
+            docker.wait_container(&container.id).unwrap(),
+            ExitStatus::new(15)
+        );
+
+        trace!("remove container");
+        docker
+            .remove_container(&container.id, None, None, None)
+            .unwrap();
     }
 }

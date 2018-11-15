@@ -7,15 +7,17 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Build the docker container
+          name: Build docker containers for testing
           command: |
-            docker-compose build iostream
+            docker-compose build
             docker save -o test-iostream test-iostream:latest
+            docker save -o test-signal   test-signal:latest
 
       - persist_to_workspace:
           root: /tmp/dockworker
           paths:
             - test-iostream
+            - test-signal
 
   build:
     working_directory: /tmp/dockworker
@@ -52,14 +54,18 @@ jobs:
           command: cargo fmt -- --write-mode "diff"
       - run:
           name: Build project
-          command: RUST_BACKTRACE=1 cargo build --examples --verbose --features ssl
+          command: |
+            RUST_BACKTRACE=1 cargo build --verbose --features ssl
+            RUST_BACKTRACE=1 cargo build --examples -j 8
       - run:
           name: Unit testing
-          command: RUST_BACKTRACE=1 cargo test --verbose --features ssl
+          command: |
+            RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl
       - run:
           name: More unit testing
           command: |
             docker load -i test-iostream
+            docker load -i test-signal
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
