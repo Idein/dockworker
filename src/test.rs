@@ -65,7 +65,8 @@ fn get_images() {
 fn get_image_history() {
     let response = get_image_history_reponse();
     let images: Vec<HistoryImage> = serde_json::from_str(&response).unwrap();
-    assert_eq!(3, images.len());
+    assert_ne!(images[0].id, None);
+    assert_eq!(2, images.len());
 }
 
 #[test]
@@ -106,20 +107,13 @@ fn get_images_response() -> String {
 }
 
 fn get_image_history_reponse() -> String {
+    // First has Id, second has Id missing.
     r#"[{
             "Comment": "",
             "Created": 1539614714,
             "CreatedBy": "/bin/sh -c apk add --update openssl",
-            "Id": "<missing>",
+            "Id": "1234",
             "Size": 4736047,
-            "Tags": null
-        },
-        {
-            "Comment": "",
-            "Created": 1536704390,
-            "CreatedBy": "/bin/sh -c #(nop)  CMD [\"/bin/sh\"]",
-            "Id": "<missing>",
-            "Size": 0,
             "Tags": null
         },
         {
