@@ -659,7 +659,7 @@ pub struct PrunedImages {
 /// Response of the history image api
 #[serde(rename_all = "PascalCase")]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct HistoryImage {
+pub struct ImageLayer {
     pub id: Option<String>,
     pub created: i64,
     pub created_by: String,
