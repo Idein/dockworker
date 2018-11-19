@@ -13,7 +13,7 @@ use std::io::Write;
 use system::SystemInfo;
 use util::MemoryStream;
 use version::Version;
-use super::HistoryImage;
+use super::ImageLayer;
 
 #[test]
 fn get_containers() {
@@ -64,7 +64,7 @@ fn get_images() {
 #[test]
 fn get_image_history() {
     let response = get_image_history_reponse();
-    let images: Vec<HistoryImage> = serde_json::from_str(&response).unwrap();
+    let images: Vec<ImageLayer> = serde_json::from_str(&response).unwrap();
     assert_ne!(images[0].id, None);
     assert_eq!(2, images.len());
 }
