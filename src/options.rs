@@ -439,7 +439,7 @@ pub struct NetworkingConfig {
     // TODO
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ContainerLogOptions {
     pub stdout: bool,
     pub stderr: bool,
@@ -450,12 +450,12 @@ pub struct ContainerLogOptions {
 
 impl ContainerLogOptions {
     fn new() -> ContainerLogOptions {
-        ContainerLogOptions{
+        ContainerLogOptions {
             stdout: true,
             stderr: true,
             since: None,
             timestamps: None,
-            tail: None
+            tail: None,
         }
     }
 

@@ -7,7 +7,9 @@ use dockworker::{ContainerCreateOptions, ContainerLogOptions, Docker};
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
 
-    docker.remove_container("testing", None, Some(true), None).unwrap();
+    docker
+        .remove_container("testing", None, Some(true), None)
+        .unwrap();
 
     let mut create = ContainerCreateOptions::new("alpine:latest");
     create.tty(true);
@@ -25,7 +27,7 @@ fn main() {
         stderr: true,
         since: None,
         timestamps: None,
-        tail: None
+        tail: None,
     };
 
     let logs = docker.log_container(&container.id, &log_options);
@@ -51,9 +53,14 @@ fn main() {
                 print!("{}", line_buffer);
                 line_buffer.clear();
             }
-            Err(e) => { println!("{:?}", e); break; }
+            Err(e) => {
+                println!("{:?}", e);
+                break;
+            }
         }
     }
 
-    docker.stop_container(&container.id, Duration::from_secs(2)).unwrap();
+    docker
+        .stop_container(&container.id, Duration::from_secs(2))
+        .unwrap();
 }
