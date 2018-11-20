@@ -106,6 +106,26 @@ fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
     }
 }
 
+/// Return string if ok result
+fn api_result_as_string(mut res: Response) -> result::Result<String, Error> {
+    if res.status.is_success() {
+        let mut buf = String::new();
+        res.read_to_string(&mut buf);
+        Ok(buf)
+    } else {
+        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+    }
+}
+
+/// Return string stream (http) if ok result
+fn api_result_as_stream(mut res: Response) -> result::Result<Box<Read>,Error> {
+    if res.status.is_success() {
+        Ok(Box::new(res))
+    } else {
+        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+    }
+}
+
 /// Expect 204 NoContent
 fn no_content(res: Response) -> result::Result<(), Error> {
     if res.status == StatusCode::NoContent {
@@ -360,6 +380,28 @@ impl Docker {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
             })
+    }
+
+
+
+    /// Get logs from a container
+    ///
+    /// # API
+    /// /containers/{id}/logs
+    pub fn log_container(&self, id: &str, option: &ContainerLogOptions) -> Result<String> {
+        self.http_client()
+            .get(self.headers(), &format!("/containers/{}/logs?{}", id, option.encode()))
+            .and_then(api_result_as_string)
+    }
+
+    /// Gets current logs and tails logs from a container
+    ///
+    /// # API
+    /// /containers/{id}/logs?follow=true
+    pub fn log_container_and_follow(&self, id: &str, option: &ContainerLogOptions) -> Result<Box<Read>> {
+        self.http_client()
+            .get(self.headers(), &format!("/containers/{}/logs?follow=true&{}", id, option.encode()))
+            .and_then(api_result_as_stream)
     }
 
     /// List processes running inside a container

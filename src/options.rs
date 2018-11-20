@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 use std::collections::HashMap;
-use url::form_urlencoded;
+use url::{self, form_urlencoded};
 
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
@@ -437,6 +437,43 @@ impl ContainerHostConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NetworkingConfig {
     // TODO
+}
+
+#[derive(Debug,Clone)]
+pub struct ContainerLogOptions {
+    pub stdout: bool,
+    pub stderr: bool,
+    pub since: Option<i64>,
+    pub timestamps: Option<bool>,
+    pub tail: Option<i64>,
+}
+
+impl ContainerLogOptions {
+    fn new() -> ContainerLogOptions {
+        ContainerLogOptions{
+            stdout: true,
+            stderr: true,
+            since: None,
+            timestamps: None,
+            tail: None
+        }
+    }
+
+    pub(crate) fn encode(&self) -> String {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("stdout", &self.stdout.to_string());
+        param.append_pair("stderr", &self.stderr.to_string());
+        if let Some(since) = self.since {
+            param.append_pair("since", &since.to_string());
+        }
+        if let Some(timestamps) = self.timestamps {
+            param.append_pair("timestamps", &timestamps.to_string());
+        }
+        if let Some(tail) = self.tail {
+            param.append_pair("tail", &tail.to_string());
+        }
+        param.finish()
+    }
 }
 
 /// request body of /containers/create api
