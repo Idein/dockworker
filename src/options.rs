@@ -692,3 +692,15 @@ pub struct PrunedImages {
     ImagesDeleted: Vec<RemovedImage>,
     SpaceReclaimed: i64,
 }
+
+/// Response of the history image api
+#[serde(rename_all = "PascalCase")]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ImageLayer {
+    pub id: Option<String>,
+    pub created: i64,
+    pub created_by: String,
+    pub tags: Option<Vec<String>>,
+    pub size: u64,
+    pub comment: String,
+}

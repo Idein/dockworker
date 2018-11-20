@@ -13,6 +13,7 @@ use std::io::Write;
 use system::SystemInfo;
 use util::MemoryStream;
 use version::Version;
+use super::ImageLayer;
 
 #[test]
 fn get_containers() {
@@ -61,6 +62,14 @@ fn get_images() {
 }
 
 #[test]
+fn get_image_history() {
+    let response = get_image_history_reponse();
+    let images: Vec<ImageLayer> = serde_json::from_str(&response).unwrap();
+    assert_ne!(images[0].id, None);
+    assert_eq!(2, images.len());
+}
+
+#[test]
 fn get_container_info() {
     let response = get_container_info_response();
     assert!(serde_json::from_str::<ContainerInfo>(&response).is_ok())
@@ -95,6 +104,28 @@ fn get_system_info_response() -> String {
 fn get_images_response() -> String {
     "[{\"Created\":1428533761,\"Id\":\"533da4fa223bfbca0f56f65724bb7a4aae7a1acd6afa2309f370463eaf9c34a4\",\"ParentId\":\"84ac0b87e42afe881d36f03dea817f46893f9443f9fc10b64ec279737384df12\",\"RepoTags\":[\"ghmlee/rust:nightly\"],\"Size\":0,\"VirtualSize\":806688288},{\"Created\":1371157430,\"Id\":\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\",\"ParentId\":\"\",\"RepoTags\":[],\"Size\":0,\"VirtualSize\":0},
     {\"Created\":1371157430,\"Id\":\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\",\"ParentId\":\"\",\"RepoTags\":null,\"Size\":0,\"VirtualSize\":0}]".to_string()
+}
+
+fn get_image_history_reponse() -> String {
+    // First has Id, second has Id missing.
+    r#"[{
+            "Comment": "",
+            "Created": 1539614714,
+            "CreatedBy": "/bin/sh -c apk add --update openssl",
+            "Id": "1234",
+            "Size": 4736047,
+            "Tags": null
+        },
+        {
+            "Comment": "",
+            "Created": 1536704390,
+            "CreatedBy": "/bin/sh -c #(nop) ADD file:25c10b1d1b41d46a1827ad0b0d2389c24df6d31430005ff4e9a2d84ea23ebd42 in / ",
+            "Id": "<missing>",
+            "Size": 4413370,
+            "Tags": null
+        }
+    ]
+    "#.into()
 }
 
 fn get_container_info_response() -> String {

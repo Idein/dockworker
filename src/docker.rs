@@ -664,6 +664,25 @@ impl Docker {
             .and_then(api_result)
     }
 
+    /// History of an image
+    ///
+    /// # API
+    /// /images/{name}/history
+    ///
+    pub fn history_image(&self, name: &str) -> Result<Vec<ImageLayer>> {
+        self.http_client()
+            .get(self.headers(), &format!("/images/{}/history", name))
+            .and_then(api_result)
+            .map(|mut hs: Vec<ImageLayer>| {
+                hs.iter_mut().for_each(|change| {
+                    if change.id == Some("<missing>".into()) {
+                        change.id = None;
+                    }
+                });
+                hs
+            })
+    }
+
     /// List images
     ///
     /// # API
