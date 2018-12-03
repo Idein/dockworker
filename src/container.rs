@@ -241,6 +241,22 @@ impl AttachResponseFrame {
     }
 }
 
+/// response fragment of the attach container api
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct LogResponseFrame {
+    frame: Vec<u8>,
+}
+
+impl LogResponseFrame {
+    fn new(frame: Vec<u8>) -> Self {
+        Self { frame }
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.frame
+    }
+}
+
 #[derive(Debug, Clone)]
 struct ContainerStdio {
     /// io type
@@ -300,6 +316,17 @@ impl Read for ContainerStdout {
 impl Read for ContainerStderr {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.body.read(buf)
+    }
+}
+
+#[derive(Debug)]
+pub struct LogFollowContainer {
+    pub stdout_and_err: LogFollowResponse,
+}
+
+impl LogFollowContainer {
+    fn new(stdout_and_err: LogFollowResponse) -> Self {
+        Self { stdout_and_err }
     }
 }
 
@@ -404,6 +431,30 @@ impl Read for ContainerStdio {
     }
 }
 
+impl Read for LogFollowResponse {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.res.read(buf)
+    }
+}
+
+/// Response of log follow api
+#[derive(Debug)]
+pub struct LogFollowResponse {
+    res: Response,
+}
+
+impl LogFollowResponse {
+    pub fn new(res: Response) -> Self {
+        Self { res }
+    }
+}
+
+impl From<LogFollowResponse> for LogFollowContainer {
+    fn from(res: LogFollowResponse) -> Self {
+        LogFollowContainer::new(res)
+    }
+}
+
 /// Response of attach to container api
 #[derive(Debug)]
 pub struct AttachResponse {
@@ -444,6 +495,40 @@ impl From<AttachResponse> for AttachContainer {
             Rc::clone(&stderr_buff),
         ));
         AttachContainer::new(stdin, stdout, stderr)
+    }
+}
+
+#[derive(Debug)]
+struct LogResponseIter {
+    res: Response,
+}
+
+impl LogResponseIter {
+    fn new(res: Response) -> Self {
+        Self { res }
+    }
+}
+
+impl From<Response> for LogResponseIter {
+    fn from(res: Response) -> Self {
+        Self::new(res)
+    }
+}
+
+impl Iterator for LogResponseIter {
+    type Item = io::Result<LogResponseFrame>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut buf = Vec::new();
+        match self.res.read(&mut buf) {
+            Ok(read_byte_count) => {
+                if read_byte_count > 0 {
+                    Some(Ok(LogResponseFrame::new(buf)))
+                } else {
+                    None
+                }
+            }
+            Err(err) => Some(Err(err)),
+        }
     }
 }
 

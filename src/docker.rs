@@ -8,7 +8,8 @@ use std::result;
 use std::time::Duration;
 use url;
 
-use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus};
+use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus,
+                LogFollowResponse};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
@@ -101,26 +102,6 @@ impl ::std::error::Error for DockerError {
 fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
     if res.status.is_success() {
         Ok(serde_json::from_reader::<_, D>(res)?)
-    } else {
-        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
-    }
-}
-
-/// Return string if ok result
-fn api_result_as_string(mut res: Response) -> result::Result<String, Error> {
-    if res.status.is_success() {
-        let mut buf = String::new();
-        res.read_to_string(&mut buf);
-        Ok(buf)
-    } else {
-        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
-    }
-}
-
-/// Return string stream (http) if ok result
-fn api_result_as_stream(mut res: Response) -> result::Result<Box<Read>, Error> {
-    if res.status.is_success() {
-        Ok(Box::new(res))
     } else {
         Err(serde_json::from_reader::<_, DockerError>(res)?.into())
     }
@@ -382,34 +363,27 @@ impl Docker {
             })
     }
 
-    /// Get logs from a container
+    /// Gets current logs and tails logs from a container
     ///
     /// # API
-    /// /containers/{id}/logs
-    pub fn log_container(&self, id: &str, option: &ContainerLogOptions) -> Result<String> {
+    /// /containers/{id}/logs?follow=true
+    pub fn log_container(
+        &self,
+        id: &str,
+        option: &ContainerLogOptions,
+    ) -> Result<LogFollowResponse> {
         self.http_client()
             .get(
                 self.headers(),
                 &format!("/containers/{}/logs?{}", id, option.encode()),
             )
-            .and_then(api_result_as_string)
-    }
-
-    /// Gets current logs and tails logs from a container
-    ///
-    /// # API
-    /// /containers/{id}/logs?follow=true
-    pub fn log_container_and_follow(
-        &self,
-        id: &str,
-        option: &ContainerLogOptions,
-    ) -> Result<Box<Read>> {
-        self.http_client()
-            .get(
-                self.headers(),
-                &format!("/containers/{}/logs?follow=true&{}", id, option.encode()),
-            )
-            .and_then(api_result_as_stream)
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(LogFollowResponse::new(res))
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
     }
 
     /// List processes running inside a container

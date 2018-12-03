@@ -446,23 +446,15 @@ pub struct ContainerLogOptions {
     pub since: Option<i64>,
     pub timestamps: Option<bool>,
     pub tail: Option<i64>,
+    pub follow: bool,
 }
 
 impl ContainerLogOptions {
-    fn new() -> ContainerLogOptions {
-        ContainerLogOptions {
-            stdout: true,
-            stderr: true,
-            since: None,
-            timestamps: None,
-            tail: None,
-        }
-    }
-
     pub(crate) fn encode(&self) -> String {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("stdout", &self.stdout.to_string());
         param.append_pair("stderr", &self.stderr.to_string());
+        param.append_pair("follow", &self.follow.to_string());
         if let Some(since) = self.since {
             param.append_pair("since", &since.to_string());
         }
@@ -473,6 +465,19 @@ impl ContainerLogOptions {
             param.append_pair("tail", &tail.to_string());
         }
         param.finish()
+    }
+}
+
+impl Default for ContainerLogOptions {
+    fn default() -> Self {
+        ContainerLogOptions {
+            stdout: true,
+            stderr: true,
+            follow: false,
+            since: None,
+            timestamps: None,
+            tail: None,
+        }
     }
 }
 
