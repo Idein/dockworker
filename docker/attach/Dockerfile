@@ -1,7 +1,7 @@
 # iostream-docker-test
 #
 
-FROM alpine:3.8
+FROM debian:jessie-20180831
 
 WORKDIR /test
 

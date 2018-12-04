@@ -12,9 +12,9 @@ fi
 stdout=$1
 stderr=$2
 
-dd bs=32 status=none if=$stdout of=/dev/stdout &
+dd bs=1 status=none if=$stdout of=/dev/stdout &
 outp=$!
-dd bs=32 status=none if=$stderr of=/dev/stderr &
+dd bs=1 status=none if=$stderr of=/dev/stderr &
 errp=$!
 
 wait $outp $errp
