@@ -217,6 +217,7 @@ impl ContainerFilters {
     }
 }
 
+/// Io type
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum ContainerStdioType {
     Stdin,
@@ -224,7 +225,7 @@ enum ContainerStdioType {
     Stderr,
 }
 
-/// response fragment of the attach container api
+/// Response fragment of the attach container api
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct AttachResponseFrame {
     type_: ContainerStdioType,
@@ -243,9 +244,9 @@ impl AttachResponseFrame {
 
 #[derive(Debug, Clone)]
 struct ContainerStdio {
-    /// io type
+    /// Io type
     type_: ContainerStdioType,
-    /// shared source (response)
+    /// Data source (shared one stream to dockerd)
     src: Rc<RefCell<AttachResponseIter>>,
     stdin_buff: Rc<RefCell<Vec<u8>>>,
     stdout_buff: Rc<RefCell<Vec<u8>>>,
@@ -310,6 +311,21 @@ pub struct AttachContainer {
     pub stderr: ContainerStderr,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AttachOutput {
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+impl Default for AttachOutput {
+    fn default() -> Self {
+        Self {
+            stdout: Vec::new(),
+            stderr: Vec::new(),
+        }
+    }
+}
+
 impl AttachContainer {
     fn new(stdin: ContainerStdin, stdout: ContainerStdout, stderr: ContainerStderr) -> Self {
         Self {
@@ -317,6 +333,14 @@ impl AttachContainer {
             stdout,
             stderr,
         }
+    }
+
+    /// Read following streams of stdout/stderr to `AttachOutput`
+    pub fn output(&mut self) -> io::Result<AttachOutput> {
+        let mut output = AttachOutput::default();
+        self.stdout.read_to_end(&mut output.stdout)?;
+        self.stderr.read_to_end(&mut output.stderr)?;
+        Ok(output)
     }
 }
 
