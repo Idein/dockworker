@@ -1075,19 +1075,19 @@ mod tests {
         ));
     }
 
-    /// This is executed after `docker-compose build iostream`
+    /// This is executed after `docker-compose build attach_stream`
     #[test]
     #[ignore]
-    fn attach_container() {
+    fn attach_container_stream() {
         let docker = Docker::connect_with_defaults().unwrap();
 
         // expected files
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker/attach");
         let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
-        let image_name = "test-iostream:latest";
+        let image_name = "test-attach:stream";
 
-        let host_config = ContainerHostConfig::new();
-        //host_config.auto_remove(true);
+        let mut host_config = ContainerHostConfig::new();
+        host_config.auto_remove(true);
         let mut create = ContainerCreateOptions::new(image_name);
         create
             .cmd(exps[0].to_owned())
@@ -1119,10 +1119,61 @@ mod tests {
         );
 
         docker.wait_container(&container.id).unwrap();
-        docker
-            .remove_container(&container.id, None, None, None)
+        docker.remove_image(image_name, Some(true), None).unwrap();
+    }
+
+    /// This is executed after `docker-compose build attach_output`
+    #[test]
+    #[ignore]
+    fn attach_container_output() {
+        let docker = Docker::connect_with_defaults().unwrap();
+
+        // expected files
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker/attach");
+        let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
+        let image_name = "test-attach:output";
+
+        let mut host_config = ContainerHostConfig::new();
+        host_config.auto_remove(true);
+        let mut create = ContainerCreateOptions::new(image_name);
+        create
+            .cmd(exps[0].to_owned())
+            .cmd(exps[1].to_owned())
+            .host_config(host_config);
+
+        let container = docker.create_container(None, &create).unwrap();
+        docker.start_container(&container.id).unwrap();
+        let res = docker
+            .attach_container(&container.id, None, true, true, false, true, true)
             .unwrap();
-        docker.remove_image(image_name, None, None).unwrap();
+        let mut cont: container::AttachContainer = res.into();
+        let output = cont.output().unwrap();
+
+        // read expected files
+        let mut exp_stdout = Vec::new();
+        File::open(root.join(exps[0]))
+            .unwrap()
+            .read_to_end(&mut exp_stdout)
+            .unwrap();
+        assert_eq!(exp_stdout.len(), output.stdout.len());
+        assert_eq!(
+            String::from_utf8_lossy(&exp_stdout),
+            String::from_utf8_lossy(&output.stdout)
+        );
+
+        let mut exp_stderr = Vec::new();
+        File::open(root.join(exps[1]))
+            .unwrap()
+            .read_to_end(&mut exp_stderr)
+            .unwrap();
+        //assert_eq!(exp_stderr, output.stderr);
+        assert_eq!(
+            String::from_utf8_lossy(&exp_stderr),
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        docker.wait_container(&container.id).unwrap();
+        docker.remove_image(image_name, Some(true), None).unwrap();
     }
 
     /// This is executed after `docker-compose build signal`

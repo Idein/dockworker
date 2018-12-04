@@ -8,10 +8,15 @@ version: '2'
 # > ./target/debug/examples/push
 
 services:
-  iostream:
+  attach_stream:
     build:
       context: ./docker/attach
-    image: test-iostream:latest
+    image: test-attach:stream
+
+  attach_output:
+    build:
+      context: ./docker/attach
+    image: test-attach:output
 
   signal:
     build:

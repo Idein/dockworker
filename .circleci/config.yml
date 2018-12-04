@@ -64,7 +64,8 @@ jobs:
       - run:
           name: More unit testing
           command: |
-            docker load -i test-iostream
+            docker load -i test-attach:stream
+            docker load -i test-attach:output
             docker load -i test-signal
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - save_cache:
