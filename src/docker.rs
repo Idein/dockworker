@@ -819,6 +819,7 @@ impl HaveHttpClient for Docker {
 
 #[cfg(all(test, unix))]
 mod tests {
+    extern crate env_logger;
     extern crate rand;
 
     use super::*;
@@ -1126,6 +1127,7 @@ mod tests {
     #[test]
     #[ignore]
     fn attach_container_output() {
+        env_logger::init();
         let docker = Docker::connect_with_defaults().unwrap();
 
         // expected files
@@ -1134,7 +1136,7 @@ mod tests {
         let image_name = "test-attach:output";
 
         let mut host_config = ContainerHostConfig::new();
-        host_config.auto_remove(true);
+        //host_config.auto_remove(true);
         let mut create = ContainerCreateOptions::new(image_name);
         create
             .cmd(exps[0].to_owned())

@@ -244,6 +244,9 @@ impl AttachResponseFrame {
 
 #[derive(Debug, Clone)]
 struct ContainerStdio {
+    total_stdin: u64,
+    total_stdout: u64,
+    total_stderr: u64,
     /// Io type
     type_: ContainerStdioType,
     /// Data source (shared one stream to dockerd)
@@ -353,6 +356,9 @@ impl ContainerStdio {
         stderr_buff: Rc<RefCell<Vec<u8>>>,
     ) -> Self {
         Self {
+            total_stdin: 0,
+            total_stdout: 0,
+            total_stderr: 0,
             type_,
             src,
             stdin_buff,
@@ -386,10 +392,49 @@ impl ContainerStdio {
         while let Some(xs) = self.src.borrow_mut().next() {
             let AttachResponseFrame { type_, mut frame } = xs?;
             let len = frame.len();
+            debug!("{:?}: len: {}", self.type_, len);
             match type_ {
-                Stdin => self.stdin_buff.borrow_mut().append(&mut frame),
-                Stdout => self.stdout_buff.borrow_mut().append(&mut frame),
-                Stderr => self.stderr_buff.borrow_mut().append(&mut frame),
+                Stdin => {
+                    self.total_stdin += len as u64;
+                    debug!("{:?} stdin: {}", self.type_, self.stdin_buff.borrow().len());
+                    self.stdin_buff.borrow_mut().append(&mut frame);
+                    debug!(
+                        "{:?} stdin: {} {}",
+                        self.type_,
+                        self.stdin_buff.borrow().len(),
+                        self.total_stdin
+                    );
+                }
+                Stdout => {
+                    self.total_stdout += len as u64;
+                    debug!(
+                        "{:?} stdout: {}",
+                        self.type_,
+                        self.stdout_buff.borrow().len()
+                    );
+                    self.stdout_buff.borrow_mut().append(&mut frame);
+                    debug!(
+                        "{:?} stdout: {} {}",
+                        self.type_,
+                        self.stdout_buff.borrow().len(),
+                        self.total_stdout
+                    );
+                }
+                Stderr => {
+                    self.total_stderr += len as u64;
+                    debug!(
+                        "{:?} stderr: {}",
+                        self.type_,
+                        self.stderr_buff.borrow().len()
+                    );
+                    self.stderr_buff.borrow_mut().append(&mut frame);
+                    debug!(
+                        "{:?} stderr: {} {}",
+                        self.type_,
+                        self.stderr_buff.borrow().len(),
+                        self.total_stderr
+                    );
+                }
             }
             if type_ == self.type_ {
                 return Ok(len);
@@ -404,8 +449,24 @@ impl Read for ContainerStdio {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.forcused_buff().len() == 0 {
             match self.readin_next() {
-                Ok(0) => return Ok(0),
-                Err(e) => return Err(e),
+                Ok(0) => {
+                    debug!(
+                        "{:?}: {} {} {}",
+                        self.type_,
+                        self.stdin_buff.borrow().len(),
+                        self.stdout_buff.borrow().len(),
+                        self.stderr_buff.borrow().len(),
+                    );
+                    debug!(
+                        "{:?}: {} {} {}",
+                        self.type_, self.total_stdin, self.total_stdout, self.total_stderr
+                    );
+                    return Ok(0);
+                }
+                Err(e) => {
+                    error!("read: {:?} {}", self.type_, e);
+                    return Err(e);
+                }
                 _ => {}
             }
         }
@@ -497,8 +558,12 @@ impl Iterator for AttachResponseIter {
         // read header
         if let Err(err) = self.res.read_exact(&mut buf) {
             return if err.kind() == io::ErrorKind::UnexpectedEof {
+                error!("end of stream: {:?}", err);
+                error!("res: {:?}", self.res);
                 None // end of stream
             } else {
+                error!("err of stream: {:?}", err);
+                error!("res: {:?}", self.res);
                 Some(Err(err))
             };
         }
@@ -507,6 +572,7 @@ impl Iterator for AttachResponseIter {
         let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
         let mut frame = vec![0; frame_size as usize];
         if let Err(io) = self.res.read_exact(&mut frame) {
+            error!("read_exact: {}", io);
             return Some(Err(io));
         }
         match buf[0] {
