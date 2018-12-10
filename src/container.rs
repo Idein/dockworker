@@ -1,14 +1,14 @@
 use byteorder::{BigEndian, ReadBytesExt};
 use errors;
 use hyper_client::Response;
+use serde::de::{Deserialize, DeserializeOwned, Deserializer};
 use std;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::fmt;
 use std::io::{self, Read};
 use std::rc::Rc;
-
-use serde::de::{DeserializeOwned, Deserializer};
-use serde::Deserialize;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -188,6 +188,69 @@ pub struct PortMapping {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
+pub struct LogMessage {
+    pub Start: String,
+    pub End: String,
+    pub ExitCode: u64,
+    pub Output: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub enum HealthState {
+    NoHealthcheck, // Indicates there is no healthcheck
+    Starting,      // Starting indicates that the container is not yet ready
+    Healthy,       // Healthy indicates that the container is running correctly
+    Unhealthy,     // Unhealthy indicates that the container has a problem
+}
+
+impl fmt::Display for HealthState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &HealthState::NoHealthcheck => write!(f, "none"),
+            &HealthState::Starting => write!(f, "starting"),
+            &HealthState::Healthy => write!(f, "healthy"),
+            &HealthState::Unhealthy => write!(f, "unhealthy"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for HealthState {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(HealthState::from_str(&s).unwrap())
+    }
+}
+
+impl FromStr for HealthState {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "none" => Ok(HealthState::NoHealthcheck),
+            "starting" => Ok(HealthState::Starting),
+            "healthy" => Ok(HealthState::Healthy),
+            "unhealthy" => Ok(HealthState::Unhealthy),
+            _ => Err(format!(
+                "Cannot parse {} into known HealthState variant!",
+                s
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct Health {
+    pub Status: HealthState,
+    pub FailingStreak: u64,
+    pub Log: Vec<LogMessage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct State {
     pub Status: String,
     pub Running: bool,
@@ -202,6 +265,8 @@ pub struct State {
     pub Error: String,
     pub StartedAt: String,
     pub FinishedAt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Health: Option<Health>,
 }
 
 impl std::fmt::Display for Container {
