@@ -328,6 +328,22 @@ impl Docker {
             .and_then(no_content)
     }
 
+    /// Restart a container
+    ///
+    /// # API
+    /// /containers/{id}/restart
+    pub fn restart_container(&self, id: &str, timeout: Duration) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("t", &timeout.as_secs().to_string());
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/restart?{}", id, param.finish()),
+                "",
+            )
+            .and_then(no_content)
+    }
+
     /// Attach to a container
     ///
     /// Attach to a container to read its output or send it input.

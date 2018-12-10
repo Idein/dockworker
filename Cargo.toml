@@ -56,3 +56,15 @@ unix_socket = "0.5.0"
 
 [target.'cfg(windows)'.dependencies]
 named_pipe = "0.2.2"
+
+
+# The testing profile, used for `cargo test`.
+[profile.test]
+opt-level = 0
+debug = 2
+rpath = false
+lto = false
+debug-assertions = true
+panic = 'unwind'
+incremental = true
+overflow-checks = true
