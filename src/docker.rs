@@ -128,6 +128,7 @@ fn ignore_result(res: Response) -> result::Result<(), Error> {
     }
 }
 
+
 impl Docker {
     fn new(client: HyperClient, protocol: Protocol) -> Self {
         Self {
@@ -529,6 +530,15 @@ impl Docker {
             .and_then(ignore_result)
     }
 
+
+    /// Build an image from a tar archive with a Dockerfile in it.
+    ///
+    /// # API
+    /// /build?
+    pub fn build_image(options: ContainerBuildOptions) -> Result<DockerResponse> {
+        unimplemented!();
+    }
+
     /// Create an image by pulling it from registry
     ///
     /// # API
@@ -536,7 +546,8 @@ impl Docker {
     ///
     /// # NOTE
     /// When control returns from this function, creating job may not have been completed.
-    /// For waiting the completion of the job, cunsuming response like `create_image("hello-world", "linux").map(|r| r.for_each(|_| ()));`.
+    /// For waiting the completion of the job, consuming response like
+    /// `create_image("hello-world", "linux").map(|r| r.for_each(|_| ()));`.
     ///
     /// # TODO
     /// - Typing result iterator like image::ImageStatus.

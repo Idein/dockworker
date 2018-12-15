@@ -481,6 +481,110 @@ impl Default for ContainerLogOptions {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ContainerBuildOptions {
+    /// Path within the build context to the Dockerfile.
+    /// This is ignored if remote is specified and points to an external Dockerfile.
+    dockerfile: String,
+
+    /// A name and optional tag to apply to the image in the name:tag format.
+    /// If you omit the tag the default latest value is assumed. You can provide several t parameters.
+    t: Vec<String>,
+
+    /// Extra hosts to add to /etc/hosts
+    extra_hosts: Option<String>,
+
+    /// A Git repository URI or HTTP/HTTPS context URI
+    remote: Option<String>,
+
+    /// Suppress verbose build output.
+    q: bool,
+
+    /// Do not use the cache when building the image.
+    nocache: bool,
+
+    /// JSON array of images used for build cache resolution.
+    cache_from: Option<String>,
+
+    /// Attempt to pull the image even if an older image exists locally.
+    pull: Option<String>,
+
+    /// Remove intermediate containers after a successful build.
+    rm: bool,
+
+    /// Always remove intermediate containers, even upon failure.
+    force_rm: bool,
+
+    /// Set memory limit for build.
+    memory: Option<u64>,
+
+    /// Total memory (memory + swap). Set as -1 to disable swap.
+    mem_swap: Option<u64>,
+
+    /// CPU shares (relative weight).
+    cpu_shares: Option<u64>,
+
+    /// CPUs in which to allow execution (e.g., 0-3, 0,1).
+    cpu_set_cpus: Option<String>,
+
+    /// The length of a CPU period in microseconds.
+    cpu_period: Option<u64>,
+
+    /// Microseconds of CPU time that the container can get in a CPU period.
+    cpu_quota: Option<u64>,
+
+    /// JSON map of string pairs for build-time variables.
+    /// This is not meant for passing secret values.
+    build_args: Option<HashMap<String,String>>,
+
+    /// Size of /dev/shm in bytes. The size must be greater than 0. If omitted the system uses 64MB.
+    shm_size: Option<u64>,
+
+    /// Squash the resulting images layers into a single layer. (Experimental release only.)
+    squash: Option<bool>,
+
+    /// Arbitrary key/value labels to set on the image, as a JSON map of string pairs.
+    labels: Option<HashMap<String,String>>,
+
+    ///    Sets the networking mode for the run commands during build.
+    /// Supported standard values are: bridge, host, none, and container:<name|id>.
+    /// Any other value is taken as a custom network's name to which this container should connect to.
+    network_mode: Option<String>,
+
+    /// Platform in the format os[/arch[/variant]]
+    platform: Option<String>
+}
+
+impl Default for ContainerBuildOptions {
+    fn default() -> Self {
+        ContainerBuildOptions {
+            dockerfile: String::from("Dockerfile"),
+            t: Vec::new(),
+            extra_hosts: None,
+            remote: None,
+            q: false,
+            nocache: false,
+            cache_from: None,
+            pull: None,
+            rm: true,
+            force_rm: false,
+            memory: None,
+            mem_swap: None,
+            cpu_shares: None,
+            cpu_set_cpus: None,
+            cpu_period: None,
+            cpu_quota: None,
+            build_args: None,
+            shm_size: None,
+            squash: Some(false),
+            labels: None,
+            network_mode: None,
+            platform: None
+        }
+    }
+}
+
 /// request body of /containers/create api
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
