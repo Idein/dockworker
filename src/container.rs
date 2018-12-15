@@ -320,12 +320,12 @@ impl Read for ContainerStderr {
 }
 
 #[derive(Debug)]
-pub struct LogFollowContainer {
-    pub stdout_and_err: LogFollowResponse,
+pub struct LogContainer {
+    pub stdout_and_err: LogResponse,
 }
 
-impl LogFollowContainer {
-    fn new(stdout_and_err: LogFollowResponse) -> Self {
+impl LogContainer {
+    fn new(stdout_and_err: LogResponse) -> Self {
         Self { stdout_and_err }
     }
 }
@@ -431,7 +431,7 @@ impl Read for ContainerStdio {
     }
 }
 
-impl Read for LogFollowResponse {
+impl Read for LogResponse {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.res.read(buf)
     }
@@ -439,19 +439,19 @@ impl Read for LogFollowResponse {
 
 /// Response of log follow api
 #[derive(Debug)]
-pub struct LogFollowResponse {
+pub struct LogResponse {
     res: Response,
 }
 
-impl LogFollowResponse {
+impl LogResponse {
     pub fn new(res: Response) -> Self {
         Self { res }
     }
 }
 
-impl From<LogFollowResponse> for LogFollowContainer {
-    fn from(res: LogFollowResponse) -> Self {
-        LogFollowContainer::new(res)
+impl From<LogResponse> for LogContainer {
+    fn from(res: LogResponse) -> Self {
+        LogContainer::new(res)
     }
 }
 

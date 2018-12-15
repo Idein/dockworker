@@ -4,11 +4,11 @@ use std::time::Duration;
 use std::io::{BufRead, BufReader};
 
 use dockworker::{ContainerCreateOptions, ContainerLogOptions, Docker};
-use dockworker::container::LogFollowContainer;
+use dockworker::container::LogContainer;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    let container_name = "testing"; // "testing";
+    let container_name = "testing";
 
     docker
         .remove_container(container_name, None, Some(true), None)
@@ -36,8 +36,7 @@ fn main() {
     let res = docker.log_container(&container.id, &log_options).unwrap();
 
     println!("Current logs after 5 seconds:");
-    let cont: LogFollowContainer = res.into();
-    let mut line_reader = BufReader::new(cont.stdout_and_err);
+    let mut line_reader = BufReader::new(res);
 
     loop {
         let mut line = String::new();
@@ -49,28 +48,6 @@ fn main() {
                 }
             }
             Err(e) => eprint!("{:?}", e),
-        }
-    }
-
-    //
-    // Follow example:
-    //
-    println!("Follow logs example:");
-    let res = docker.log_container(&container.id, &log_options).unwrap();
-    let cont: LogFollowContainer = res.into();
-
-    let mut line_reader = BufReader::new(cont.stdout_and_err);
-
-    loop {
-        let mut line = String::new();
-        match line_reader.read_line(&mut line) {
-            Ok(size) => {
-                print!("{:4}: {}", size, line);
-                if size == 0 {
-                    break;
-                }
-            }
-            Err(_e) => break,
         }
     }
 
