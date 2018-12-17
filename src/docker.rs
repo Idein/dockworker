@@ -827,6 +827,23 @@ impl Docker {
             .get(self.headers(), "/version")
             .and_then(api_result)
     }
+
+    /// Get monitor events
+    ///
+    /// # API
+    /// /events
+    pub fn events(&self) -> Result<Box<Iterator<Item = Result<DockerResponse>>>> {
+        self.http_client()
+            .get(self.headers(), "/events")
+            .and_then(|res| {
+                Ok(Box::new(
+                    serde_json::Deserializer::from_reader(res)
+                        .into_iter::<serde_json::Value>()
+                        .map(|json_value| Ok(DockerResponse::Unknown(json_value?))),
+                )
+                    as Box<Iterator<Item = Result<DockerResponse>>>)
+            })
+    }
 }
 
 impl HaveHttpClient for Docker {
@@ -869,6 +886,12 @@ mod tests {
     fn get_version() {
         let docker = Docker::connect_with_defaults().unwrap();
         assert!(docker.version().is_ok());
+    }
+
+    #[test]
+    fn get_events() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        assert!(docker.events().is_ok());
     }
 
     #[test]
