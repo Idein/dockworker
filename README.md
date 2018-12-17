@@ -66,7 +66,7 @@ Supported Api List.
 	- [x] `/info`
 	- [x] `/version`
 	- [x] `/_ping`
-	- [ ] `/events`
+	- [x] `/events`
 	- [ ] `/system/df`
 
 
