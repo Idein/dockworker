@@ -241,22 +241,6 @@ impl AttachResponseFrame {
     }
 }
 
-/// response fragment of the attach container api
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct LogResponseFrame {
-    frame: Vec<u8>,
-}
-
-impl LogResponseFrame {
-    fn new(frame: Vec<u8>) -> Self {
-        Self { frame }
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.frame
-    }
-}
-
 #[derive(Debug, Clone)]
 struct ContainerStdio {
     /// io type
@@ -417,24 +401,6 @@ impl Read for ContainerStdio {
             inner_buf.drain(..buf_len); // delete _size_ elementes from the head of buf
             Ok(buf_len)
         }
-    }
-}
-
-impl Read for LogResponse {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.res.read(buf)
-    }
-}
-
-/// Response of log follow api
-#[derive(Debug)]
-pub struct LogResponse {
-    res: Response,
-}
-
-impl LogResponse {
-    pub fn new(res: Response) -> Self {
-        Self { res }
     }
 }
 
