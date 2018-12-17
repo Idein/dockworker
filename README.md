@@ -24,7 +24,7 @@ Supported Api List.
 	- [x] `/containers/create`
 	- [x] `/containers/{id}/json`
 	- [x] `/containers/{id}/top`
-	- [ ] `/containers/{id}/logs`
+	- [x] `/containers/{id}/logs`
 	- [x] `/containers/{id}/changes`
 	- [x] `/containers/{id}/export`
 	- [x] `/containers/{id}/stats`
@@ -50,7 +50,7 @@ Supported Api List.
 	- [ ] `/build/prune`
 	- [x] `/images/create`
 	- [ ] `/images/{name}/json`
-	- [ ] `/images/{name}/history`
+	- [x] `/images/{name}/history`
 	- [x] `/images/{name}/push`
 	- [ ] `/images/{name}/tag`
 	- [x] `/images/{name}` # remove
