@@ -450,7 +450,7 @@ pub struct ContainerLogOptions {
 }
 
 impl ContainerLogOptions {
-    pub(crate) fn encode(&self) -> String {
+    pub(crate) fn to_url_params(&self) -> String {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("stdout", &self.stdout.to_string());
         param.append_pair("stderr", &self.stderr.to_string());
