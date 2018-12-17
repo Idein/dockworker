@@ -320,17 +320,6 @@ impl Read for ContainerStderr {
 }
 
 #[derive(Debug)]
-pub struct LogContainer {
-    pub stdout_and_err: LogResponse,
-}
-
-impl LogContainer {
-    fn new(stdout_and_err: LogResponse) -> Self {
-        Self { stdout_and_err }
-    }
-}
-
-#[derive(Debug)]
 pub struct AttachContainer {
     pub stdin: ContainerStdin,
     pub stdout: ContainerStdout,
@@ -449,12 +438,6 @@ impl LogResponse {
     }
 }
 
-impl From<LogResponse> for LogContainer {
-    fn from(res: LogResponse) -> Self {
-        LogContainer::new(res)
-    }
-}
-
 /// Response of attach to container api
 #[derive(Debug)]
 pub struct AttachResponse {
@@ -495,40 +478,6 @@ impl From<AttachResponse> for AttachContainer {
             Rc::clone(&stderr_buff),
         ));
         AttachContainer::new(stdin, stdout, stderr)
-    }
-}
-
-#[derive(Debug)]
-struct LogResponseIter {
-    res: Response,
-}
-
-impl LogResponseIter {
-    fn new(res: Response) -> Self {
-        Self { res }
-    }
-}
-
-impl From<Response> for LogResponseIter {
-    fn from(res: Response) -> Self {
-        Self::new(res)
-    }
-}
-
-impl Iterator for LogResponseIter {
-    type Item = io::Result<LogResponseFrame>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut buf = Vec::new();
-        match self.res.read(&mut buf) {
-            Ok(read_byte_count) => {
-                if read_byte_count > 0 {
-                    Some(Ok(LogResponseFrame::new(buf)))
-                } else {
-                    None
-                }
-            }
-            Err(err) => Some(Err(err)),
-        }
     }
 }
 
