@@ -128,7 +128,6 @@ fn ignore_result(res: Response) -> result::Result<(), Error> {
     }
 }
 
-
 impl Docker {
     fn new(client: HyperClient, protocol: Protocol) -> Self {
         Self {
@@ -530,13 +529,22 @@ impl Docker {
             .and_then(ignore_result)
     }
 
-
     /// Build an image from a tar archive with a Dockerfile in it.
     ///
     /// # API
     /// /build?
-    pub fn build_image(options: ContainerBuildOptions) -> Result<DockerResponse> {
-        unimplemented!();
+    pub fn build_image(&self, options: ContainerBuildOptions, tar_path: &Path) -> Result<Response> {
+        let mut headers = self.headers().clone();
+        let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
+        headers.set::<ContentType>(ContentType(application_tar));
+        let res =
+            self.http_client()
+                .post_file(&headers, &format!("/build?{}", options.to_url_params()), tar_path)?;
+        if !res.status.is_success() {
+            return Err(serde_json::from_reader::<_, DockerError>(res)?.into());
+        }
+
+        Ok(res)
     }
 
     /// Create an image by pulling it from registry
