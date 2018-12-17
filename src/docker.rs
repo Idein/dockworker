@@ -370,7 +370,7 @@ impl Docker {
         self.http_client()
             .get(
                 self.headers(),
-                &format!("/containers/{}/logs?{}", id, option.encode()),
+                &format!("/containers/{}/logs?{}", id, option.to_url_params()),
             )
             .and_then(|res| {
                 if res.status.is_success() {
