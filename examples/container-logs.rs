@@ -4,15 +4,12 @@ use std::time::Duration;
 use std::io::{BufRead, BufReader};
 
 use dockworker::{ContainerCreateOptions, ContainerLogOptions, Docker};
-use dockworker::container::LogContainer;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
     let container_name = "testing";
 
-    docker
-        .remove_container(container_name, None, Some(true), None)
-        .unwrap();
+    let _close_result = docker.remove_container(container_name, None, Some(true), None);
 
     let mut create = ContainerCreateOptions::new("alpine:latest");
     create.tty(true);
