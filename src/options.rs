@@ -7,6 +7,7 @@ use url::{self, form_urlencoded};
 
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
+use serde_json;
 
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
@@ -486,74 +487,148 @@ impl Default for ContainerLogOptions {
 pub struct ContainerBuildOptions {
     /// Path within the build context to the Dockerfile.
     /// This is ignored if remote is specified and points to an external Dockerfile.
-    dockerfile: String,
+    pub dockerfile: String,
 
     /// A name and optional tag to apply to the image in the name:tag format.
     /// If you omit the tag the default latest value is assumed. You can provide several t parameters.
-    t: Vec<String>,
+    pub t: Vec<String>,
 
     /// Extra hosts to add to /etc/hosts
-    extra_hosts: Option<String>,
+    pub extra_hosts: Option<String>,
 
     /// A Git repository URI or HTTP/HTTPS context URI
-    remote: Option<String>,
+    pub remote: Option<String>,
 
     /// Suppress verbose build output.
-    q: bool,
+    pub q: bool,
 
     /// Do not use the cache when building the image.
-    nocache: bool,
+    pub no_cache: bool,
 
     /// JSON array of images used for build cache resolution.
-    cache_from: Option<String>,
+    pub cache_from: Option<Vec<String>>,
 
     /// Attempt to pull the image even if an older image exists locally.
-    pull: Option<String>,
+    pub pull: Option<String>,
 
     /// Remove intermediate containers after a successful build.
-    rm: bool,
+    pub rm: bool,
 
     /// Always remove intermediate containers, even upon failure.
-    force_rm: bool,
+    pub force_rm: bool,
 
     /// Set memory limit for build.
-    memory: Option<u64>,
+    pub memory: Option<u64>,
 
     /// Total memory (memory + swap). Set as -1 to disable swap.
-    mem_swap: Option<u64>,
+    pub mem_swap: Option<i64>,
 
     /// CPU shares (relative weight).
-    cpu_shares: Option<u64>,
+    pub cpu_shares: Option<u64>,
 
     /// CPUs in which to allow execution (e.g., 0-3, 0,1).
-    cpu_set_cpus: Option<String>,
+    pub cpu_set_cpus: Option<String>,
 
     /// The length of a CPU period in microseconds.
-    cpu_period: Option<u64>,
+    pub cpu_period: Option<u64>,
 
     /// Microseconds of CPU time that the container can get in a CPU period.
-    cpu_quota: Option<u64>,
+    pub cpu_quota: Option<u64>,
 
     /// JSON map of string pairs for build-time variables.
     /// This is not meant for passing secret values.
-    build_args: Option<HashMap<String,String>>,
+    pub build_args: Option<HashMap<String, String>>,
 
     /// Size of /dev/shm in bytes. The size must be greater than 0. If omitted the system uses 64MB.
-    shm_size: Option<u64>,
+    pub shm_size: Option<u64>,
 
     /// Squash the resulting images layers into a single layer. (Experimental release only.)
-    squash: Option<bool>,
+    pub squash: Option<bool>,
 
     /// Arbitrary key/value labels to set on the image, as a JSON map of string pairs.
-    labels: Option<HashMap<String,String>>,
+    pub labels: Option<HashMap<String, String>>,
 
     ///    Sets the networking mode for the run commands during build.
     /// Supported standard values are: bridge, host, none, and container:<name|id>.
     /// Any other value is taken as a custom network's name to which this container should connect to.
-    network_mode: Option<String>,
+    pub network_mode: Option<String>,
 
     /// Platform in the format os[/arch[/variant]]
-    platform: Option<String>
+    pub platform: Option<String>,
+}
+
+impl ContainerBuildOptions {
+    /// Convert to URL parameters.
+    pub fn to_url_params(&self) -> String {
+        let mut params = form_urlencoded::Serializer::new(String::new());
+        params.append_pair("dockerfile", &self.dockerfile);
+        for tag in self.t.clone() {
+            params.append_pair("t", &tag);
+        }
+        if let Some(extra_hosts) = self.extra_hosts.clone() {
+            params.append_pair("extra_hosts", &extra_hosts);
+        }
+        if let Some(remote) = self.remote.clone() {
+            params.append_pair("remote", &remote);
+        }
+        if self.q {
+            params.append_pair("q", "true");
+        }
+        if self.no_cache {
+            params.append_pair("no_cache", "true");
+        }
+        if let Some(cache_from) = self.cache_from.clone() {
+            params.append_pair("cache_from", &serde_json::to_string(&cache_from).unwrap());
+        }
+        if let Some(pull) = self.pull.clone() {
+            params.append_pair("pull", &pull);
+        }
+        if self.rm {
+            params.append_pair("rm", "true");
+        }
+        if self.force_rm {
+            params.append_pair("force_rm", "true");
+        }
+        if let Some(memory) = self.memory.clone() {
+            params.append_pair("memory", &memory.to_string());
+        }
+        if let Some(mem_swap) = self.mem_swap.clone() {
+            params.append_pair("mem_swap", &mem_swap.to_string());
+        }
+        if let Some(cpu_shares) = self.cpu_shares.clone() {
+            params.append_pair("cpu_shares", &cpu_shares.to_string());
+        }
+        if let Some(cpu_set_cpus) = self.cpu_set_cpus.clone() {
+            params.append_pair("cpu_set_cpus", &cpu_set_cpus);
+        }
+        if let Some(cpu_period) = self.cpu_period.clone() {
+            params.append_pair("cpu_period", &cpu_period.to_string());
+        }
+        if let Some(cpu_quota) = self.cpu_quota.clone() {
+            params.append_pair("cpu_quota", &cpu_quota.to_string());
+        }
+        if let Some(build_args) = self.build_args.clone() {
+            params.append_pair("build_args", &serde_json::to_string(&build_args)
+                .expect("Json parsing of build_args param"));
+        }
+        if let Some(shm_size) = self.shm_size.clone() {
+            params.append_pair("shm_size", &shm_size.to_string());
+        }
+        if let Some(squash) = self.squash {
+            params.append_pair("squash", &squash.to_string());
+        }
+        if let Some(labels) = self.labels.clone() {
+            params.append_pair("labels", &serde_json::to_string(&labels)
+                .expect("Json parsing of labels param"));
+        }
+        if let Some(network_mode) = self.network_mode.clone() {
+            params.append_pair("network_mode", &network_mode);
+        }
+        if let Some(platform) = self.platform.clone() {
+            params.append_pair("platform", &platform);
+        }
+        params.finish()
+    }
 }
 
 impl Default for ContainerBuildOptions {
@@ -564,7 +639,7 @@ impl Default for ContainerBuildOptions {
             extra_hosts: None,
             remote: None,
             q: false,
-            nocache: false,
+            no_cache: false,
             cache_from: None,
             pull: None,
             rm: true,
@@ -580,7 +655,7 @@ impl Default for ContainerBuildOptions {
             squash: Some(false),
             labels: None,
             network_mode: None,
-            platform: None
+            platform: None,
         }
     }
 }
