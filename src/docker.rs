@@ -832,16 +832,16 @@ impl Docker {
     ///
     /// # API
     /// /events
-    pub fn events(&self) -> Result<Box<Iterator<Item = Result<DockerResponse>>>> {
+    pub fn events(&self) -> Result<Box<Iterator<Item = Result<EventResponse>>>> {
         self.http_client()
             .get(self.headers(), "/events")
             .and_then(|res| {
                 Ok(Box::new(
                     serde_json::Deserializer::from_reader(res)
-                        .into_iter::<serde_json::Value>()
-                        .map(|json_value| Ok(DockerResponse::Unknown(json_value?))),
+                        .into_iter::<EventResponse>()
+                        .map(|event_response| Ok(event_response?)),
                 )
-                    as Box<Iterator<Item = Result<DockerResponse>>>)
+                    as Box<Iterator<Item = Result<EventResponse>>>)
             })
     }
 }
