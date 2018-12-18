@@ -667,3 +667,20 @@ pub struct ImageLayer {
     pub size: u64,
     pub comment: String,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+#[allow(non_snake_case)]
+pub struct EventResponse {
+    pub Type: String,
+    pub Action: String,
+    pub Actor: Actor,
+    pub time: u64,
+    pub timeNano: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[allow(non_snake_case)]
+pub struct Actor {
+    pub ID: String,
+    pub Attributes: HashMap<String, String>,
+}
