@@ -905,7 +905,7 @@ mod tests {
     #[test]
     fn get_events() {
         let docker = Docker::connect_with_defaults().unwrap();
-        assert!(docker.events().is_ok());
+        assert!(docker.events(None, None, None).is_ok());
     }
 
     #[test]
