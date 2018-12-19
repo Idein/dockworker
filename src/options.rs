@@ -715,14 +715,144 @@ pub struct ImageLayer {
 pub struct EventResponse {
     pub Type: String,
     pub Action: String,
-    pub Actor: Actor,
+    pub Actor: EventActor,
     pub time: u64,
     pub timeNano: u64,
 }
 
+#[derive(Debug, PartialEq, PartialOrd, Serialize)]
+pub struct EventFilters {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    config: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    container: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    daemon: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    event: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    image: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    label: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    network: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    node: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    plugin: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    scope: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    secret: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    service: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "type")]
+    type_: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    volume: Vec<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[allow(non_snake_case)]
-pub struct Actor {
+pub struct EventActor {
     pub ID: String,
     pub Attributes: HashMap<String, String>,
+}
+
+impl Default for EventFilters {
+    fn default() -> Self {
+        Self {
+            config: vec![],
+            container: vec![],
+            daemon: vec![],
+            event: vec![],
+            image: vec![],
+            label: vec![],
+            network: vec![],
+            node: vec![],
+            plugin: vec![],
+            scope: vec![],
+            secret: vec![],
+            service: vec![],
+            type_: vec![],
+            volume: vec![],
+        }
+    }
+}
+
+impl EventFilters {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn config(&mut self, config: &str) -> &mut Self {
+        self.config.push(config.to_owned());
+        self
+    }
+
+    pub fn container(&mut self, container: &str) -> &mut Self {
+        self.container.push(container.to_owned());
+        self
+    }
+
+    pub fn daemon(&mut self, daemon: &str) -> &mut Self {
+        self.daemon.push(daemon.to_owned());
+        self
+    }
+
+    pub fn event(&mut self, event: &str) -> &mut Self {
+        self.event.push(event.to_owned());
+        self
+    }
+
+    pub fn image(&mut self, image: &str) -> &mut Self {
+        self.image.push(image.to_owned());
+        self
+    }
+
+    pub fn label(&mut self, label: &str) -> &mut Self {
+        self.label.push(label.to_owned());
+        self
+    }
+
+    pub fn network(&mut self, network: &str) -> &mut Self {
+        self.network.push(network.to_owned());
+        self
+    }
+
+    pub fn node(&mut self, node: &str) -> &mut Self {
+        self.node.push(node.to_owned());
+        self
+    }
+
+    pub fn plugin(&mut self, plugin: &str) -> &mut Self {
+        self.plugin.push(plugin.to_owned());
+        self
+    }
+
+    pub fn scope(&mut self, scope: &str) -> &mut Self {
+        self.scope.push(scope.to_owned());
+        self
+    }
+
+    pub fn secret(&mut self, secret: &str) -> &mut Self {
+        self.secret.push(secret.to_owned());
+        self
+    }
+
+    pub fn service(&mut self, service: &str) -> &mut Self {
+        self.service.push(service.to_owned());
+        self
+    }
+
+    pub fn type_(&mut self, type_: &str) -> &mut Self {
+        self.type_.push(type_.to_owned());
+        self
+    }
+
+    pub fn volume(&mut self, volume: &str) -> &mut Self {
+        self.volume.push(volume.to_owned());
+        self
+    }
 }
