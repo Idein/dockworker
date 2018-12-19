@@ -832,7 +832,12 @@ impl Docker {
     ///
     /// # API
     /// /events
-    pub fn events(&self, since: Option<u64>, until: Option<u64>, filters: Option<EventFilters>) -> Result<Box<Iterator<Item = Result<EventResponse>>>> {
+    pub fn events(
+        &self,
+        since: Option<u64>,
+        until: Option<u64>,
+        filters: Option<EventFilters>,
+    ) -> Result<Box<Iterator<Item = Result<EventResponse>>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
 
         if let Some(since) = since {
