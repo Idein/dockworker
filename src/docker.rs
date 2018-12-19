@@ -813,9 +813,23 @@ impl Docker {
     ///
     /// # API
     /// /events
-    pub fn events(&self) -> Result<Box<Iterator<Item = Result<EventResponse>>>> {
+    pub fn events(&self, since: Option<u64>, until: Option<u64>, filters: Option<EventFilters>) -> Result<Box<Iterator<Item = Result<EventResponse>>>> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+
+        if let Some(since) = since {
+            param.append_pair("since", &since.to_string());
+        }
+
+        if let Some(until) = until {
+            param.append_pair("until", &until.to_string());
+        }
+
+        if let Some(filters) = filters {
+            param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
+        }
+
         self.http_client()
-            .get(self.headers(), "/events")
+            .get(self.headers(), &format!("/events?{}", param.finish()))
             .and_then(|res| {
                 Ok(Box::new(
                     serde_json::Deserializer::from_reader(res)
