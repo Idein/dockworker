@@ -1,38 +1,29 @@
 extern crate dockworker;
 
-use std::time::Duration;
 use std::io::{BufRead, BufReader};
 
 use dockworker::{ContainerCreateOptions, ContainerLogOptions, Docker};
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    let container_name = "testing";
-
-    let _close_result = docker.remove_container(container_name, None, Some(true), None);
 
     let mut create = ContainerCreateOptions::new("alpine:latest");
     create.tty(true);
-    create.entrypoint(vec!["/bin/ping".to_string()]);
+    create.entrypoint(vec!["/bin/ping".into(), "-c".into(), "5".into()]);
     create.cmd("localhost".to_string());
 
-    let container = docker
-        .create_container(Some(container_name), &create)
-        .unwrap();
+    let container = docker.create_container(None, &create).unwrap();
     docker.start_container(&container.id).unwrap();
-
-    std::thread::sleep(Duration::from_secs(5));
 
     println!("Container to log: {}", &container.id);
     let log_options = ContainerLogOptions {
         stdout: true,
         stderr: true,
+        follow: true,
         ..ContainerLogOptions::default()
     };
 
     let res = docker.log_container(&container.id, &log_options).unwrap();
-
-    println!("Current logs after 5 seconds:");
     let mut line_reader = BufReader::new(res);
 
     loop {
@@ -47,8 +38,13 @@ fn main() {
             Err(e) => eprint!("{:?}", e),
         }
     }
+    println!(""); // line break
 
+    // already stopped
+    // docker
+    //     .stop_container(&container.id, Duration::from_secs(2))
+    //     .unwrap();
     docker
-        .stop_container(&container.id, Duration::from_secs(2))
+        .remove_container(&container.id, None, Some(true), None)
         .unwrap();
 }
