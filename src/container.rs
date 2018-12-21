@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::io::{self, Read};
 use std::rc::Rc;
 use std::cell::{Ref, RefCell, RefMut};
+use errors::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -494,6 +495,36 @@ impl Iterator for AttachResponseIter {
                 None
             }
         }
+    }
+}
+
+/// Response of log container api
+#[derive(Debug)]
+pub struct LogResponse {
+    res: Response,
+}
+
+impl From<Response> for LogResponse {
+    fn from(res: Response) -> Self {
+        Self { res }
+    }
+}
+
+impl Read for LogResponse {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.res.read(buf)
+    }
+}
+
+impl LogResponse {
+    fn new(res: Response) -> Self {
+        Self { res }
+    }
+
+    pub fn output(&mut self) -> Result<String> {
+        let mut str = String::new();
+        self.res.read_to_string(&mut str)?;
+        Ok(str)
     }
 }
 

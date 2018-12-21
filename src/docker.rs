@@ -8,7 +8,8 @@ use std::result;
 use std::time::Duration;
 use url;
 
-use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus};
+use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus,
+                LogResponse};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
@@ -366,7 +367,7 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/logs
-    pub fn log_container(&self, id: &str, option: &ContainerLogOptions) -> Result<Response> {
+    pub fn log_container(&self, id: &str, option: &ContainerLogOptions) -> Result<LogResponse> {
         self.http_client()
             .get(
                 self.headers(),
@@ -374,7 +375,7 @@ impl Docker {
             )
             .and_then(|res| {
                 if res.status.is_success() {
-                    Ok(res)
+                    Ok(res.into())
                 } else {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
