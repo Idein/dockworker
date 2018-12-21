@@ -1137,6 +1137,60 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn log_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.5");
+        docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+            .unwrap();
+        let mut create_options = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        create_options.entrypoint(vec!["cat".into()]);
+        create_options.cmd("/etc/motd".to_string());
+
+        let log_options = ContainerLogOptions {
+            stdout: true,
+            stderr: true,
+            follow: true,
+            ..ContainerLogOptions::default()
+        };
+
+        let lines = {
+            let container = docker.create_container(None, &create_options).unwrap();
+            docker.start_container(&container.id).unwrap();
+            let log = docker.log_container(&container.id, &log_options).unwrap();
+            let lines = BufReader::new(log)
+                .lines()
+                .map(|x| x.unwrap())
+                .fold("".to_string(), |acc, s| acc + &s);
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+            lines
+        };
+
+        let once = {
+            let container = docker.create_container(None, &create_options).unwrap();
+            docker.start_container(&container.id).unwrap();
+            let mut log = docker.log_container(&container.id, &log_options).unwrap();
+            let once = log.output()
+                .unwrap()
+                .replace(|c| c == '\r' || c == '\n', "")
+                .to_owned();
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+            once
+        };
+
+        assert_eq!(lines, once);
+
+        docker
+            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .unwrap();
+    }
+
     /// This is executed after `docker-compose build iostream`
     #[test]
     #[ignore]
