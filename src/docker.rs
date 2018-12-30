@@ -363,6 +363,47 @@ impl Docker {
             })
     }
 
+    /// Attach to a container created with tty=true
+    ///
+    /// Attach to a container to read its output or send it input.
+    ///
+    /// # API
+    /// /containers/{id}/attach
+    #[allow(non_snake_case)]
+    pub fn attach_container_tty(
+        &self,
+        id: &str,
+        detachKeys: Option<&str>,
+        logs: bool,
+        stream: bool,
+        stdin: bool,
+        stdout: bool,
+        stderr: bool,
+    ) -> Result<Response> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        if let Some(keys) = detachKeys {
+            param.append_pair("detachKeys", keys);
+        }
+        param.append_pair("logs", &logs.to_string());
+        param.append_pair("stream", &stream.to_string());
+        param.append_pair("stdin", &stdin.to_string());
+        param.append_pair("stdout", &stdout.to_string());
+        param.append_pair("stderr", &stderr.to_string());
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/attach?{}", id, param.finish()),
+                ""
+            )
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(res)
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
+    }
+
     /// Gets current logs and tails logs from a container
     ///
     /// # API
