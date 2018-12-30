@@ -393,7 +393,7 @@ impl Docker {
             .post(
                 self.headers(),
                 &format!("/containers/{}/attach?{}", id, param.finish()),
-                ""
+                "",
             )
             .and_then(|res| {
                 if res.status.is_success() {
