@@ -536,9 +536,11 @@ impl Docker {
         let mut headers = self.headers().clone();
         let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
         headers.set::<ContentType>(ContentType(application_tar));
-        let res =
-            self.http_client()
-                .post_file(&headers, &format!("/build?{}", options.to_url_params()), tar_path)?;
+        let res = self.http_client().post_file(
+            &headers,
+            &format!("/build?{}", options.to_url_params()),
+            tar_path,
+        )?;
         if !res.status.is_success() {
             return Err(serde_json::from_reader::<_, DockerError>(res)?.into());
         }
