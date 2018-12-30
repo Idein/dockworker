@@ -1,18 +1,22 @@
 extern crate dockworker;
 extern crate tar;
 
-use std::io::{Write,BufReader, BufRead};
+use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::fs::File;
 use tar::Builder;
-use dockworker::{Docker, ContainerBuildOptions};
+use dockworker::{ContainerBuildOptions, Docker};
 
 fn main() {
     {
         let mut dockerfile = File::create("Dockerfile").unwrap();
-        dockerfile.write_all(r#"FROM alpine:edge
+        dockerfile
+            .write_all(
+                r#"FROM alpine:edge
         RUN echo Hi mum
-        "#.as_bytes()).unwrap();
+        "#.as_bytes(),
+            )
+            .unwrap();
     }
     // Create tar file
     {
@@ -25,7 +29,7 @@ fn main() {
     let name = "test-image";
     let tag = "latest";
     println!("build an image {}:{} ...", name, tag);
-    let options = ContainerBuildOptions{
+    let options = ContainerBuildOptions {
         dockerfile: "Dockerfile".into(),
         t: vec!["silly:lat".to_owned()],
         ..ContainerBuildOptions::default()

@@ -608,8 +608,10 @@ impl ContainerBuildOptions {
             params.append_pair("cpu_quota", &cpu_quota.to_string());
         }
         if let Some(build_args) = self.build_args.clone() {
-            params.append_pair("build_args", &serde_json::to_string(&build_args)
-                .expect("Json parsing of build_args param"));
+            params.append_pair(
+                "build_args",
+                &serde_json::to_string(&build_args).expect("Json parsing of build_args param"),
+            );
         }
         if let Some(shm_size) = self.shm_size.clone() {
             params.append_pair("shm_size", &shm_size.to_string());
@@ -618,8 +620,10 @@ impl ContainerBuildOptions {
             params.append_pair("squash", &squash.to_string());
         }
         if let Some(labels) = self.labels.clone() {
-            params.append_pair("labels", &serde_json::to_string(&labels)
-                .expect("Json parsing of labels param"));
+            params.append_pair(
+                "labels",
+                &serde_json::to_string(&labels).expect("Json parsing of labels param"),
+            );
         }
         if let Some(network_mode) = self.network_mode.clone() {
             params.append_pair("network_mode", &network_mode);
