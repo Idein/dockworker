@@ -786,7 +786,9 @@ impl Docker {
             .and_then(api_result)
     }
 
-    /// Get changes on a container's filesystem
+    /// Get changes on a container's filesystem.
+    ///
+    /// (This is the same as `docker container diff` command.)
     ///
     /// # API
     /// /containers/{id}/changes
