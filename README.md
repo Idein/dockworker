@@ -46,7 +46,7 @@ Supported Api List.
 
 - image
 	- [x] `/images/json`
-	- [ ] `/build`
+	- [x] `/build`
 	- [ ] `/build/prune`
 	- [x] `/images/create`
 	- [ ] `/images/{name}/json`
