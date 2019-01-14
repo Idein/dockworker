@@ -562,13 +562,13 @@ impl ContainerBuildOptions {
     pub fn to_url_params(&self) -> String {
         let mut params = form_urlencoded::Serializer::new(String::new());
         params.append_pair("dockerfile", &self.dockerfile);
-        for tag in self.t.clone() {
+        for tag in &self.t {
             params.append_pair("t", &tag);
         }
-        if let Some(extra_hosts) = self.extra_hosts.clone() {
+        if let Some(ref extra_hosts) = self.extra_hosts {
             params.append_pair("extra_hosts", &extra_hosts);
         }
-        if let Some(remote) = self.remote.clone() {
+        if let Some(ref remote) = self.remote {
             params.append_pair("remote", &remote);
         }
         if self.q {
@@ -577,10 +577,10 @@ impl ContainerBuildOptions {
         if self.no_cache {
             params.append_pair("no_cache", "true");
         }
-        if let Some(cache_from) = self.cache_from.clone() {
+        if let Some(ref cache_from) = self.cache_from {
             params.append_pair("cache_from", &serde_json::to_string(&cache_from).unwrap());
         }
-        if let Some(pull) = self.pull.clone() {
+        if let Some(ref pull) = self.pull {
             params.append_pair("pull", &pull);
         }
         if self.rm {
@@ -589,46 +589,46 @@ impl ContainerBuildOptions {
         if self.force_rm {
             params.append_pair("force_rm", "true");
         }
-        if let Some(memory) = self.memory.clone() {
+        if let Some(ref memory) = self.memory {
             params.append_pair("memory", &memory.to_string());
         }
-        if let Some(mem_swap) = self.mem_swap.clone() {
+        if let Some(ref mem_swap) = self.mem_swap {
             params.append_pair("mem_swap", &mem_swap.to_string());
         }
-        if let Some(cpu_shares) = self.cpu_shares.clone() {
+        if let Some(ref cpu_shares) = self.cpu_shares {
             params.append_pair("cpu_shares", &cpu_shares.to_string());
         }
-        if let Some(cpu_set_cpus) = self.cpu_set_cpus.clone() {
+        if let Some(ref cpu_set_cpus) = self.cpu_set_cpus {
             params.append_pair("cpu_set_cpus", &cpu_set_cpus);
         }
-        if let Some(cpu_period) = self.cpu_period.clone() {
+        if let Some(ref cpu_period) = self.cpu_period {
             params.append_pair("cpu_period", &cpu_period.to_string());
         }
-        if let Some(cpu_quota) = self.cpu_quota.clone() {
+        if let Some(ref cpu_quota) = self.cpu_quota {
             params.append_pair("cpu_quota", &cpu_quota.to_string());
         }
-        if let Some(build_args) = self.build_args.clone() {
+        if let Some(ref build_args) = self.build_args {
             params.append_pair(
                 "build_args",
                 &serde_json::to_string(&build_args).expect("Json parsing of build_args param"),
             );
         }
-        if let Some(shm_size) = self.shm_size.clone() {
+        if let Some(ref shm_size) = self.shm_size {
             params.append_pair("shm_size", &shm_size.to_string());
         }
-        if let Some(squash) = self.squash {
+        if let Some(ref squash) = self.squash {
             params.append_pair("squash", &squash.to_string());
         }
-        if let Some(labels) = self.labels.clone() {
+        if let Some(ref labels) = self.labels {
             params.append_pair(
                 "labels",
                 &serde_json::to_string(&labels).expect("Json parsing of labels param"),
             );
         }
-        if let Some(network_mode) = self.network_mode.clone() {
+        if let Some(ref network_mode) = self.network_mode {
             params.append_pair("network_mode", &network_mode);
         }
-        if let Some(platform) = self.platform.clone() {
+        if let Some(ref platform) = self.platform {
             params.append_pair("platform", &platform);
         }
         params.finish()
