@@ -363,6 +363,61 @@ impl Docker {
             })
     }
 
+    /// Create Exec instance for a container
+    ///
+    /// Create Exec instance for a container.
+    ///
+    /// # API
+    /// /containers/{id}/exec
+    #[allow(non_snake_case)]
+    pub fn create_exec_container(
+        &self,
+        id: &str
+    ) -> Result<CreateContainerResponse> {
+        let option = CreateExecOptions::new();
+        let json_body = serde_json::to_string(&option)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(
+                &headers,
+                &format!("/containers/{}/exec?", id),
+                &json_body
+            )
+            .and_then(api_result)
+    }
+
+    /// Start an exec instance
+    ///
+    /// Starts a previously set up exec instance. If detach is true, this endpoint returns immediately after starting the command. Otherwise, it sets up an interactive session with the command.
+    ///
+    /// # API
+    /// /exec/{id}/start
+    #[allow(non_snake_case)]
+    pub fn start_exec(
+        &self,
+        id: &str,
+    ) -> Result<AttachResponse> {
+        let option = StartExecOptions::new();
+
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+
+        self.http_client()
+            .post(
+                &headers,
+                &format!("/exec/{}/start?", id),
+                "",
+            )
+            .and_then(|res| {
+                if res.status.is_success() {
+                    Ok(AttachResponse::new(res))
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
+    }
+
     /// Gets current logs and tails logs from a container
     ///
     /// # API
