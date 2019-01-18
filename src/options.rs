@@ -682,6 +682,60 @@ pub struct CreateContainerResponse {
     pub warnings: Option<Vec<String>>,
 }
 
+
+/// request body of /containers/Create an exec instance
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct CreateExecOptions {
+    attach_stdin: bool,
+    attach_stdout: bool,
+    attach_stderr: bool,
+    detach_keys: String,
+    tty: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    env: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    cmd: Vec<String>,
+    privileged: bool,
+    user: String,
+    working_dir: PathBuf,
+}
+
+
+impl CreateExecOptions {
+    pub fn new() -> Self {
+        Self {
+            attach_stdin: false,
+            attach_stdout: true,
+            attach_stderr: true,
+            detach_keys: "".to_owned(),
+            tty: false,
+            env: vec![],
+            cmd: vec![],
+            privileged: false,
+            user: "".to_owned(),
+            working_dir: PathBuf::new(),
+        }
+    }
+}
+
+/// request body of /exec/start an exec instance
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct StartExecOptions {
+    detach: bool,
+    tty: bool,
+}
+
+impl StartExecOptions {
+    pub fn new() -> Self {
+        Self {
+            detach: false,
+            tty: false,
+        }
+    }
+}
+
 /// Response of the removing image api
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum RemovedImage {
