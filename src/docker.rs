@@ -370,11 +370,11 @@ impl Docker {
     /// # API
     /// /containers/{id}/exec
     #[allow(non_snake_case)]
-    pub fn create_exec_container(
+    pub fn create_exec_instance(
         &self,
-        id: &str
+        id: &str,
+        option: &CreateExecOptions
     ) -> Result<CreateContainerResponse> {
-        let option = CreateExecOptions::new();
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
