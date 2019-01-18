@@ -900,6 +900,13 @@ impl CreateExecOptions {
             working_dir: PathBuf::new(),
         }
     }
+
+    /// push back a cmd argment
+    pub fn cmd(&mut self, cmd: String) -> &mut Self {
+        self.cmd.push(cmd);
+        self
+    }
+
 }
 
 /// request body of /exec/start an exec instance
