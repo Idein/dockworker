@@ -399,6 +399,7 @@ impl Docker {
         id: &str,
     ) -> Result<AttachResponse> {
         let option = StartExecOptions::new();
+        let json_body = serde_json::to_string(&option)?;
 
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
@@ -407,7 +408,7 @@ impl Docker {
             .post(
                 &headers,
                 &format!("/exec/{}/start?", id),
-                "",
+                &json_body,
             )
             .and_then(|res| {
                 if res.status.is_success() {
