@@ -1354,7 +1354,7 @@ mod tests {
 
         let exec_info = docker.exec_info(&exec_instance.id).unwrap();
 
-        assert_eq!(exec_info.ExitCode, 0);
+        assert_eq!(exec_info.ExitCode, Some(0));
         assert_eq!(exec_info.Running, false);
 
         docker.wait_container(&container.id).unwrap();
