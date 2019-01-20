@@ -682,7 +682,6 @@ pub struct CreateContainerResponse {
     pub warnings: Option<Vec<String>>,
 }
 
-
 /// request body of /containers/Create an exec instance
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -700,7 +699,6 @@ pub struct CreateExecOptions {
     user: String,
     working_dir: PathBuf,
 }
-
 
 impl CreateExecOptions {
     pub fn new() -> Self {
