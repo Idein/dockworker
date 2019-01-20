@@ -65,6 +65,16 @@ pub struct ContainerInfo {
     pub State: State,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[allow(non_snake_case)]
+pub struct ExecInfo {
+    pub CanRemove: bool,
+    pub ContainerID: String,
+    pub ExitCode: u32,
+    pub Running: bool,
+    pub Pid: u64,
+}
+
 /// This type represents a `struct{}` in the Go code.
 pub type UnspecifiedObject = HashMap<String, String>;
 
