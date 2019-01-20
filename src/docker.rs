@@ -1308,7 +1308,7 @@ mod tests {
         docker.remove_image(image_name, None, None).unwrap();
     }
 
-    /// This is executed after `docker-compose build iostream`
+    /// This is executed after `docker-compose build iostream-exec`
     #[test]
     #[ignore]
     fn exec_container() {
@@ -1317,7 +1317,7 @@ mod tests {
         // expected files
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker/attach");
         let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
-        let image_name = "test-iostream:latest";
+        let image_name = "test-iostream-exec:latest";
 
         let host_config = ContainerHostConfig::new();
         let mut create = ContainerCreateOptions::new(image_name);
@@ -1365,7 +1365,7 @@ mod tests {
         docker
             .remove_container(&container.id, None, None, None)
             .unwrap();
-        //docker.remove_image(image_name, None, None).unwrap();
+        docker.remove_image(image_name, None, None).unwrap();
     }
 
     /// This is executed after `docker-compose build signal`
