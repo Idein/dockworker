@@ -27,6 +27,7 @@ Supported Api List.
 	- [x] `/containers/{id}/logs`
 	- [x] `/containers/{id}/changes`
 	- [x] `/containers/{id}/export`
+	- [x] `/containers/{id}/exec`
 	- [x] `/containers/{id}/stats`
 	- [ ] `/containers/{id}/resize`
 	- [x] `/containers/{id}/start`
@@ -43,6 +44,9 @@ Supported Api List.
 	- [x] `/containers/{id}` # remove
 	- [x] `/containers/{id}/archive`
 	- [ ] `/containers/{id}/prune`
+
+- exec
+    - [x] `/exec/{id}/start`
 
 - image
 	- [x] `/images/json`
