@@ -47,6 +47,7 @@ Supported Api List.
 
 - exec
     - [x] `/exec/{id}/start`
+    - [x] `/exec/{id}/json`
 
 - image
 	- [x] `/images/json`
