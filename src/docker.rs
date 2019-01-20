@@ -365,12 +365,12 @@ impl Docker {
 
     /// Create Exec instance for a container
     ///
-    /// Create Exec instance for a container.
+    /// Run a command inside a running container.
     ///
     /// # API
     /// /containers/{id}/exec
     #[allow(non_snake_case)]
-    pub fn create_exec_instance(
+    pub fn container_create_exec_instance(
         &self,
         id: &str,
         option: &CreateExecOptions
@@ -397,8 +397,8 @@ impl Docker {
     pub fn start_exec(
         &self,
         id: &str,
+        option : &StartExecOptions
     ) -> Result<AttachResponse> {
-        let option = StartExecOptions::new();
         let json_body = serde_json::to_string(&option)?;
 
         let mut headers = self.headers().clone();
@@ -1295,6 +1295,63 @@ mod tests {
             .remove_container(&container.id, None, None, None)
             .unwrap();
         docker.remove_image(image_name, None, None).unwrap();
+    }
+
+    /// This is executed after `docker-compose build iostream`
+    #[test]
+    #[ignore]
+    fn exec_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+
+        // expected files
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("docker/attach");
+        let exps: &[&str; 2] = &["./sample/apache-2.0.txt", "./sample/bsd4.txt"];
+        let image_name = "test-iostream:latest";
+
+        let host_config = ContainerHostConfig::new();
+        let mut create = ContainerCreateOptions::new(image_name);
+        create
+            .entrypoint(vec!["sleep".to_owned()])
+            .cmd("10".to_owned())
+            .host_config(host_config);
+
+        let container = docker.create_container(None, &create).unwrap();
+        docker.start_container(&container.id).unwrap();
+
+        let mut exec_config = CreateExecOptions::new();
+        exec_config.cmd("./entrypoint.sh".to_owned())
+            .cmd(exps[0].to_owned())
+            .cmd(exps[1].to_owned());
+
+        let exec_instance = docker.container_create_exec_instance(&container.id, &exec_config).unwrap();
+        let exec_start_config = StartExecOptions::new();
+        let res = docker
+            .start_exec(&exec_instance.id, &exec_start_config)
+            .unwrap();
+        let cont: container::AttachContainer = res.into();
+
+        // expected files
+        let exp_stdout = File::open(root.join(exps[0])).unwrap();
+        let exp_stderr = File::open(root.join(exps[1])).unwrap();
+
+        assert!(
+            exp_stdout
+                .bytes()
+                .map(|e| e.ok())
+                .eq(cont.stdout.bytes().map(|e| e.ok()))
+        );
+        assert!(
+            exp_stderr
+                .bytes()
+                .map(|e| e.ok())
+                .eq(cont.stderr.bytes().map(|e| e.ok()))
+        );
+
+        docker.wait_container(&container.id).unwrap();
+        docker
+            .remove_container(&container.id, None, None, None)
+            .unwrap();
+        //docker.remove_image(image_name, None, None).unwrap();
     }
 
     /// This is executed after `docker-compose build signal`
