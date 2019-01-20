@@ -865,6 +865,12 @@ pub struct CreateContainerResponse {
     pub warnings: Option<Vec<String>>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct CreateExecResponse {
+    pub id: String,
+}
+
 /// request body of /containers/Create an exec instance
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]

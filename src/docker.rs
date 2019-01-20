@@ -374,7 +374,7 @@ impl Docker {
         &self,
         id: &str,
         option: &CreateExecOptions,
-    ) -> Result<CreateContainerResponse> {
+    ) -> Result<CreateExecResponse> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
