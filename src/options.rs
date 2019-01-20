@@ -718,12 +718,46 @@ impl CreateExecOptions {
         }
     }
 
+    pub fn attach_stdin(&mut self, attach_stdin: bool) -> &mut Self {
+        self.attach_stdin = attach_stdin;
+        self
+    }
+
+    pub fn attach_stdout(&mut self, attach_stdout: bool) -> &mut Self {
+        self.attach_stdout = attach_stdout;
+        self
+    }
+
+    pub fn attach_stderr(&mut self, attach_stderr: bool) -> &mut Self {
+        self.attach_stderr = attach_stderr;
+        self
+    }
+
+    pub fn tty(&mut self, tty: bool) -> &mut Self {
+        self.tty = tty;
+        self
+    }
+
     /// push back a cmd argment
     pub fn cmd(&mut self, cmd: String) -> &mut Self {
         self.cmd.push(cmd);
         self
     }
 
+    pub fn privileged(&mut self, privileged: bool) -> &mut Self {
+        self.privileged = privileged;
+        self
+    }
+
+    pub fn user(&mut self, user: String) -> &mut Self {
+        self.user = user;
+        self
+    }
+
+    pub fn working_dir(&mut self, working_dir: PathBuf) -> &mut Self {
+        self.working_dir = working_dir;
+        self
+    }
 }
 
 /// request body of /exec/start an exec instance
@@ -740,6 +774,16 @@ impl StartExecOptions {
             detach: false,
             tty: false,
         }
+    }
+
+    pub fn detach(&mut self, detach: bool) -> &mut Self {
+        self.detach = detach;
+        self
+    }
+
+    pub fn tty(&mut self, tty: bool) -> &mut Self {
+        self.tty = tty;
+        self
     }
 }
 
