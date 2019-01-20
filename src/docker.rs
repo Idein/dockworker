@@ -9,7 +9,7 @@ use std::time::Duration;
 use url;
 
 use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus,
-                LogResponse};
+                LogResponse, ExecInfo};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
@@ -406,6 +406,20 @@ impl Docker {
                 }
             })
     }
+
+    /// Inspect an exec instance
+    ///
+    /// Return low-level information about an exec instance.
+    ///
+    /// # API
+    /// /exec/{id}/json
+    #[allow(non_snake_case)]
+    pub fn exec_info(&self, id: &str) -> Result<ExecInfo> {
+        self.http_client()
+            .get(self.headers(), &format!("/exec/{}/json", id))
+            .and_then(api_result)
+    }
+
 
     /// Gets current logs and tails logs from a container
     ///
@@ -1360,6 +1374,11 @@ mod tests {
                 .map(|e| e.ok())
                 .eq(cont.stderr.bytes().map(|e| e.ok()))
         );
+
+        let exec_info = docker.exec_info(&exec_instance.id).unwrap();
+
+        assert_eq!(exec_info.ExitCode, 0);
+        assert_eq!(exec_info.Running, false);
 
         docker.wait_container(&container.id).unwrap();
         docker
