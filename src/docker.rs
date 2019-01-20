@@ -373,17 +373,13 @@ impl Docker {
     pub fn container_create_exec_instance(
         &self,
         id: &str,
-        option: &CreateExecOptions
+        option: &CreateExecOptions,
     ) -> Result<CreateContainerResponse> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
         self.http_client()
-            .post(
-                &headers,
-                &format!("/containers/{}/exec?", id),
-                &json_body
-            )
+            .post(&headers, &format!("/containers/{}/exec?", id), &json_body)
             .and_then(api_result)
     }
 
@@ -394,22 +390,14 @@ impl Docker {
     /// # API
     /// /exec/{id}/start
     #[allow(non_snake_case)]
-    pub fn start_exec(
-        &self,
-        id: &str,
-        option : &StartExecOptions
-    ) -> Result<AttachResponse> {
+    pub fn start_exec(&self, id: &str, option: &StartExecOptions) -> Result<AttachResponse> {
         let json_body = serde_json::to_string(&option)?;
 
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
 
         self.http_client()
-            .post(
-                &headers,
-                &format!("/exec/{}/start?", id),
-                &json_body,
-            )
+            .post(&headers, &format!("/exec/{}/start?", id), &json_body)
             .and_then(|res| {
                 if res.status.is_success() {
                     Ok(AttachResponse::new(res))
@@ -1342,11 +1330,14 @@ mod tests {
         docker.start_container(&container.id).unwrap();
 
         let mut exec_config = CreateExecOptions::new();
-        exec_config.cmd("./entrypoint.sh".to_owned())
+        exec_config
+            .cmd("./entrypoint.sh".to_owned())
             .cmd(exps[0].to_owned())
             .cmd(exps[1].to_owned());
 
-        let exec_instance = docker.container_create_exec_instance(&container.id, &exec_config).unwrap();
+        let exec_instance = docker
+            .container_create_exec_instance(&container.id, &exec_config)
+            .unwrap();
         let exec_start_config = StartExecOptions::new();
         let res = docker
             .start_exec(&exec_instance.id, &exec_start_config)
