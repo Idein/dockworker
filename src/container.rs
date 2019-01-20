@@ -70,7 +70,7 @@ pub struct ContainerInfo {
 pub struct ExecInfo {
     pub CanRemove: bool,
     pub ContainerID: String,
-    pub ExitCode: u32,
+    pub ExitCode: Option<u32>,
     pub Running: bool,
     pub Pid: u64,
 }
