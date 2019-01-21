@@ -370,7 +370,7 @@ impl Docker {
     /// # API
     /// /containers/{id}/exec
     #[allow(non_snake_case)]
-    pub fn container_create_exec_instance(
+    pub fn exec_container(
         &self,
         id: &str,
         option: &CreateExecOptions,
@@ -414,7 +414,7 @@ impl Docker {
     /// # API
     /// /exec/{id}/json
     #[allow(non_snake_case)]
-    pub fn exec_info(&self, id: &str) -> Result<ExecInfo> {
+    pub fn exec_inspect(&self, id: &str) -> Result<ExecInfo> {
         self.http_client()
             .get(self.headers(), &format!("/exec/{}/json", id))
             .and_then(api_result)
@@ -1349,7 +1349,7 @@ mod tests {
             .cmd(exps[1].to_owned());
 
         let exec_instance = docker
-            .container_create_exec_instance(&container.id, &exec_config)
+            .exec_container(&container.id, &exec_config)
             .unwrap();
         let exec_start_config = StartExecOptions::new();
         let res = docker
@@ -1374,10 +1374,10 @@ mod tests {
                 .eq(cont.stderr.bytes().map(|e| e.ok()))
         );
 
-        let exec_info = docker.exec_info(&exec_instance.id).unwrap();
+        let exec_inspect = docker.exec_inspect(&exec_instance.id).unwrap();
 
-        assert_eq!(exec_info.ExitCode, Some(0));
-        assert_eq!(exec_info.Running, false);
+        assert_eq!(exec_inspect.ExitCode, Some(0));
+        assert_eq!(exec_inspect.Running, false);
 
         docker.wait_container(&container.id).unwrap();
         docker
