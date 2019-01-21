@@ -420,7 +420,6 @@ impl Docker {
             .and_then(api_result)
     }
 
-
     /// Gets current logs and tails logs from a container
     ///
     /// # API
