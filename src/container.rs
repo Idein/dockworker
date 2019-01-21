@@ -67,10 +67,26 @@ pub struct ContainerInfo {
 
 #[derive(Debug, Clone, Deserialize)]
 #[allow(non_snake_case)]
+pub struct ExecProcessConfig {
+    pub arguments: Vec<String>,
+    pub entrypoint: String,
+    pub privileged: bool,
+    pub tty: bool,
+    pub user: Option<String>
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[allow(non_snake_case)]
 pub struct ExecInfo {
     pub CanRemove: bool,
     pub ContainerID: String,
+    pub DetachKeys: String,
     pub ExitCode: Option<u32>,
+    pub ID: String,
+    pub OpenStderr: bool,
+    pub OpenStdin: bool,
+    pub OpenStdout: bool,
+    pub ProcessConfig: ExecProcessConfig,
     pub Running: bool,
     pub Pid: u64,
 }
