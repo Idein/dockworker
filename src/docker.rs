@@ -1348,9 +1348,7 @@ mod tests {
             .cmd(exps[0].to_owned())
             .cmd(exps[1].to_owned());
 
-        let exec_instance = docker
-            .exec_container(&container.id, &exec_config)
-            .unwrap();
+        let exec_instance = docker.exec_container(&container.id, &exec_config).unwrap();
         let exec_start_config = StartExecOptions::new();
         let res = docker
             .start_exec(&exec_instance.id, &exec_start_config)
