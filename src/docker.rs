@@ -379,7 +379,7 @@ impl Docker {
         let mut headers = self.headers().clone();
         headers.set::<ContentType>(ContentType::json());
         self.http_client()
-            .post(&headers, &format!("/containers/{}/exec?", id), &json_body)
+            .post(&headers, &format!("/containers/{}/exec", id), &json_body)
             .and_then(api_result)
     }
 
@@ -397,7 +397,7 @@ impl Docker {
         headers.set::<ContentType>(ContentType::json());
 
         self.http_client()
-            .post(&headers, &format!("/exec/{}/start?", id), &json_body)
+            .post(&headers, &format!("/exec/{}/start", id), &json_body)
             .and_then(|res| {
                 if res.status.is_success() {
                     Ok(AttachResponse::new(res))
