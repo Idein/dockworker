@@ -8,8 +8,8 @@ use std::result;
 use std::time::Duration;
 use url;
 
-use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus,
-                LogResponse, ExecInfo};
+use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus,
+                LogResponse};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
