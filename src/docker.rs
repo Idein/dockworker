@@ -800,12 +800,12 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/json
-    pub fn container_info(&self, container: &Container) -> Result<ContainerInfo> {
+    ///
+    /// # Summary
+    /// * `id` : ID or name of the container
+    pub fn container_info(&self, id: &str) -> Result<ContainerInfo> {
         self.http_client()
-            .get(
-                self.headers(),
-                &format!("/containers/{}/json", container.Id),
-            )
+            .get(self.headers(), &format!("/containers/{}/json", id))
             .and_then(api_result)
     }
 
@@ -813,12 +813,12 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/changes
-    pub fn filesystem_changes(&self, container: &Container) -> Result<Vec<FilesystemChange>> {
+    ///
+    /// # Summary
+    /// * `id` : ID or name of the container
+    pub fn filesystem_changes(&self, id: &str) -> Result<Vec<FilesystemChange>> {
         self.http_client()
-            .get(
-                self.headers(),
-                &format!("/containers/{}/changes", container.Id),
-            )
+            .get(self.headers(), &format!("/containers/{}/changes", id))
             .and_then(api_result)
     }
 

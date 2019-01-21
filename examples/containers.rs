@@ -4,10 +4,9 @@ use dockworker::{Docker, container::ContainerFilters};
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    let filter = ContainerFilters::new();
-    let containers = docker.list_containers(None, None, None, filter).unwrap();
 
-    containers.iter().for_each(|c| {
-        println!("{:?}", c);
-    });
+    let info0 = docker.container_info("container").unwrap();
+    let info1 = docker.container_info("container_with_tty").unwrap();
+    println!("info0.Config.Tty: {}", info0.Config.Tty);
+    println!("info1.Config.Tty: {}", info1.Config.Tty);
 }
