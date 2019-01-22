@@ -72,7 +72,7 @@ pub struct ExecProcessConfig {
     pub entrypoint: String,
     pub privileged: bool,
     pub tty: bool,
-    pub user: Option<String>
+    pub user: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
