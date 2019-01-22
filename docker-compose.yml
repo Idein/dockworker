@@ -13,11 +13,6 @@ services:
       context: ./docker/attach
     image: test-iostream:latest
 
-  iostream-exec:
-    build:
-      context: ./docker/attach
-    image: test-iostream-exec:latest
-
   signal:
     build:
       context: ./docker/signal
