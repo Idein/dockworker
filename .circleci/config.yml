@@ -11,14 +11,12 @@ jobs:
           command: |
             docker-compose build
             docker save -o test-iostream test-iostream:latest
-            docker save -o test-iostream-exec test-iostream-exec:latest
             docker save -o test-signal   test-signal:latest
 
       - persist_to_workspace:
           root: /tmp/dockworker
           paths:
             - test-iostream
-            - test-iostream-exec
             - test-signal
 
   build:
@@ -67,7 +65,6 @@ jobs:
           name: More unit testing
           command: |
             docker load -i test-iostream
-            docker load -i test-iostream-exec
             docker load -i test-signal
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - save_cache:
