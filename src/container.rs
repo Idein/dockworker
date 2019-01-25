@@ -1,5 +1,5 @@
 use byteorder::{BigEndian, ReadBytesExt};
-use hyper::client::response::Response;
+use hyper_client::Response;
 use std;
 use std::collections::HashMap;
 use std::io::{self, Read};

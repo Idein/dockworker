@@ -1,10 +1,11 @@
-use hyper::client::response::Response;
 use std::io::{BufRead, BufReader};
 use std::iter;
 
 use serde_json;
 
 use errors::*;
+
+use hyper_client::Response;
 
 /// response of /containers/{}/stats api
 #[derive(Debug)]

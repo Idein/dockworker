@@ -27,7 +27,8 @@ use serde_json;
 use signal::Signal;
 use header::XRegistryAuth;
 use http_client::{HaveHttpClient, HttpClient};
-use hyper_client::{ContentType, Headers, IntoUrl, Mime, Response, StatusCode, SubLevel, TopLevel};
+use hyper_client::{ContentType, Headers, Response, StatusCode};
+use mime;
 use response::Response as DockerResponse;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
@@ -109,7 +110,7 @@ fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
 
 /// Expect 204 NoContent
 fn no_content(res: Response) -> result::Result<(), Error> {
-    if res.status == StatusCode::NoContent {
+    if res.status == StatusCode::NO_CONTENT {
         Ok(())
     } else {
         Err(serde_json::from_reader::<_, DockerError>(res)?.into())
@@ -182,9 +183,13 @@ impl Docker {
         // This ensures that using a fully-qualified path --
         // e.g. unix://.... -- works.  The unix socket provider expects a
         // Path, so we don't need scheme.
-        let url = addr.into_url()?;
-        let client = HyperClient::connect_with_unix(url.path());
-        Ok(Docker::new(client, Protocol::Unix))
+        if addr.starts_with("unix://") {
+            let client = HyperClient::connect_with_unix(&addr[7..]);
+            Ok(Docker::new(client, Protocol::Unix))
+        } else {
+            let client = HyperClient::connect_with_unix(addr);
+            Ok(Docker::new(client, Protocol::Unix))
+        }
     }
 
     #[cfg(not(unix))]
@@ -592,7 +597,7 @@ impl Docker {
     /// /build?
     pub fn build_image(&self, options: ContainerBuildOptions, tar_path: &Path) -> Result<Response> {
         let mut headers = self.headers().clone();
-        let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
+        let application_tar: mime::Mime = "application/x-tar".parse()?;
         headers.set::<ContentType>(ContentType(application_tar));
         let res = self.http_client().post_file(
             &headers,
@@ -766,7 +771,7 @@ impl Docker {
     /// /images/load
     pub fn load_image(&self, quiet: bool, path: &Path) -> Result<ImageId> {
         let mut headers = self.headers().clone();
-        let application_tar = Mime(TopLevel::Application, SubLevel::Ext("x-tar".into()), vec![]);
+        let application_tar: mime::Mime = "application/x-tar".parse()?;
         headers.set::<ContentType>(ContentType(application_tar));
         let res =
             self.http_client()

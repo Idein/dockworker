@@ -7,11 +7,21 @@ extern crate base64;
 extern crate byteorder;
 #[macro_use]
 extern crate error_chain;
+extern crate futures;
+extern crate http;
 extern crate hyper;
+#[cfg(feature = "openssl")]
+extern crate hyper_tls;
+#[cfg(unix)]
+extern crate hyperlocal;
+extern crate hyperx;
 #[macro_use]
 extern crate log;
+extern crate mime;
 #[cfg(windows)]
 extern crate named_pipe;
+#[cfg(feature = "openssl")]
+extern crate native_tls;
 extern crate nix;
 #[cfg(feature = "openssl")]
 extern crate openssl;
@@ -20,6 +30,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate tar;
+extern crate tokio;
 #[cfg(unix)]
 extern crate unix_socket;
 extern crate url;
@@ -39,9 +50,6 @@ pub mod signal;
 pub mod stats;
 pub mod system;
 mod test;
-#[cfg(unix)]
-mod unix;
-mod util;
 pub mod version;
 pub mod credentials;
 

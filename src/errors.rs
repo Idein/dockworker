@@ -1,6 +1,7 @@
 //! Error-handling with the `error_chain` crate.
 
 use docker;
+use http;
 use hyper;
 use serde_json;
 use std::env;
@@ -10,14 +11,20 @@ use response;
 
 error_chain! {
     foreign_links {
-        env::VarError, EnvVar;
-        hyper::Error, Hyper;
-        hyper::error::ParseError, Url;
-        io::Error, Io;
-        serde_json::error::Error, Json;
-        docker::DockerError, Docker;
-        base64::DecodeError, Base64;
-        response::Error, DockerResponse;
+        EnvVar(env::VarError);
+        Hyper(hyper::Error);
+        Io(io::Error);
+        Json(serde_json::error::Error);
+        Docker(docker::DockerError);
+        Base64(base64::DecodeError);
+        DockerResponse(response::Error);
+        Http(http::Error);
+        HttpUriInvalidUri(http::uri::InvalidUri);
+        HttpUriInvalidUriParts(http::uri::InvalidUriParts);
+        HttpHeaderToStrError(http::header::ToStrError);
+        MimeFromStrErr(mime::FromStrError);
+        HyperTlsError(hyper_tls::Error) #[cfg(feature = "openssl")];
+        OpenSSLErrorStack(openssl::error::ErrorStack) #[cfg(feature = "openssl")];
     }
 
     errors {
