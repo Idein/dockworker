@@ -157,13 +157,13 @@ fn request_builder(method: &http::Method, uri: &Uri, headers: &Headers) -> http:
     request
 }
 
-fn with_redirect(
+fn with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
     max_redirects: u64,
     client: Client,
     method: http::Method,
     uri: Uri,
     headers: Headers,
-    body: Option<String>,
+    body: Option<T>,
     future: hyper::client::ResponseFuture,
 ) -> Box<
     hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
@@ -216,7 +216,7 @@ fn with_redirect(
                     request.body(hyper::Body::empty()).unwrap()
                 } else {
                     if let Some(body) = body.clone() {
-                        request.body(hyper::Body::from(body)).unwrap()
+                        request.body(body.into()).unwrap()
                     } else {
                         request.body(hyper::Body::empty()).unwrap()
                     }
@@ -241,12 +241,12 @@ fn with_redirect(
     }
 }
 
-fn request_with_redirect(
+fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
     client: Client,
     method: http::Method,
     uri: Uri,
     headers: Headers,
-    body: Option<String>,
+    body: Option<T>,
 ) -> Result<
     Box<
         hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
@@ -256,7 +256,7 @@ fn request_with_redirect(
 > {
     let request =
         request_builder(&method, &uri, &headers).body(if let Some(body) = body.clone() {
-            hyper::Body::from(body)
+            body.into()
         } else {
             hyper::Body::empty()
         })?;
@@ -339,7 +339,7 @@ impl HttpClient for HyperClient {
             .tokio_runtime
             .lock()
             .unwrap()
-            .block_on(request_with_redirect(
+            .block_on(request_with_redirect::<Vec<u8>>(
                 self.client.clone(),
                 http::Method::GET,
                 url,
@@ -380,7 +380,7 @@ impl HttpClient for HyperClient {
             .tokio_runtime
             .lock()
             .unwrap()
-            .block_on(request_with_redirect(
+            .block_on(request_with_redirect::<Vec<u8>>(
                 self.client.clone(),
                 http::Method::DELETE,
                 url,
@@ -400,8 +400,8 @@ impl HttpClient for HyperClient {
         let mut content = File::open(file)?;
         let url = join_uri(&self.base, path)?;
 
-        let mut buf = String::new();
-        content.read_to_string(&mut buf)?;
+        let mut buf = Vec::new();
+        content.read_to_end(&mut buf)?;
 
         let res = self
             .tokio_runtime
@@ -427,8 +427,8 @@ impl HttpClient for HyperClient {
         let mut content = File::open(file)?;
         let url = join_uri(&self.base, path)?;
 
-        let mut buf = String::new();
-        content.read_to_string(&mut buf)?;
+        let mut buf = Vec::new();
+        content.read_to_end(&mut buf)?;
 
         let res = self
             .tokio_runtime
