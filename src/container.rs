@@ -1,11 +1,11 @@
 use byteorder::{BigEndian, ReadBytesExt};
+use errors::Result;
 use hyper_client::Response;
 use std;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::{self, Read};
 use std::rc::Rc;
-use std::cell::{Ref, RefCell, RefMut};
-use errors::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]

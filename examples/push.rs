@@ -1,7 +1,10 @@
 extern crate dockworker;
 extern crate hyper;
 
-use dockworker::{Docker, credentials::{Credential, UserPassword}};
+use dockworker::{
+    credentials::{Credential, UserPassword},
+    Docker,
+};
 
 fn main() {
     let mut docker = Docker::connect_with_defaults().unwrap();

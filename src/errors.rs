@@ -1,13 +1,13 @@
 //! Error-handling with the `error_chain` crate.
 
+use base64;
 use docker;
 use http;
 use hyper;
+use response;
 use serde_json;
 use std::env;
 use std::io;
-use base64;
-use response;
 
 error_chain! {
     foreign_links {

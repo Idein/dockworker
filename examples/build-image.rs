@@ -1,11 +1,11 @@
 extern crate dockworker;
 extern crate tar;
 
+use dockworker::{ContainerBuildOptions, Docker};
+use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
-use std::fs::File;
 use tar::Builder;
-use dockworker::{ContainerBuildOptions, Docker};
 
 fn main() {
     {
@@ -14,7 +14,8 @@ fn main() {
             .write_all(
                 r#"FROM alpine:edge
         RUN echo Hi mum
-        "#.as_bytes(),
+        "#
+                .as_bytes(),
             )
             .unwrap();
     }

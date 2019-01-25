@@ -14,9 +14,9 @@ use http_client::HttpClient;
 use std::io::Read;
 use std::str::FromStr;
 
-use tokio;
 use futures::future::Future;
 use futures::future::IntoFuture;
+use tokio;
 
 #[derive(Clone, Debug)]
 enum Client {
@@ -48,9 +48,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new(
-        mut res: http::Response<hyper::Body>,
-    ) -> Response {
+    pub fn new(mut res: http::Response<hyper::Body>) -> Response {
         let status = res.status();
         let (tx, rx) = futures::sync::mpsc::unbounded();
 
@@ -100,27 +98,28 @@ impl std::io::Read for Response {
                 .by_ref()
                 .map(|chunk| chunk.into_bytes())
                 .skip_while(|bytes| {
-                    if j <= n {
-                        let m = std::cmp::min(bytes.len(), n - j);
-                        j += bytes.len();
+                    let m = std::cmp::min(bytes.len(), n - j);
+                    let len = bytes.len();
+                    j += len;
 
-                        for byte in &bytes[..m] {
-                            buf[i] = *byte;
-                            i += 1;
-                        }
-
-                        for byte in &bytes[m..] {
-                            buffer.push(*byte);
-                        }
-
-                        Ok(true)
-                    } else {
-                        for byte in bytes.into_iter() {
-                            buffer.push(byte);
-                        }
-
-                        Ok(false)
+                    for byte in &bytes[..m] {
+                        buf[i] = *byte;
+                        i += 1;
                     }
+
+                    if len < m {
+                        return Ok(true);
+                    }
+
+                    if len == m {
+                        return Ok(false);
+                    }
+
+                    for byte in &bytes[m..] {
+                        buffer.push(*byte);
+                    }
+
+                    Ok(false)
                 });
 
             if let Err(_) = stream.into_future().wait() {
@@ -165,18 +164,33 @@ fn with_redirect(
     uri: Uri,
     headers: Headers,
     body: Option<String>,
-    future: hyper::client::ResponseFuture
-) -> Box<hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error> + Send + 'static> {
-
+    future: hyper::client::ResponseFuture,
+) -> Box<
+    hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
+        + Send
+        + 'static,
+> {
     if max_redirects == 0 {
-        Box::new(future) as Box<hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error> + Send + 'static>
+        Box::new(future)
+            as Box<
+                hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
+                    + Send
+                    + 'static,
+            >
     } else {
         Box::new(future.and_then(move |res| {
             let mut request = request_builder(&method, &uri, &headers);
             let uri_parts = http::uri::Parts::from(uri.clone());
 
             if !res.status().is_redirection() {
-                Box::new(Ok(res).into_future()) as Box<hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error> + Send + 'static>
+                Box::new(Ok(res).into_future())
+                    as Box<
+                        hyper::rt::Future<
+                                Item = hyper::Response<hyper::Body>,
+                                Error = hyper::error::Error,
+                            > + Send
+                            + 'static,
+                    >
             } else {
                 let mut see_other = false;
 
@@ -218,7 +232,12 @@ fn with_redirect(
                     future,
                 )
             }
-        })) as Box<hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error> + Send + 'static>
+        }))
+            as Box<
+                hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
+                    + Send
+                    + 'static,
+            >
     }
 }
 
@@ -228,14 +247,23 @@ fn request_with_redirect(
     uri: Uri,
     headers: Headers,
     body: Option<String>,
-) -> Result<Box<hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error> + Send + 'static>> {
-    let request = request_builder(&method, &uri, &headers).body(if let Some(body) = body.clone() {
-        hyper::Body::from(body)
-    } else {
-        hyper::Body::empty()
-    })?;
+) -> Result<
+    Box<
+        hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
+            + Send
+            + 'static,
+    >,
+> {
+    let request =
+        request_builder(&method, &uri, &headers).body(if let Some(body) = body.clone() {
+            hyper::Body::from(body)
+        } else {
+            hyper::Body::empty()
+        })?;
     let future = client.request(request);
-    Ok(with_redirect(10, client, method, uri, headers, body, future))
+    Ok(with_redirect(
+        10, client, method, uri, headers, body, future,
+    ))
 }
 
 impl HyperClient {
@@ -257,7 +285,12 @@ impl HyperClient {
     }
 
     #[cfg(feature = "openssl")]
-    pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> result::Result<Self, Error> {
+    pub fn connect_with_ssl(
+        addr: &str,
+        key: &Path,
+        cert: &Path,
+        ca: &Path,
+    ) -> result::Result<Self, Error> {
         let mut key_buf = Vec::new();
         let mut cert_buf = Vec::new();
         let mut ca_buf = Vec::new();
@@ -270,7 +303,8 @@ impl HyperClient {
         cert_file.read_to_end(&mut cert_buf)?;
         ca_file.read_to_end(&mut ca_buf)?;
 
-        let pkey = openssl::pkey::PKey::from_rsa(openssl::rsa::Rsa::private_key_from_pem(&key_buf)?)?;
+        let pkey =
+            openssl::pkey::PKey::from_rsa(openssl::rsa::Rsa::private_key_from_pem(&key_buf)?)?;
         let cert = openssl::x509::X509::from_pem(&cert_buf)?;
         let pkcs12 = openssl::pkcs12::Pkcs12::builder().build("", "", &pkey, &cert)?;
         let der = pkcs12.to_der()?;
@@ -303,8 +337,15 @@ impl HttpClient for HyperClient {
 
         let res = self
             .tokio_runtime
-            .lock().unwrap()
-            .block_on(request_with_redirect(self.client.clone(), http::Method::GET, url, headers.clone(), None)?)?;
+            .lock()
+            .unwrap()
+            .block_on(request_with_redirect(
+                self.client.clone(),
+                http::Method::GET,
+                url,
+                headers.clone(),
+                None,
+            )?)?;
 
         Ok(Response::new(res))
     }
@@ -319,10 +360,15 @@ impl HttpClient for HyperClient {
 
         let res = self
             .tokio_runtime
-            .lock().unwrap()
-            .block_on(
-                request_with_redirect(self.client.clone(), http::Method::POST, url, headers.clone(), Some(body.to_string()))?,
-            )?;
+            .lock()
+            .unwrap()
+            .block_on(request_with_redirect(
+                self.client.clone(),
+                http::Method::POST,
+                url,
+                headers.clone(),
+                Some(body.to_string()),
+            )?)?;
 
         Ok(Response::new(res))
     }
@@ -332,8 +378,15 @@ impl HttpClient for HyperClient {
 
         let res = self
             .tokio_runtime
-            .lock().unwrap()
-            .block_on(request_with_redirect(self.client.clone(), http::Method::DELETE, url, headers.clone(), None)?)?;
+            .lock()
+            .unwrap()
+            .block_on(request_with_redirect(
+                self.client.clone(),
+                http::Method::DELETE,
+                url,
+                headers.clone(),
+                None,
+            )?)?;
 
         Ok(Response::new(res))
     }
@@ -352,8 +405,15 @@ impl HttpClient for HyperClient {
 
         let res = self
             .tokio_runtime
-            .lock().unwrap()
-            .block_on(request_with_redirect(self.client.clone(), http::Method::POST, url, headers.clone(), Some(buf))?)?;
+            .lock()
+            .unwrap()
+            .block_on(request_with_redirect(
+                self.client.clone(),
+                http::Method::POST,
+                url,
+                headers.clone(),
+                Some(buf),
+            )?)?;
 
         Ok(Response::new(res))
     }
@@ -372,8 +432,15 @@ impl HttpClient for HyperClient {
 
         let res = self
             .tokio_runtime
-            .lock().unwrap()
-            .block_on(request_with_redirect(self.client.clone(), http::Method::PUT, url, headers.clone(), Some(buf))?)?;
+            .lock()
+            .unwrap()
+            .block_on(request_with_redirect(
+                self.client.clone(),
+                http::Method::PUT,
+                url,
+                headers.clone(),
+                Some(buf),
+            )?)?;
 
         Ok(Response::new(res))
     }

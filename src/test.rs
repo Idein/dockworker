@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use super::ImageLayer;
 use container::{Container, ContainerInfo};
 use filesystem::FilesystemChange;
 use hyper_client::Response;
@@ -9,7 +10,6 @@ use serde_json;
 use stats::{Stats, StatsReader};
 use system::SystemInfo;
 use version::Version;
-use super::ImageLayer;
 
 #[test]
 fn get_containers() {
@@ -147,7 +147,9 @@ fn get_stats_response() -> Response {
     let s2 = get_stats_single_event(2);
     let s3 = get_stats_single_event(3);
     Response::new(
-        response.body(hyper::Body::from(format!("{}\n{}\n{}", s1, s2, s3))).unwrap(),
+        response
+            .body(hyper::Body::from(format!("{}\n{}\n{}", s1, s2, s3)))
+            .unwrap(),
     )
 }
 
