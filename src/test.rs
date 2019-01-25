@@ -2,16 +2,12 @@
 
 use container::{Container, ContainerInfo};
 use filesystem::FilesystemChange;
-use hyper::client::response::Response;
-use hyper::http::h1::{Http11Message, HttpWriter};
-use hyper::Url;
+use hyper_client::Response;
 use image::Image;
 use process::Top;
 use serde_json;
 use stats::{Stats, StatsReader};
-use std::io::Write;
 use system::SystemInfo;
-use util::MemoryStream;
 use version::Version;
 use super::ImageLayer;
 
@@ -30,10 +26,7 @@ fn get_stats_single() {
 
 #[test]
 fn get_stats_streaming() {
-    let url = Url::parse("http://localhost/who/cares").unwrap();
-    let stream = MemoryStream::with_input(get_stats_response().as_bytes());
-    let message = Http11Message::with_stream(Box::new(stream));
-    let response = Response::with_message(url, Box::new(message)).unwrap();
+    let response = get_stats_response();
     let mut reader = StatsReader::new(response);
 
     let stats = reader.next().unwrap().unwrap();
@@ -145,28 +138,17 @@ fn get_version_response() -> String {
     "{\"Version\":\"1.8.1\",\"ApiVersion\":\"1.20\",\"GitCommit\":\"d12ea79\",\"GoVersion\":\"go1.4.2\",\"Os\":\"linux\",\"Arch\":\"amd64\",\"KernelVersion\":\"4.0.9-boot2docker\",\"BuildTime\":\"Thu Aug 13 02:49:29 UTC 2015\"}".to_string()
 }
 
-fn get_stats_response() -> String {
-    let headers = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: Close\r\n\r\n";
+fn get_stats_response() -> Response {
+    let mut response = http::Response::builder();
+    response.status(http::StatusCode::OK);
+    response.header("Transfer-Encoding", "chunked");
+    response.header("Connection", "Close");
     let s1 = get_stats_single_event(1);
     let s2 = get_stats_single_event(2);
     let s3 = get_stats_single_event(3);
-
-    let stream = MemoryStream::with_input(headers.as_bytes());
-    let mut writer = HttpWriter::ChunkedWriter(stream);
-    writer.write(s1.as_bytes()).unwrap();
-    writer.write(b"\n").unwrap();
-    writer.write(s2.as_bytes()).unwrap();
-    writer.write(b"\n").unwrap();
-    writer.write(s3.as_bytes()).unwrap();
-
-    let buf = match writer.end() {
-        Ok(w) => w,
-        Err(_) => {
-            panic!("error ending writer for stats response");
-        }
-    };
-    let body = String::from_utf8(buf.into_inner()).unwrap();
-    body
+    Response::new(
+        response.body(hyper::Body::from(format!("{}\n{}\n{}", s1, s2, s3))).unwrap(),
+    )
 }
 
 fn get_stats_single_event(n: u64) -> String {
