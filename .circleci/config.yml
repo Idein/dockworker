@@ -50,8 +50,11 @@ jobs:
       - restore_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
       - run:
+          name: Install rustfmt
+          command: rustup component add rustfmt-preview
+      - run:
           name: Checking source code style
-          command: cargo fmt -- --write-mode "diff"
+          command: cargo fmt -- --check
       - run:
           name: Build project
           command: |

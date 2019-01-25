@@ -1,5 +1,5 @@
-use std::result;
 use std::path::Path;
+use std::result;
 
 use hyper_client::*;
 

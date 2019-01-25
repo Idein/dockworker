@@ -1,10 +1,10 @@
+use base64::{self, STANDARD};
+use hyperx::header::Header;
+use hyperx::Error;
+use hyperx::Result;
 ///! HTTP header used in docker api
 ///!
 use std::fmt;
-use hyperx::header::Header;
-use hyperx::Result;
-use hyperx::Error;
-use base64::{self, STANDARD};
 
 /// The http header represent `X-Registry-Auth`
 #[derive(Debug, Clone, Serialize, Deserialize)]

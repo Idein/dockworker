@@ -1,8 +1,8 @@
 //! Options which can be passed to various `Docker` commands.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
-use std::collections::HashMap;
 use url::{self, form_urlencoded};
 
 use serde::de::{DeserializeOwned, Deserializer};

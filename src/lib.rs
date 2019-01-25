@@ -35,23 +35,23 @@ extern crate tokio;
 extern crate unix_socket;
 extern crate url;
 
-mod response;
-mod header;
 pub mod container;
+pub mod credentials;
 mod docker;
 pub mod errors;
 pub mod filesystem;
-mod hyper_client;
+mod header;
 mod http_client;
+mod hyper_client;
 pub mod image;
 mod options;
 pub mod process;
+mod response;
 pub mod signal;
 pub mod stats;
 pub mod system;
 mod test;
 pub mod version;
-pub mod credentials;
 
 pub use docker::Docker;
 pub use options::*;

@@ -1,8 +1,7 @@
+use std::error::Error as StdError;
 ///! Response from Dockerd
 ///!
-
 use std::fmt;
-use std::error::Error as StdError;
 
 use serde_json::value as json;
 
@@ -150,9 +149,9 @@ mod progress_detail_opt {
 
 #[cfg(test)]
 mod tests {
+    use self::Response as R;
     use super::*;
     use serde_json;
-    use self::Response as R;
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
