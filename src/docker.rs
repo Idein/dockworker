@@ -8,8 +8,9 @@ use std::result;
 use std::time::Duration;
 use url;
 
-use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus,
-                LogResponse};
+use container::{
+    AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus, LogResponse,
+};
 pub use credentials::{Credential, UserPassword};
 use errors::*;
 use filesystem::FilesystemChange;
@@ -169,7 +170,8 @@ impl Docker {
                     &cert_path.join("key.pem"),
                     &cert_path.join("cert.pem"),
                     &cert_path.join("ca.pem"),
-                ).chain_err(&mkerr)
+                )
+                .chain_err(&mkerr)
             } else {
                 Docker::connect_with_http(&host).chain_err(&mkerr)
             }
@@ -456,7 +458,8 @@ impl Docker {
 
     pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
         let top = self.container_top(container)?;
-        Ok(top.Processes
+        Ok(top
+            .Processes
             .iter()
             .map(|process| {
                 let mut p = Process::default();
@@ -773,9 +776,11 @@ impl Docker {
         let mut headers = self.headers().clone();
         let application_tar: mime::Mime = "application/x-tar".parse()?;
         headers.set::<ContentType>(ContentType(application_tar));
-        let res =
-            self.http_client()
-                .post_file(&headers, &format!("/images/load?quiet={}", quiet), path)?;
+        let res = self.http_client().post_file(
+            &headers,
+            &format!("/images/load?quiet={}", quiet),
+            path,
+        )?;
         if !res.status.is_success() {
             return Err(serde_json::from_reader::<_, DockerError>(res)?.into());
         }
@@ -791,7 +796,8 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem.to_str()
+                let id = stem
+                    .to_str()
                     .ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
                 return Ok(ImageId::new(id.to_string()));
             }
@@ -1007,53 +1013,41 @@ mod tests {
             .create_image(name, tag)
             .map(|sts| sts.for_each(|st| assert!(st.is_ok())));
         assert!(sts.is_ok());
-        assert!(
-            docker
-                .remove_image(&format!("{}:{}", name, tag), None, None)
-                .is_ok()
-        );
+        assert!(docker
+            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .is_ok());
     }
 
     #[test]
     fn create_remove_container() {
         let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("hello-world", "linux");
-        assert!(
-            docker
-                .create_image(name, tag)
-                .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-                .is_ok()
-        );
+        assert!(docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+            .is_ok());
         let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
         create.host_config(ContainerHostConfig::new());
 
-        assert!(
-            docker
-                .create_container(Some("dockworker_test"), &create)
-                .is_ok()
-        );
-        assert!(
-            docker
-                .remove_container("dockworker_test", None, None, None)
-                .is_ok()
-        );
-        assert!(
-            docker
-                .remove_image(&format!("{}:{}", name, tag), None, None)
-                .is_ok()
-        );
+        assert!(docker
+            .create_container(Some("dockworker_test"), &create)
+            .is_ok());
+        assert!(docker
+            .remove_container("dockworker_test", None, None, None)
+            .is_ok());
+        assert!(docker
+            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .is_ok());
     }
 
     #[test]
     fn auto_remove_container() {
         let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("alpine", "3.7");
-        assert!(
-            docker
-                .create_image(name, tag)
-                .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-                .is_ok()
-        );
+        assert!(docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+            .is_ok());
         let mut host_config = ContainerHostConfig::new();
         host_config.auto_remove(true);
         let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
@@ -1069,20 +1063,16 @@ mod tests {
                 .remove_container("dockworker_auto_remove_container", None, None, None)
                 .is_err() // 'no such container' or 'removel container in progress'
         );
-        assert!(
-            docker
-                .remove_image(&format!("{}:{}", name, tag), Some(true), None)
-                .is_ok()
-        );
+        assert!(docker
+            .remove_image(&format!("{}:{}", name, tag), Some(true), None)
+            .is_ok());
     }
 
     fn pull_image(docker: &Docker, name: &str, tag: &str) {
-        assert!(
-            docker
-                .create_image(name, tag)
-                .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-                .is_ok()
-        );
+        assert!(docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+            .is_ok());
     }
 
     #[test]
@@ -1097,11 +1087,9 @@ mod tests {
         }
 
         assert!(docker.remove_image("alpine:latest", None, None).is_ok());
-        assert!(
-            docker
-                .load_image(false, Path::new("dockworker_test_alpine.tar"))
-                .is_ok()
-        );
+        assert!(docker
+            .load_image(false, Path::new("dockworker_test_alpine.tar"))
+            .is_ok());
         assert!(remove_file("dockworker_test_alpine.tar").is_ok());
     }
 
@@ -1111,11 +1099,9 @@ mod tests {
     {
         pull_image(&docker, name, tag);
         f(name, tag);
-        assert!(
-            docker
-                .remove_image(&format!("{}:{}", name, tag), None, None)
-                .is_ok()
-        );
+        assert!(docker
+            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .is_ok());
     }
 
     #[test]
@@ -1126,20 +1112,16 @@ mod tests {
         with_image(&docker, name, tag, |name, tag| {
             let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
             create.cmd("ls".to_string());
-            assert!(
-                docker
-                    .create_container(Some(container_name), &create)
-                    .is_ok()
-            );
+            assert!(docker
+                .create_container(Some(container_name), &create)
+                .is_ok());
             assert_eq!(
                 docker.wait_container(container_name).unwrap(),
                 ExitStatus::new(0)
             );
-            assert!(
-                docker
-                    .remove_container(container_name, None, None, None)
-                    .is_ok()
-            );
+            assert!(docker
+                .remove_container(container_name, None, None, None)
+                .is_ok());
         })
     }
 
@@ -1259,7 +1241,8 @@ mod tests {
             let container = docker.create_container(None, &create_options).unwrap();
             docker.start_container(&container.id).unwrap();
             let mut log = docker.log_container(&container.id, &log_options).unwrap();
-            let once = log.output()
+            let once = log
+                .output()
                 .unwrap()
                 .replace(|c| c == '\r' || c == '\n', "")
                 .to_owned();
@@ -1306,18 +1289,14 @@ mod tests {
         let exp_stdout = File::open(root.join(exps[0])).unwrap();
         let exp_stderr = File::open(root.join(exps[1])).unwrap();
 
-        assert!(
-            exp_stdout
-                .bytes()
-                .map(|e| e.ok())
-                .eq(cont.stdout.bytes().map(|e| e.ok()))
-        );
-        assert!(
-            exp_stderr
-                .bytes()
-                .map(|e| e.ok())
-                .eq(cont.stderr.bytes().map(|e| e.ok()))
-        );
+        assert!(exp_stdout
+            .bytes()
+            .map(|e| e.ok())
+            .eq(cont.stdout.bytes().map(|e| e.ok())));
+        assert!(exp_stderr
+            .bytes()
+            .map(|e| e.ok())
+            .eq(cont.stderr.bytes().map(|e| e.ok())));
 
         docker.wait_container(&container.id).unwrap();
         docker
@@ -1363,18 +1342,14 @@ mod tests {
         let exp_stdout = File::open(root.join(exps[0])).unwrap();
         let exp_stderr = File::open(root.join(exps[1])).unwrap();
 
-        assert!(
-            exp_stdout
-                .bytes()
-                .map(|e| e.ok())
-                .eq(cont.stdout.bytes().map(|e| e.ok()))
-        );
-        assert!(
-            exp_stderr
-                .bytes()
-                .map(|e| e.ok())
-                .eq(cont.stderr.bytes().map(|e| e.ok()))
-        );
+        assert!(exp_stdout
+            .bytes()
+            .map(|e| e.ok())
+            .eq(cont.stdout.bytes().map(|e| e.ok())));
+        assert!(exp_stderr
+            .bytes()
+            .map(|e| e.ok())
+            .eq(cont.stderr.bytes().map(|e| e.ok())));
 
         let exec_inspect = docker.exec_inspect(&exec_instance.id).unwrap();
 
@@ -1422,12 +1397,10 @@ mod tests {
         });
 
         let stdout_buffer = BufReader::new(cont.stdout);
-        assert!(
-            stdout_buffer
-                .lines()
-                .map(|line| line.unwrap())
-                .eq(signalstrs)
-        );
+        assert!(stdout_buffer
+            .lines()
+            .map(|line| line.unwrap())
+            .eq(signalstrs));
 
         trace!("wait");
         assert_eq!(

@@ -1,7 +1,7 @@
 extern crate dockworker;
 extern crate hyper;
 
-use dockworker::{ContainerCreateOptions, ContainerHostConfig, Docker, container::AttachContainer};
+use dockworker::{container::AttachContainer, ContainerCreateOptions, ContainerHostConfig, Docker};
 use std::io::{BufRead, BufReader};
 
 fn main() {
