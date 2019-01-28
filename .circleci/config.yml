@@ -22,7 +22,7 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: eldesh/rust:1.26.0
+      - image: eldesh/rust:1.31.1
         environment:
           DOCKER_VERSION: 18.03.1-ce
     steps:
@@ -51,7 +51,7 @@ jobs:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
       - run:
           name: Checking source code style
-          command: cargo fmt -- --write-mode "diff"
+          command: cargo fmt -- --check
       - run:
           name: Build project
           command: |

@@ -8,9 +8,11 @@ fn main() {
 
     println!("History:");
     match history {
-        Ok(changes) => for change in changes {
-            println!("{:#?}", change);
-        },
+        Ok(changes) => {
+            for change in changes {
+                println!("{:#?}", change);
+            }
+        }
         Err(e) => {
             println!("Error {}", e);
         }
