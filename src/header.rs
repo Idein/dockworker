@@ -1,9 +1,9 @@
+///! HTTP header used in docker api
+///!
 use base64::{self, STANDARD};
 use hyperx::header::Header;
 use hyperx::Error;
 use hyperx::Result;
-///! HTTP header used in docker api
-///!
 use std::fmt;
 
 /// The http header represent `X-Registry-Auth`
