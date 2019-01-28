@@ -93,8 +93,7 @@ impl std::io::Read for Response {
         let mut buffer = Vec::new();
 
         {
-            let stream = self
-                .rx
+            let stream = self.rx
                 .by_ref()
                 .map(|chunk| chunk.into_bytes())
                 .skip_while(|bytes| {
@@ -186,9 +185,10 @@ fn with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
                 Box::new(Ok(res).into_future())
                     as Box<
                         hyper::rt::Future<
-                                Item = hyper::Response<hyper::Body>,
-                                Error = hyper::error::Error,
-                            > + Send
+                            Item = hyper::Response<hyper::Body>,
+                            Error = hyper::error::Error,
+                        >
+                            + Send
                             + 'static,
                     >
             } else {
@@ -262,7 +262,13 @@ fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
         })?;
     let future = client.request(request);
     Ok(with_redirect(
-        10, client, method, uri, headers, body, future,
+        10,
+        client,
+        method,
+        uri,
+        headers,
+        body,
+        future,
     ))
 }
 
@@ -335,8 +341,7 @@ impl HttpClient for HyperClient {
     fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err> {
         let url = join_uri(&self.base, path)?;
 
-        let res = self
-            .tokio_runtime
+        let res = self.tokio_runtime
             .lock()
             .unwrap()
             .block_on(request_with_redirect::<Vec<u8>>(
@@ -358,8 +363,7 @@ impl HttpClient for HyperClient {
     ) -> result::Result<Response, Self::Err> {
         let url = join_uri(&self.base, path)?;
 
-        let res = self
-            .tokio_runtime
+        let res = self.tokio_runtime
             .lock()
             .unwrap()
             .block_on(request_with_redirect(
@@ -376,8 +380,7 @@ impl HttpClient for HyperClient {
     fn delete(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err> {
         let url = join_uri(&self.base, path)?;
 
-        let res = self
-            .tokio_runtime
+        let res = self.tokio_runtime
             .lock()
             .unwrap()
             .block_on(request_with_redirect::<Vec<u8>>(
@@ -403,8 +406,7 @@ impl HttpClient for HyperClient {
         let mut buf = Vec::new();
         content.read_to_end(&mut buf)?;
 
-        let res = self
-            .tokio_runtime
+        let res = self.tokio_runtime
             .lock()
             .unwrap()
             .block_on(request_with_redirect(
@@ -430,8 +432,7 @@ impl HttpClient for HyperClient {
         let mut buf = Vec::new();
         content.read_to_end(&mut buf)?;
 
-        let res = self
-            .tokio_runtime
+        let res = self.tokio_runtime
             .lock()
             .unwrap()
             .block_on(request_with_redirect(

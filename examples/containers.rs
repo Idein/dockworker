@@ -1,6 +1,6 @@
 extern crate dockworker;
 
-use dockworker::{container::ContainerFilters, Docker};
+use dockworker::{Docker, container::ContainerFilters};
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();

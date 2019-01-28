@@ -14,8 +14,7 @@ fn main() {
             .write_all(
                 r#"FROM alpine:edge
         RUN echo Hi mum
-        "#
-                .as_bytes(),
+        "#.as_bytes(),
             )
             .unwrap();
     }
