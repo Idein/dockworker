@@ -1,7 +1,8 @@
 extern crate dockworker;
 extern crate hyper;
 
-use dockworker::{ContainerCreateOptions, ContainerHostConfig, Docker, container::AttachContainer};
+use dockworker::{ContainerCreateOptions, ContainerHostConfig, Docker, container::AttachContainer,
+                 container::MaybeTtyAttachResponse};
 use std::io::{BufRead, BufReader};
 
 fn main() {
@@ -16,16 +17,18 @@ fn main() {
     let res = docker
         .attach_container(&container.id, None, true, true, false, true, false)
         .unwrap();
-    let cont: AttachContainer = res.into();
-    let mut line_reader = BufReader::new(cont.stdout);
+    if let MaybeTtyAttachResponse::NonTtyResponse(res) = res {
+        let cont: AttachContainer = res.into();
+        let mut line_reader = BufReader::new(cont.stdout);
 
-    loop {
-        let mut line = String::new();
-        let size = line_reader.read_line(&mut line).unwrap();
-        print!("{:4}: {}", size, line);
-        if size == 0 {
-            break;
+        loop {
+            let mut line = String::new();
+            let size = line_reader.read_line(&mut line).unwrap();
+            print!("{:4}: {}", size, line);
+            if size == 0 {
+                break;
+            }
         }
+        println!("");
     }
-    println!("");
 }

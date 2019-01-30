@@ -85,7 +85,7 @@ pub struct Config {
     pub Hostname: String,
     pub Image: String,
     pub Labels: HashMap<String, String>,
-    // TODO: We don't know exacly what this vec contains.
+    // TODO: We don't know exactly what this vec contains.
     //pub OnBuild: Option<Vec<???>>,
     pub OpenStdin: bool,
     pub StdinOnce: bool,
@@ -406,6 +406,11 @@ impl Read for ContainerStdio {
 }
 
 /// Response of attach to container api
+pub enum MaybeTtyAttachResponse {
+    TtyResponse(Response),
+    NonTtyResponse(AttachResponse),
+}
+
 #[derive(Debug)]
 pub struct AttachResponse {
     res: Response,
@@ -414,6 +419,12 @@ pub struct AttachResponse {
 impl AttachResponse {
     pub fn new(res: Response) -> Self {
         Self { res }
+    }
+}
+
+impl From<AttachResponse> for Response {
+    fn from(res: AttachResponse) -> Self {
+        res.res
     }
 }
 

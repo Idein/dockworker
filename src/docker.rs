@@ -9,7 +9,7 @@ use std::time::Duration;
 use url;
 
 use container::{AttachResponse, Container, ContainerFilters, ContainerInfo, ExitStatus,
-                LogResponse};
+                LogResponse, MaybeTtyAttachResponse};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
@@ -337,7 +337,7 @@ impl Docker {
         stdin: bool,
         stdout: bool,
         stderr: bool,
-    ) -> Result<AttachResponse> {
+    ) -> Result<MaybeTtyAttachResponse> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         if let Some(keys) = detachKeys {
             param.append_pair("detachKeys", keys);
@@ -356,48 +356,24 @@ impl Docker {
             )
             .and_then(|res| {
                 if res.status.is_success() {
-                    Ok(AttachResponse::new(res))
-                } else {
-                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
-                }
-            })
-    }
-
-    /// Attach to a container created with tty=true
-    ///
-    /// Attach to a container to read its output or send it input.
-    ///
-    /// # API
-    /// /containers/{id}/attach
-    #[allow(non_snake_case)]
-    pub fn attach_container_tty(
-        &self,
-        id: &str,
-        detachKeys: Option<&str>,
-        logs: bool,
-        stream: bool,
-        stdin: bool,
-        stdout: bool,
-        stderr: bool,
-    ) -> Result<Response> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        if let Some(keys) = detachKeys {
-            param.append_pair("detachKeys", keys);
-        }
-        param.append_pair("logs", &logs.to_string());
-        param.append_pair("stream", &stream.to_string());
-        param.append_pair("stdin", &stdin.to_string());
-        param.append_pair("stdout", &stdout.to_string());
-        param.append_pair("stderr", &stderr.to_string());
-        self.http_client()
-            .post(
-                self.headers(),
-                &format!("/containers/{}/attach?{}", id, param.finish()),
-                "",
-            )
-            .and_then(|res| {
-                if res.status.is_success() {
-                    Ok(res)
+                    self.http_client()
+                        .get(self.headers(), &format!("/containers/{}/json", id))
+                        .and_then(|info_response| {
+                            if info_response.status.is_success() {
+                                let info: ContainerInfo =
+                                    serde_json::from_reader::<_, _>(info_response)?;
+                                Ok(if info.Config.Tty {
+                                    MaybeTtyAttachResponse::TtyResponse(res)
+                                } else {
+                                    MaybeTtyAttachResponse::NonTtyResponse(AttachResponse::new(res))
+                                })
+                            } else {
+                                // Assume non-tty...
+                                Ok(MaybeTtyAttachResponse::NonTtyResponse(
+                                    AttachResponse::new(res),
+                                ))
+                            }
+                        })
                 } else {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
@@ -1174,7 +1150,7 @@ mod tests {
 
         assert!(equal_file(
             test_file,
-            &temp_dir.join("put").join(test_file.file_name().unwrap())
+            &temp_dir.join("put").join(test_file.file_name().unwrap()),
         ));
     }
 
@@ -1256,30 +1232,32 @@ mod tests {
         let res = docker
             .attach_container(&container.id, None, true, true, false, true, true)
             .unwrap();
-        let cont: container::AttachContainer = res.into();
 
-        // expected files
-        let exp_stdout = File::open(root.join(exps[0])).unwrap();
-        let exp_stderr = File::open(root.join(exps[1])).unwrap();
+        if let MaybeTtyAttachResponse::NonTtyResponse(res) = res.into() {
+            let cont: container::AttachContainer = res.into();
+            // expected files
+            let exp_stdout = File::open(root.join(exps[0])).unwrap();
+            let exp_stderr = File::open(root.join(exps[1])).unwrap();
 
-        assert!(
-            exp_stdout
-                .bytes()
-                .map(|e| e.ok())
-                .eq(cont.stdout.bytes().map(|e| e.ok()))
-        );
-        assert!(
-            exp_stderr
-                .bytes()
-                .map(|e| e.ok())
-                .eq(cont.stderr.bytes().map(|e| e.ok()))
-        );
+            assert!(
+                exp_stdout
+                    .bytes()
+                    .map(|e| e.ok())
+                    .eq(cont.stdout.bytes().map(|e| e.ok()))
+            );
+            assert!(
+                exp_stderr
+                    .bytes()
+                    .map(|e| e.ok())
+                    .eq(cont.stderr.bytes().map(|e| e.ok()))
+            );
 
-        docker.wait_container(&container.id).unwrap();
-        docker
-            .remove_container(&container.id, None, None, None)
-            .unwrap();
-        docker.remove_image(image_name, None, None).unwrap();
+            docker.wait_container(&container.id).unwrap();
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+            docker.remove_image(image_name, None, None).unwrap();
+        }
     }
 
     /// This is executed after `docker-compose build signal`
@@ -1299,40 +1277,42 @@ mod tests {
         let res = docker
             .attach_container(&container.id, None, true, true, false, true, true)
             .unwrap();
-        let cont: container::AttachContainer = res.into();
-        let signals = [SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGTERM];
-        let signalstrs = vec![
-            "HUP".to_string(),
-            "INT".to_string(),
-            "USR1".to_string(),
-            "USR2".to_string(),
-            "TERM".to_string(),
-        ];
+        if let MaybeTtyAttachResponse::NonTtyResponse(res) = res {
+            let cont: container::AttachContainer = res.into();
+            let signals = [SIGHUP, SIGINT, SIGUSR1, SIGUSR2, SIGTERM];
+            let signalstrs = vec![
+                "HUP".to_string(),
+                "INT".to_string(),
+                "USR1".to_string(),
+                "USR2".to_string(),
+                "TERM".to_string(),
+            ];
 
-        signals.iter().for_each(|sig| {
-            trace!("cause signal: {:?}", sig);
+            signals.iter().for_each(|sig| {
+                trace!("cause signal: {:?}", sig);
+                docker
+                    .kill_container(&container.id, Signal::from(sig.clone()))
+                    .ok();
+            });
+
+            let stdout_buffer = BufReader::new(cont.stdout);
+            assert!(
+                stdout_buffer
+                    .lines()
+                    .map(|line| line.unwrap())
+                    .eq(signalstrs)
+            );
+
+            trace!("wait");
+            assert_eq!(
+                docker.wait_container(&container.id).unwrap(),
+                ExitStatus::new(15)
+            );
+
+            trace!("remove container");
             docker
-                .kill_container(&container.id, Signal::from(sig.clone()))
-                .ok();
-        });
-
-        let stdout_buffer = BufReader::new(cont.stdout);
-        assert!(
-            stdout_buffer
-                .lines()
-                .map(|line| line.unwrap())
-                .eq(signalstrs)
-        );
-
-        trace!("wait");
-        assert_eq!(
-            docker.wait_container(&container.id).unwrap(),
-            ExitStatus::new(15)
-        );
-
-        trace!("remove container");
-        docker
-            .remove_container(&container.id, None, None, None)
-            .unwrap();
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
     }
 }
