@@ -1,7 +1,7 @@
-use header::XRegistryAuth;
 ///! Access credentials for accessing any docker daemon endpoints
 ///!
 ///! Currently, any values of these types are only used for `/images/{name}/push` api.
+use header::XRegistryAuth;
 use serde_json;
 use system::AuthToken;
 

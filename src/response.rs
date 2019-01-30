@@ -1,6 +1,6 @@
-use std::error::Error as StdError;
 ///! Response from Dockerd
 ///!
+use std::error::Error as StdError;
 use std::fmt;
 
 use serde_json::value as json;
