@@ -1,7 +1,7 @@
 use byteorder::{BigEndian, ReadBytesExt};
 use errors;
 use hyper_client::Response;
-use serde::de::{Deserialize, DeserializeOwned, Deserializer};
+use serde::de::{self, Deserialize, DeserializeOwned, Deserializer};
 use std;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
@@ -197,10 +197,14 @@ pub struct LogMessage {
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub enum HealthState {
-    NoHealthcheck, // Indicates there is no healthcheck
-    Starting,      // Starting indicates that the container is not yet ready
-    Healthy,       // Healthy indicates that the container is running correctly
-    Unhealthy,     // Unhealthy indicates that the container has a problem
+    /// Indicates there is no healthcheck
+    NoHealthcheck,
+    /// Indicates that the container is not yet ready
+    Starting,
+    /// Indicates that the container is running correctly
+    Healthy,
+    /// Indicates that the container has a problem
+    Unhealthy,
 }
 
 impl fmt::Display for HealthState {
@@ -220,7 +224,7 @@ impl<'de> Deserialize<'de> for HealthState {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(HealthState::from_str(&s).unwrap())
+        s.parse().map_err(de::Error::custom)
     }
 }
 
