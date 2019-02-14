@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "dockworker"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "backtrace-sys 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
