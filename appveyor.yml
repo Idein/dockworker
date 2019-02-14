@@ -3,7 +3,7 @@ image: Visual Studio 2017
 
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init -yv --default-toolchain 1.25.0 --default-host x86_64-pc-windows-gnu
+  - rustup-init -yv --default-toolchain 1.31.1 --default-host x86_64-pc-windows-gnu
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV
   - cargo -vV
