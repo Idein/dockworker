@@ -706,7 +706,7 @@ impl Docker {
     /// # API
     /// /images/prune
     pub fn prune_image(&self, dangling: bool) -> Result<PrunedImages> {
-        println!("start pruning...dangling? {}", &dangling);
+        debug!("start pruning...dangling? {}", &dangling);
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair(
             "filters",
