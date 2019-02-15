@@ -4,8 +4,8 @@
 #![recursion_limit = "1024"]
 
 extern crate base64;
-extern crate chrono;
 extern crate byteorder;
+extern crate chrono;
 #[macro_use]
 extern crate error_chain;
 extern crate futures;

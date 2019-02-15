@@ -1,8 +1,8 @@
+use chrono::offset::FixedOffset;
+use chrono::DateTime;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
 use std::{fmt, result};
-use chrono::DateTime;
-use chrono::offset::FixedOffset;
 
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
@@ -91,24 +91,25 @@ impl ImageId {
 
 pub mod format {
     pub mod datetime_rfc3339 {
-        use chrono::DateTime;
         use chrono::offset::FixedOffset;
-        use serde::Serializer;
+        use chrono::DateTime;
         use serde::de::{self, Deserialize, Deserializer};
+        use serde::Serializer;
 
         pub fn serialize<S>(dt: &DateTime<FixedOffset>, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer,
+        where
+            S: Serializer,
         {
             let str = dt.to_rfc3339();
             serializer.serialize_str(&str)
         }
 
         pub fn deserialize<'de, D>(de: D) -> Result<DateTime<FixedOffset>, D::Error>
-        where D: Deserializer<'de>,
+        where
+            D: Deserializer<'de>,
         {
             let str = String::deserialize(de)?;
             DateTime::parse_from_rfc3339(&str).map_err(de::Error::custom)
         }
     }
 }
-
