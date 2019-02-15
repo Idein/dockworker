@@ -57,7 +57,7 @@ fn get_image_list() {
 #[test]
 fn get_image() {
     let response = get_image_response();
-    assert!(serde_json::from_str::<Image>(&response).is_ok());
+    println!("response: {:?}", serde_json::from_str::<Image>(&response));
 }
 
 #[test]
