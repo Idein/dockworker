@@ -1,11 +1,14 @@
 use byteorder::{BigEndian, ReadBytesExt};
-use errors::Result;
+use errors;
 use hyper_client::Response;
 use std;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::io::{self, Read};
 use std::rc::Rc;
+
+use serde::de::{DeserializeOwned, Deserializer};
+use serde::Deserialize;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -100,13 +103,12 @@ pub struct Config {
     pub AttachStderr: bool,
     pub AttachStdin: bool,
     pub AttachStdout: bool,
-    // TODO: Verify that this is never just a `String`.
-    //pub Cmd: Vec<String>,
+    pub Cmd: Vec<String>,
     pub Domainname: String,
-    // TODO: The source says `Option<String>` but I've seen
-    // `Option<Vec<String>>` on the wire.  Ignore until we figure it out.
-    //pub Entrypoint: Option<Vec<String>>,
+    #[serde(deserialize_with = "null_to_default")]
+    pub Entrypoint: Vec<String>,
     pub Env: Option<Vec<String>>,
+    //#[serde(deserialize_with = "null_to_default")]
     pub ExposedPorts: Option<HashMap<String, UnspecifiedObject>>,
     pub Hostname: String,
     pub Image: String,
@@ -547,7 +549,7 @@ impl LogResponse {
         Self { res }
     }
 
-    pub fn output(&mut self) -> Result<String> {
+    pub fn output(&mut self) -> errors::Result<String> {
         let mut str = String::new();
         self.res.read_to_string(&mut str)?;
         Ok(str)
@@ -577,3 +579,14 @@ impl From<i32> for ExitStatus {
         Self::new(status_code)
     }
 }
+
+fn null_to_default<'de, D, T>(de: D) -> std::result::Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: DeserializeOwned + Default,
+{
+    let actual: Option<T> = Option::deserialize(de)?;
+    Ok(actual.unwrap_or_default())
+}
+
+
