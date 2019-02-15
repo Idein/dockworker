@@ -4,7 +4,7 @@ use super::ImageLayer;
 use container::{Container, ContainerInfo};
 use filesystem::FilesystemChange;
 use hyper_client::Response;
-use image::{SummaryImage, Image};
+use image::{Image, SummaryImage};
 use process::Top;
 use serde_json;
 use stats::{Stats, StatsReader};
