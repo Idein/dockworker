@@ -71,6 +71,7 @@ pub struct GraphDriver {
 pub struct RootFS {
     pub Type: String,
     pub Layers: Vec<String>,
+    #[serde(default = "Default::default")]
     pub BaseLayer: String,
 }
 

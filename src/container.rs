@@ -107,19 +107,22 @@ pub struct Config {
     pub Domainname: String,
     #[serde(deserialize_with = "null_to_default")]
     pub Entrypoint: Vec<String>,
-    pub Env: Option<Vec<String>>,
-    //#[serde(deserialize_with = "null_to_default")]
-    pub ExposedPorts: Option<HashMap<String, UnspecifiedObject>>,
+    #[serde(deserialize_with = "null_to_default")]
+    pub Env: Vec<String>,
+    #[serde(default = "Default::default")]
+    pub ExposedPorts: HashMap<String, UnspecifiedObject>,
     pub Hostname: String,
     pub Image: String,
+    #[serde(deserialize_with = "null_to_default")]
     pub Labels: HashMap<String, String>,
-    // TODO: We don't know exacly what this vec contains.
-    //pub OnBuild: Option<Vec<???>>,
+    #[serde(deserialize_with = "null_to_default")]
+    pub OnBuild: Vec<String>,
     pub OpenStdin: bool,
     pub StdinOnce: bool,
     pub Tty: bool,
     pub User: String,
-    pub Volumes: Option<HashMap<String, UnspecifiedObject>>,
+    #[serde(deserialize_with = "null_to_default")]
+    pub Volumes: UnspecifiedObject,
     pub WorkingDir: String,
 }
 
@@ -588,5 +591,3 @@ where
     let actual: Option<T> = Option::deserialize(de)?;
     Ok(actual.unwrap_or_default())
 }
-
-
