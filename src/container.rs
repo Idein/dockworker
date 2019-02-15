@@ -94,7 +94,7 @@ pub struct ExecInfo {
 /// This type represents a `struct{}` in the Go code.
 pub type UnspecifiedObject = HashMap<String, String>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Config {
     pub AttachStderr: bool,
