@@ -4,7 +4,7 @@ use super::ImageLayer;
 use container::{Container, ContainerInfo};
 use filesystem::FilesystemChange;
 use hyper_client::Response;
-use image::Image;
+use image::{SummaryImage, Image};
 use process::Top;
 use serde_json;
 use stats::{Stats, StatsReader};
@@ -48,10 +48,16 @@ fn get_system_info() {
 }
 
 #[test]
-fn get_images() {
-    let response = get_images_response();
-    let images: Vec<Image> = serde_json::from_str(&response).unwrap();
+fn get_image_list() {
+    let response = get_image_list_response();
+    let images: Vec<SummaryImage> = serde_json::from_str(&response).unwrap();
     assert_eq!(3, images.len());
+}
+
+#[test]
+fn get_image() {
+    let response = get_image_response();
+    assert!(serde_json::from_str::<Image>(&response).is_ok());
 }
 
 #[test]
@@ -94,7 +100,12 @@ fn get_system_info_response() -> String {
     "{\"Containers\":6,\"Debug\":0,\"DockerRootDir\":\"/var/lib/docker\",\"Driver\":\"btrfs\",\"DriverStatus\":[[\"Build Version\",\"Btrfs v3.17.1\"],[\"Library Version\",\"101\"]],\"ExecutionDriver\":\"native-0.2\",\"ID\":\"WG63:3NIU:TSI2:FV7J:IL2O:YPXA:JR3F:XEKT:JZVR:JA6T:QMYE:B4SB\",\"IPv4Forwarding\":1,\"Images\":190,\"IndexServerAddress\":\"https://index.docker.io/v1/\",\"InitPath\":\"/usr/libexec/docker/dockerinit\",\"InitSha1\":\"30c93967bdc3634b6036e1a76fd547bbe171b264\",\"KernelVersion\":\"3.18.6\",\"Labels\":null,\"MemTotal\":16854257664,\"MemoryLimit\":1,\"NCPU\":4,\"NEventsListener\":0,\"NFd\":68,\"NGoroutines\":95,\"Name\":\"core\",\"OperatingSystem\":\"CoreOS 607.0.0\",\"RegistryConfig\":{\"IndexConfigs\":{\"docker.io\":{\"Mirrors\":null,\"Name\":\"docker.io\",\"Official\":true,\"Secure\":true}},\"InsecureRegistryCIDRs\":[\"127.0.0.0/8\"]},\"SwapLimit\":1}".to_string()
 }
 
-fn get_images_response() -> String {
+// `docker inspect debian:wheely-2019- |  jq '.[]'
+fn get_image_response() -> String {
+    r###"{"Id":"sha256:301e280df919c411b7c2b049f938f3e26e4269a9be4a8ac3babce1ede930be0f","RepoTags":["debian:wheezy-20190204-slim"],"RepoDigests":["debian@sha256:8af4c5d36bf9e97bd9e9d32f4b23c30197269a8690d1aee6771beb7bdc744d5d"],"Parent":"","Comment":"","Created":"2019-02-06T03:31:46.89466512Z","Container":"bde93de20096d0e854d13ce9e3e8a506b3a2b7798c051bd1e2bebb644ad60b9a","ContainerConfig":{"Hostname":"bde93de20096","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["/bin/sh","-c","#(nop) ","CMD [\"bash\"]"],"ArgsEscaped":true,"Image":"sha256:cf2bd8704a6c5c4fc4b7a9801c5dacac8ddd3fc699b6e02227119b168d8cf2a9","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{}},"DockerVersion":"18.06.1-ce","Author":"","Config":{"Hostname":"","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],"Cmd":["bash"],"ArgsEscaped":true,"Image":"sha256:cf2bd8704a6c5c4fc4b7a9801c5dacac8ddd3fc699b6e02227119b168d8cf2a9","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":null},"Architecture":"amd64","Os":"linux","Size":46924746,"VirtualSize":46924746,"GraphDriver":{"Data":null,"Name":"aufs"},"RootFS":{"Type":"layers","Layers":["sha256:745d171eb8c3d69f788da3a1b053056231ad140b80be71d6869229846a1f3a77"]},"Metadata":{"LastTagTime":"0001-01-01T00:00:00Z"}}"###.into()
+}
+
+fn get_image_list_response() -> String {
     "[{\"Created\":1428533761,\"Id\":\"533da4fa223bfbca0f56f65724bb7a4aae7a1acd6afa2309f370463eaf9c34a4\",\"ParentId\":\"84ac0b87e42afe881d36f03dea817f46893f9443f9fc10b64ec279737384df12\",\"RepoTags\":[\"ghmlee/rust:nightly\"],\"Size\":0,\"VirtualSize\":806688288},{\"Created\":1371157430,\"Id\":\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\",\"ParentId\":\"\",\"RepoTags\":[],\"Size\":0,\"VirtualSize\":0},
     {\"Created\":1371157430,\"Id\":\"511136ea3c5a64f264b78b5433614aec563103b4d4702f3ba7d4d2698e22c158\",\"ParentId\":\"\",\"RepoTags\":null,\"Size\":0,\"VirtualSize\":0}]".to_string()
 }

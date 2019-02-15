@@ -15,7 +15,7 @@ pub use credentials::{Credential, UserPassword};
 use errors::*;
 use filesystem::FilesystemChange;
 use hyper_client::HyperClient;
-use image::{Image, ImageId};
+use image::{SummaryImage, Image, ImageId};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -654,6 +654,17 @@ impl Docker {
         }
     }
 
+    /// Inspect an image
+    ///
+    pub fn inspect_image(&self, name: &str) -> Result<Image> {
+        self.http_client()
+            .get(
+                self.headers(),
+                &format!("/images/{}/json", name)
+            )
+            .and_then(api_result)
+    }
+
     /// Push an image
     ///
     /// # NOTE
@@ -747,7 +758,7 @@ impl Docker {
     ///
     /// # API
     /// /images/json
-    pub fn images(&self, all: bool) -> Result<Vec<Image>> {
+    pub fn images(&self, all: bool) -> Result<Vec<SummaryImage>> {
         self.http_client()
             .get(self.headers(), &format!("/images/json?a={}", all as u32))
             .and_then(api_result)
