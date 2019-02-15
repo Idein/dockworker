@@ -4,6 +4,8 @@ use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
 use std::{fmt, result};
 
+use container::Config;
+
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
@@ -32,7 +34,7 @@ pub struct SummaryImage {
 }
 
 /// Type of /images/{}/json api
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Image {
     pub Id: String,
@@ -44,16 +46,32 @@ pub struct Image {
     /// https://github.com/moby/moby/blob/611b23c1a0e9a9f440165a331964923fd1116256/daemon/images/image_inspect.go#L72
     pub Created: DateTime<FixedOffset>,
     pub Container: String,
-    //pub ContainerConfig: ContainerConfig,
+    pub ContainerConfig: Config,
     pub DockerVersion: String,
     pub Author: String,
-    //pub Config: Config,
+    pub Config: Config,
     pub Architecture: String,
     pub Os: String,
     pub Size: i64,
     pub VirtualSize: i64,
-    //pub GraphDriver: GraphDriver,
-    //pub RootFS: RootFS,
+    pub GraphDriver: GraphDriver,
+    pub RootFS: RootFS,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct GraphDriver {
+    pub Name: String,
+    #[serde(deserialize_with = "null_to_default")]
+    pub Data: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct RootFS {
+    pub Type: String,
+    pub Layers: Vec<String>,
+    pub BaseLayer: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
