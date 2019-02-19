@@ -29,6 +29,7 @@ extern crate openssl;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate dirs;
 extern crate serde_json;
 extern crate tar;
 extern crate tokio;
