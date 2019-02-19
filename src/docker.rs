@@ -51,7 +51,7 @@ pub fn default_cert_path() -> Result<PathBuf> {
     if let Ok(ref path) = from_env {
         Ok(Path::new(path).to_owned())
     } else {
-        let home = env::home_dir().ok_or_else(|| ErrorKind::NoCertPath)?;
+        let home = dirs::home_dir().ok_or_else(|| ErrorKind::NoCertPath)?;
         Ok(home.join(".docker"))
     }
 }
