@@ -1043,6 +1043,8 @@ mod tests {
         let sts = docker
             .create_image(name, tag)
             .map(|sts| sts.for_each(|st| assert!(st.is_ok())));
+        let image = docker.inspect_image(&format!("{}:{}", name, tag)).unwrap();
+        println!("inspect: {:?}", image);
         assert!(sts.is_ok());
         assert!(docker
             .remove_image(&format!("{}:{}", name, tag), None, None)

@@ -103,6 +103,7 @@ pub struct Config {
     pub AttachStderr: bool,
     pub AttachStdin: bool,
     pub AttachStdout: bool,
+    #[serde(deserialize_with = "null_to_default")]
     pub Cmd: Vec<String>,
     pub Domainname: String,
     #[serde(deserialize_with = "null_to_default")]
