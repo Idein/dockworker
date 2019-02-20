@@ -672,6 +672,9 @@ impl Docker {
 
     /// Inspect an image
     ///
+    /// # API
+    /// /images/{name}/json
+    ///
     pub fn inspect_image(&self, name: &str) -> Result<Image> {
         self.http_client()
             .get(self.headers(), &format!("/images/{}/json", name))
