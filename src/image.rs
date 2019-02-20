@@ -2,6 +2,7 @@ use chrono::offset::FixedOffset;
 use chrono::DateTime;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::{fmt, result};
 
 use container::Config;
@@ -63,7 +64,7 @@ pub struct Image {
 pub struct GraphDriver {
     pub Name: String,
     #[serde(deserialize_with = "null_to_default")]
-    pub Data: Option<String>,
+    pub Data: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
