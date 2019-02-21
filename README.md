@@ -32,7 +32,7 @@ Supported Api List.
 	- [ ] `/containers/{id}/resize`
 	- [x] `/containers/{id}/start`
 	- [x] `/containers/{id}/stop`
-	- [ ] `/containers/{id}/restart`
+	- [x] `/containers/{id}/restart`
 	- [x] `/containers/{id}/kill`
 	- [ ] `/containers/{id}/update`
 	- [ ] `/containers/{id}/rename`
