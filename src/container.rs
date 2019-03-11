@@ -415,6 +415,10 @@ impl AttachResponse {
     pub fn new(res: Response) -> Self {
         Self { res }
     }
+
+    pub fn unwrap(self) -> Response {
+        self.res
+    }
 }
 
 impl From<AttachResponse> for AttachContainer {
