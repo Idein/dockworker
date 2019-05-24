@@ -3,11 +3,10 @@ use errors;
 use hyper_client::Response;
 use serde::de::{self, Deserialize, DeserializeOwned, Deserializer};
 use std;
-use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Read};
-use std::rc::Rc;
+use std::sync::{PoisonError, MutexGuard, Arc, Mutex};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -348,10 +347,10 @@ struct ContainerStdio {
     /// io type
     type_: ContainerStdioType,
     /// shared source (response)
-    src: Rc<RefCell<AttachResponseIter>>,
-    stdin_buff: Rc<RefCell<Vec<u8>>>,
-    stdout_buff: Rc<RefCell<Vec<u8>>>,
-    stderr_buff: Rc<RefCell<Vec<u8>>>,
+    src: Arc<Mutex<AttachResponseIter>>,
+    stdin_buff:  Arc<Mutex<Vec<u8>>>,
+    stdout_buff: Arc<Mutex<Vec<u8>>>,
+    stderr_buff: Arc<Mutex<Vec<u8>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -405,6 +404,12 @@ impl Read for ContainerStderr {
     }
 }
 
+/// Convert to `io::Error`, because `Read` trait requires it.
+/// Should it use `WouldBlock` ?
+fn poison<T: fmt::Debug>(t: PoisonError<MutexGuard<T>>) -> io::Error {
+    io::Error::new(io::ErrorKind::Other, format!("{:?}", t))
+}
+
 #[derive(Debug)]
 pub struct AttachContainer {
     pub stdin: ContainerStdin,
@@ -425,10 +430,10 @@ impl AttachContainer {
 impl ContainerStdio {
     fn new(
         type_: ContainerStdioType,
-        src: Rc<RefCell<AttachResponseIter>>,
-        stdin_buff: Rc<RefCell<Vec<u8>>>,
-        stdout_buff: Rc<RefCell<Vec<u8>>>,
-        stderr_buff: Rc<RefCell<Vec<u8>>>,
+        src: Arc<Mutex<AttachResponseIter>>,
+        stdin_buff:  Arc<Mutex<Vec<u8>>>,
+        stdout_buff: Arc<Mutex<Vec<u8>>>,
+        stderr_buff: Arc<Mutex<Vec<u8>>>,
     ) -> Self {
         Self {
             type_,
@@ -439,21 +444,12 @@ impl ContainerStdio {
         }
     }
 
-    fn forcused_buff(&self) -> Ref<Vec<u8>> {
+    fn forcused_buff(&self) -> io::Result<MutexGuard<Vec<u8>>> {
         use container::ContainerStdioType::*;
         match self.type_ {
-            Stdin => self.stdin_buff.borrow(),
-            Stdout => self.stdout_buff.borrow(),
-            Stderr => self.stderr_buff.borrow(),
-        }
-    }
-
-    fn forcused_buff_mut(&self) -> RefMut<Vec<u8>> {
-        use container::ContainerStdioType::*;
-        match self.type_ {
-            Stdin => self.stdin_buff.borrow_mut(),
-            Stdout => self.stdout_buff.borrow_mut(),
-            Stderr => self.stderr_buff.borrow_mut(),
+            Stdin => self.stdin_buff.lock().map_err(poison),
+            Stdout => self.stdout_buff.lock().map_err(poison),
+            Stderr => self.stderr_buff.lock().map_err(poison),
         }
     }
 
@@ -461,15 +457,15 @@ impl ContainerStdio {
     fn readin_next(&mut self) -> io::Result<usize> {
         use container::ContainerStdioType::*;
 
-        while let Some(xs) = self.src.borrow_mut().next() {
-            let AttachResponseFrame { type_, mut frame } = xs?;
+        while let Some(xs) = self.src.lock().map_err(poison)?.next() {
+            let AttachResponseFrame { ref type_, ref mut frame } = xs?;
             let len = frame.len();
             match type_ {
-                Stdin => self.stdin_buff.borrow_mut().append(&mut frame),
-                Stdout => self.stdout_buff.borrow_mut().append(&mut frame),
-                Stderr => self.stderr_buff.borrow_mut().append(&mut frame),
+                Stdin => self.stdin_buff.lock().map_err(poison)?.append(frame),
+                Stdout => self.stdout_buff.lock().map_err(poison)?.append(frame),
+                Stderr => self.stderr_buff.lock().map_err(poison)?.append(frame),
             }
-            if type_ == self.type_ {
+            if type_ == &self.type_ {
                 return Ok(len);
             }
         }
@@ -480,26 +476,26 @@ impl ContainerStdio {
 
 impl Read for ContainerStdio {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.forcused_buff().len() == 0 {
+        if self.forcused_buff()?.len() == 0 {
             match self.readin_next() {
                 Ok(0) => return Ok(0),
                 Err(e) => return Err(e),
                 _ => {}
             }
         }
-        let inner_buf_len = self.forcused_buff().len(); // > 0
+        let inner_buf_len = self.forcused_buff()?.len(); // > 0
 
         if inner_buf_len <= buf.len() {
             debug!("{} <= {}", inner_buf_len, buf.len());
-            buf[..inner_buf_len].copy_from_slice(&self.forcused_buff()); // copy
-            self.forcused_buff_mut().clear(); // clear inner buffer
+            buf[..inner_buf_len].copy_from_slice(&self.forcused_buff()?); // copy
+            self.forcused_buff()?.clear(); // clear inner buffer
             Ok(inner_buf_len)
         } else {
             // inner_buf_len > buf.len()
             debug!("{} > {}", inner_buf_len, buf.len());
             let buf_len = buf.len();
-            buf.copy_from_slice(&self.forcused_buff()[..buf_len]); // copy (fill buf)
-            let mut inner_buf = self.forcused_buff_mut();
+            buf.copy_from_slice(&self.forcused_buff()?[..buf_len]); // copy (fill buf)
+            let mut inner_buf = self.forcused_buff()?;
             inner_buf.drain(..buf_len); // delete _size_ elementes from the head of buf
             Ok(buf_len)
         }
@@ -524,30 +520,30 @@ impl AttachResponse {
 
 impl From<AttachResponse> for AttachContainer {
     fn from(res: AttachResponse) -> Self {
-        let iter = Rc::new(RefCell::new(res.res.into())); // into_iter
-        let stdin_buff = Rc::new(RefCell::new(Vec::new()));
-        let stdout_buff = Rc::new(RefCell::new(Vec::new()));
-        let stderr_buff = Rc::new(RefCell::new(Vec::new()));
+        let iter = Arc::new(Mutex::new(res.res.into())); // into_iter
+        let stdin_buff =  Arc::new(Mutex::new(Vec::new()));
+        let stdout_buff = Arc::new(Mutex::new(Vec::new()));
+        let stderr_buff = Arc::new(Mutex::new(Vec::new()));
         let stdin = ContainerStdin::new(ContainerStdio::new(
             ContainerStdioType::Stdin,
-            Rc::clone(&iter),
-            Rc::clone(&stdin_buff),
-            Rc::clone(&stdout_buff),
-            Rc::clone(&stderr_buff),
+            Arc::clone(&iter),
+            Arc::clone(&stdin_buff),
+            Arc::clone(&stdout_buff),
+            Arc::clone(&stderr_buff),
         ));
         let stdout = ContainerStdout::new(ContainerStdio::new(
             ContainerStdioType::Stdout,
-            Rc::clone(&iter),
-            Rc::clone(&stdin_buff),
-            Rc::clone(&stdout_buff),
-            Rc::clone(&stderr_buff),
+            Arc::clone(&iter),
+            Arc::clone(&stdin_buff),
+            Arc::clone(&stdout_buff),
+            Arc::clone(&stderr_buff),
         ));
         let stderr = ContainerStderr::new(ContainerStdio::new(
             ContainerStdioType::Stderr,
-            Rc::clone(&iter),
-            Rc::clone(&stdin_buff),
-            Rc::clone(&stdout_buff),
-            Rc::clone(&stderr_buff),
+            Arc::clone(&iter),
+            Arc::clone(&stdin_buff),
+            Arc::clone(&stdout_buff),
+            Arc::clone(&stderr_buff),
         ));
         AttachContainer::new(stdin, stdout, stderr)
     }
