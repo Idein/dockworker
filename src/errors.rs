@@ -63,6 +63,11 @@ error_chain! {
             display("do not know how to connect to Docker at '{}'", &host)
         }
 
+        Poison(message: String) {
+            description("poison error")
+            display("poison error: {}", &message)
+        }
+
         Unknown(message: String) {
             description("unknown error")
             display("unknown error: {}", &message)
