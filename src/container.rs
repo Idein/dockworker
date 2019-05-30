@@ -6,8 +6,8 @@ use std;
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Read};
-use std::sync::{PoisonError, MutexGuard, Arc, Mutex};
 use std::str::FromStr;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -348,7 +348,7 @@ struct ContainerStdio {
     type_: ContainerStdioType,
     /// shared source (response)
     src: Arc<Mutex<AttachResponseIter>>,
-    stdin_buff:  Arc<Mutex<Vec<u8>>>,
+    stdin_buff: Arc<Mutex<Vec<u8>>>,
     stdout_buff: Arc<Mutex<Vec<u8>>>,
     stderr_buff: Arc<Mutex<Vec<u8>>>,
 }
@@ -431,7 +431,7 @@ impl ContainerStdio {
     fn new(
         type_: ContainerStdioType,
         src: Arc<Mutex<AttachResponseIter>>,
-        stdin_buff:  Arc<Mutex<Vec<u8>>>,
+        stdin_buff: Arc<Mutex<Vec<u8>>>,
         stdout_buff: Arc<Mutex<Vec<u8>>>,
         stderr_buff: Arc<Mutex<Vec<u8>>>,
     ) -> Self {
@@ -458,7 +458,10 @@ impl ContainerStdio {
         use container::ContainerStdioType::*;
 
         while let Some(xs) = self.src.lock().map_err(poison)?.next() {
-            let AttachResponseFrame { ref type_, ref mut frame } = xs?;
+            let AttachResponseFrame {
+                ref type_,
+                ref mut frame,
+            } = xs?;
             let len = frame.len();
             match type_ {
                 Stdin => self.stdin_buff.lock().map_err(poison)?.append(frame),
@@ -521,7 +524,7 @@ impl AttachResponse {
 impl From<AttachResponse> for AttachContainer {
     fn from(res: AttachResponse) -> Self {
         let iter = Arc::new(Mutex::new(res.res.into())); // into_iter
-        let stdin_buff =  Arc::new(Mutex::new(Vec::new()));
+        let stdin_buff = Arc::new(Mutex::new(Vec::new()));
         let stdout_buff = Arc::new(Mutex::new(Vec::new()));
         let stderr_buff = Arc::new(Mutex::new(Vec::new()));
         let stdin = ContainerStdin::new(ContainerStdio::new(
