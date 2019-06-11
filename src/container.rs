@@ -591,7 +591,12 @@ impl Iterator for AttachResponseIter {
         let mut buf = [0u8; 8];
         // read header
         if let Err(err) = self.res.read_exact(&mut buf) {
-            trace!("AttachResponseIter::read_exact: {:?}", err);
+            trace!(
+                "AttachResponseIter::read_exact: {:?}: {:?}: {:?}",
+                err,
+                buf,
+                self.res
+            );
             return if err.kind() == io::ErrorKind::UnexpectedEof {
                 None // end of stream
             } else {
