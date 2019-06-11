@@ -76,6 +76,11 @@ impl Response {
 
 impl std::io::Read for Response {
     fn read(&mut self, buf: &mut [u8]) -> std::result::Result<usize, std::io::Error> {
+        trace!(
+            "hyper_client::read: buf: {}: self.buf: {}",
+            buf.len(),
+            self.buf.len()
+        );
         let n = buf.len();
         let m = std::cmp::min(self.buf.len(), n);
         let mut i = 0;
@@ -85,6 +90,7 @@ impl std::io::Read for Response {
             i += 1;
         }
 
+        trace!("hyper_client::read: (n,m): {},{}", n, m);
         if n == m {
             return Ok(i);
         }
@@ -98,6 +104,7 @@ impl std::io::Read for Response {
                 .by_ref()
                 .map(|chunk| chunk.into_bytes())
                 .skip_while(|bytes| {
+                    trace!("skip_while: {:?}", bytes);
                     let m = std::cmp::min(bytes.len(), n - j);
                     let len = bytes.len();
                     j += len;
@@ -107,6 +114,7 @@ impl std::io::Read for Response {
                         i += 1;
                     }
 
+                    trace!("skip_while: len,m: {},{}", len, m);
                     if len < m {
                         return Ok(true);
                     }
