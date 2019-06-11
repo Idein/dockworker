@@ -361,6 +361,10 @@ impl Docker {
         stdout: bool,
         stderr: bool,
     ) -> Result<AttachResponse> {
+        info!(
+            "attach_container: {:?},{},{},{},{},{}",
+            detachKeys, logs, stream, stdin, stdout, stderr
+        );
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         if let Some(keys) = detachKeys {
             param.append_pair("detachKeys", keys);

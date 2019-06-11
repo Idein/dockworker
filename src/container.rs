@@ -458,21 +458,25 @@ impl ContainerStdio {
         use container::ContainerStdioType::*;
 
         while let Some(xs) = self.src.lock().map_err(poison)?.next() {
+            trace!("readin_next: {:?}", xs);
             let AttachResponseFrame {
                 ref type_,
                 ref mut frame,
             } = xs?;
             let len = frame.len();
+            trace!("frame.len: {}", len);
             match type_ {
                 Stdin => self.stdin_buff.lock().map_err(poison)?.append(frame),
                 Stdout => self.stdout_buff.lock().map_err(poison)?.append(frame),
                 Stderr => self.stderr_buff.lock().map_err(poison)?.append(frame),
             }
+            trace!("type_, self: {:?}, {:?}", type_, self.type_);
             if type_ == &self.type_ {
                 return Ok(len);
             }
         }
 
+        trace!("readin_next::end of stream");
         Ok(0) // end of stream
     }
 }
@@ -480,13 +484,23 @@ impl ContainerStdio {
 impl Read for ContainerStdio {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if self.forcused_buff()?.len() == 0 {
+            trace!("forcused_buff.len() == 0");
             match self.readin_next() {
-                Ok(0) => return Ok(0),
-                Err(e) => return Err(e),
-                _ => {}
+                Ok(0) => {
+                    trace!("readin_next: Ok(0)");
+                    return Ok(0);
+                }
+                Err(e) => {
+                    trace!("readin_next: {:?}", e);
+                    return Err(e);
+                }
+                other => {
+                    trace!("readin_next: {:?}", other);
+                }
             }
         }
         let inner_buf_len = self.forcused_buff()?.len(); // > 0
+        trace!("inner_buf_len: {}", inner_buf_len);
 
         if inner_buf_len <= buf.len() {
             debug!("{} <= {}", inner_buf_len, buf.len());
@@ -577,6 +591,7 @@ impl Iterator for AttachResponseIter {
         let mut buf = [0u8; 8];
         // read header
         if let Err(err) = self.res.read_exact(&mut buf) {
+            trace!("AttachResponseIter::read_exact: {:?}", err);
             return if err.kind() == io::ErrorKind::UnexpectedEof {
                 None // end of stream
             } else {
@@ -588,8 +603,10 @@ impl Iterator for AttachResponseIter {
         let frame_size = frame_size_raw.read_u32::<BigEndian>().unwrap();
         let mut frame = vec![0; frame_size as usize];
         if let Err(io) = self.res.read_exact(&mut frame) {
+            trace!("AttachResponseIter::read_exact(2): {:?}", io);
             return Some(Err(io));
         }
+        trace!("AttachResponseIter: response type: {}", buf[0]);
         match buf[0] {
             0 => Some(Ok(AttachResponseFrame::new(Stdin, frame))),
             1 => Some(Ok(AttachResponseFrame::new(Stdout, frame))),
