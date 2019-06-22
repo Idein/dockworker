@@ -148,11 +148,17 @@ impl Docker {
         &self.headers
     }
 
-    /// Connect to the Docker daemon using the standard Docker
-    /// configuration options.  This includes `DOCKER_HOST`,
-    /// `DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH` and `DOCKER_CONFIG`, and we
-    /// try to interpret these as much like the standard `docker` client as
-    /// possible.
+    /// Connect to the Docker daemon
+    ///
+    /// # Summary
+    /// Connect to the Docker daemon using the standard Docker configuration options.
+    /// This includes:
+    /// - `DOCKER_HOST`
+    /// - `DOCKER_TLS_VERIFY`
+    /// - `DOCKER_CERT_PATH`
+    /// - `DOCKER_CONFIG`
+    ///
+    /// and we try to interpret these as much like the standard `docker` client as possible.
     pub fn connect_with_defaults() -> Result<Docker> {
         // Read in our configuration from the Docker environment.
         let host = env::var("DOCKER_HOST").unwrap_or(DEFAULT_DOCKER_HOST.to_string());
@@ -178,9 +184,10 @@ impl Docker {
         }
     }
 
-    /// This ensures that using a fully-qualified path --
-    /// e.g. unix://.... -- works.  The unix socket provider expects a
-    /// Path, so we don't need scheme.
+    /// This ensures that using a fully-qualified path
+    ///
+    /// e.g. unix://.... -- works.
+    /// The unix socket provider expects a Path, so we don't need scheme.
     #[cfg(unix)]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
         if addr.starts_with("unix://") {
