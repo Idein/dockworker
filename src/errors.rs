@@ -156,7 +156,6 @@ impl From<http::Error> for Error {
     }
 }
 
-
 impl From<mime::FromStrError> for Error {
     fn from(error: mime::FromStrError) -> Self {
         Error {
