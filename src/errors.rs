@@ -41,8 +41,8 @@ pub enum ErrorKind {
     OpenSSL,
     #[fail(display = "could not fetch information about container '{}'", id)]
     ContainerInfo { id: String },
-    #[fail(display = "could not connected to Docker at '{}'", host)]
-    CouldNotConnect { host: String },
+    #[fail(display = "could not connect: {}", addr)]
+    CouldNotConnect { addr: String },
     #[fail(display = "could not find DOCKER_CERT_PATH")]
     NoCertPath,
     #[fail(display = "could not parse JSON for {} from Docker", wanted)]
