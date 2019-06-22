@@ -7,7 +7,7 @@ extern crate base64;
 extern crate byteorder;
 extern crate chrono;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate futures;
 extern crate http;
 extern crate hyper;
