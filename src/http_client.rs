@@ -5,7 +5,7 @@ use hyper_client::*;
 
 /// A http client
 pub trait HttpClient {
-    type Err: ::std::error::Error + Send + 'static;
+    type Err: Send + 'static;
 
     fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
 

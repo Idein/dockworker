@@ -25,7 +25,7 @@ ssl = ["openssl", "native-tls", "hyper-tls"]
 
 [dependencies]
 chrono = "0.4.6"
-error-chain = "0.12.0"
+failure = "0.1.5"
 backtrace-sys = "=0.1.23"
 futures = "0.1"
 http = "0.1"

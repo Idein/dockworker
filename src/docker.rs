@@ -160,9 +160,11 @@ impl Docker {
         let cert_path = default_cert_path()?;
 
         // Dispatch to the correct connection function.
-        let mkerr = || ErrorKind::CouldNotConnect(host.clone());
+        let mkerr = || ErrorKind::CouldNotConnect { host: host.clone() };
         if host.starts_with("unix://") {
-            Docker::connect_with_unix(&host).chain_err(&mkerr)
+            Docker::connect_with_unix(&host)
+                .context(mkerr())
+                .map_err(Into::into)
         } else if host.starts_with("tcp://") {
             if tls_verify {
                 Docker::connect_with_ssl(
@@ -171,12 +173,15 @@ impl Docker {
                     &cert_path.join("cert.pem"),
                     &cert_path.join("ca.pem"),
                 )
-                .chain_err(&mkerr)
+                .context(mkerr())
+                .map_err(Into::into)
             } else {
-                Docker::connect_with_http(&host).chain_err(&mkerr)
+                Docker::connect_with_http(&host)
+                    .context(mkerr())
+                    .map_err(Into::into)
             }
         } else {
-            Err(ErrorKind::UnsupportedScheme(host.clone()).into())
+            Err(ErrorKind::UnsupportedScheme { host: host.clone() }.into())
         }
     }
 
@@ -196,7 +201,10 @@ impl Docker {
 
     #[cfg(not(unix))]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
-        Err(ErrorKind::UnsupportedScheme(addr.to_owned()).into())
+        Err(ErrorKind::UnsupportedScheme {
+            host: addr.to_owned(),
+        }
+        .into())
     }
 
     #[cfg(feature = "openssl")]
@@ -827,13 +835,16 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem
-                    .to_str()
-                    .ok_or(ErrorKind::Unknown(format!("convert to String: {:?}", stem)))?;
+                let id = stem.to_str().ok_or(ErrorKind::Unknown {
+                    message: format!("convert to String: {:?}", stem),
+                })?;
                 return Ok(ImageId::new(id.to_string()));
             }
         }
-        Err(ErrorKind::Unknown("no expected file: XXXXXX.json".to_owned()).into())
+        Err(ErrorKind::Unknown {
+            message: "no expected file: XXXXXX.json".to_owned(),
+        }
+        .into())
     }
 
     /// Check auth configuration
