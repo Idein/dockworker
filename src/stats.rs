@@ -30,10 +30,7 @@ impl iter::Iterator for StatsReader {
             Ok(0) => None,
             Ok(_) => Some(
                 serde_json::from_str::<Stats>(&line)
-                    .context(ErrorKind::ParseError {
-                        wanted: "Stats".to_owned(),
-                        input: line,
-                    })
+                    .context(ErrorKind::ParseError { input: line })
                     .map_err(Into::into),
             ),
             Err(err) => Some(Err(err.into())),

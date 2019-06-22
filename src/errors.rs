@@ -31,8 +31,6 @@ pub enum ErrorKind {
     Http,
     #[fail(display = "invalid uri: {}", var)]
     InvalidUri { var: String },
-    #[fail(display = "http header to str error")]
-    HttpHeaderToStrError,
     #[fail(display = "mime from str error")]
     MimeFromStrErr,
     #[fail(display = "hyper tls error")]
@@ -45,12 +43,10 @@ pub enum ErrorKind {
     CouldNotConnect { addr: String },
     #[fail(display = "could not find DOCKER_CERT_PATH")]
     NoCertPath,
-    #[fail(display = "could not parse JSON for {} from Docker", wanted)]
-    ParseError { wanted: String, input: String },
+    #[fail(display = "parse error: {}", input)]
+    ParseError { input: String },
     #[fail(display = "Docker SSL support was disabled at compile time")]
     SslDisabled,
-    #[fail(display = "could not connect to Docker at '{}' using SSL", host)]
-    SslError { host: String },
     #[fail(display = "do not know how to connect to Docker at '{}'", host)]
     UnsupportedScheme { host: String },
     #[fail(display = "poison error: {}", message)]
@@ -160,13 +156,6 @@ impl From<http::Error> for Error {
     }
 }
 
-impl From<http::header::ToStrError> for Error {
-    fn from(error: http::header::ToStrError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::HttpHeaderToStrError),
-        }
-    }
-}
 
 impl From<mime::FromStrError> for Error {
     fn from(error: mime::FromStrError) -> Self {
