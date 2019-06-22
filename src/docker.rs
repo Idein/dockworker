@@ -623,7 +623,7 @@ impl Docker {
     /// /build?
     pub fn build_image(&self, options: ContainerBuildOptions, tar_path: &Path) -> Result<Response> {
         let mut headers = self.headers().clone();
-        let application_tar: mime::Mime = "application/x-tar".parse()?;
+        let application_tar: mime::Mime = "application/x-tar".parse().unwrap();
         headers.set::<ContentType>(ContentType(application_tar));
         let res = self.http_client().post_file(
             &headers,
@@ -812,7 +812,7 @@ impl Docker {
     /// /images/load
     pub fn load_image(&self, quiet: bool, path: &Path) -> Result<ImageId> {
         let mut headers = self.headers().clone();
-        let application_tar: mime::Mime = "application/x-tar".parse()?;
+        let application_tar: mime::Mime = "application/x-tar".parse().unwrap();
         headers.set::<ContentType>(ContentType(application_tar));
         let res = self.http_client().post_file(
             &headers,
