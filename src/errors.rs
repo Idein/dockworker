@@ -2,7 +2,6 @@ use std::env;
 use std::fmt;
 use std::io;
 
-use base64;
 use docker;
 pub use failure::ResultExt;
 use failure::{Backtrace, Context, Fail};
@@ -26,8 +25,6 @@ pub enum ErrorKind {
     Json,
     #[fail(display = "docker error")]
     Docker,
-    #[fail(display = "base64 error")]
-    Base64,
     #[fail(display = "response error")]
     Response,
     #[fail(display = "http error")]
@@ -143,14 +140,6 @@ impl From<docker::DockerError> for Error {
     fn from(error: docker::DockerError) -> Self {
         Error {
             inner: error.context(ErrorKind::Docker),
-        }
-    }
-}
-
-impl From<base64::DecodeError> for Error {
-    fn from(error: base64::DecodeError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Base64),
         }
     }
 }
