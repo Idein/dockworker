@@ -31,8 +31,6 @@ pub enum ErrorKind {
     Http,
     #[fail(display = "invalid uri: {}", var)]
     InvalidUri { var: String },
-    #[fail(display = "mime from str error")]
-    MimeFromStrErr,
     #[fail(display = "hyper tls error")]
     HyperTlsError,
     #[fail(display = "openssl error")]
@@ -152,14 +150,6 @@ impl From<http::Error> for Error {
     fn from(error: http::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::Http),
-        }
-    }
-}
-
-impl From<mime::FromStrError> for Error {
-    fn from(error: mime::FromStrError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::MimeFromStrErr),
         }
     }
 }
