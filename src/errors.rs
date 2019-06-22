@@ -43,9 +43,9 @@ pub enum ErrorKind {
     NoCertPath,
     #[fail(display = "parse error: {}", input)]
     ParseError { input: String },
-    #[fail(display = "Docker SSL support was disabled at compile time")]
+    #[fail(display = "ssl support was disabled at compile time")]
     SslDisabled,
-    #[fail(display = "do not know how to connect to Docker at '{}'", host)]
+    #[fail(display = "unsupported scheme: {}", host)]
     UnsupportedScheme { host: String },
     #[fail(display = "poison error: {}", message)]
     Poison { message: String },
