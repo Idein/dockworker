@@ -144,7 +144,8 @@ pub struct HyperClient {
 }
 
 fn join_uri(uri: &Uri, path: &str) -> Result<Uri> {
-    Ok(Uri::from_str(&format!("{}{}", uri.to_string(), path))?)
+    let joined = format!("{}{}", uri.to_string(), path);
+    Ok(Uri::from_str(&joined).context(ErrorKind::InvalidUri { var: joined })?)
 }
 
 fn request_builder(method: &http::Method, uri: &Uri, headers: &Headers) -> http::request::Builder {
@@ -324,7 +325,11 @@ impl HyperClient {
 
     pub fn connect_with_http(addr: &str) -> result::Result<Self, Error> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let url = Uri::from_str(&addr.clone().replace("tcp://", "http://"))?;
+        let url = Uri::from_str(&addr.clone().replace("tcp://", "http://")).context(
+            ErrorKind::InvalidUri {
+                var: addr.to_owned(),
+            },
+        )?;
         Ok(Self::new(Client::HttpClient(hyper::Client::new()), url))
     }
 }
