@@ -49,7 +49,7 @@ pub const DEFAULT_DOCKER_HOST: &'static str = "tcp://localhost:2375";
 pub fn default_cert_path() -> Result<PathBuf> {
     let from_env = env::var("DOCKER_CERT_PATH").or_else(|_| env::var("DOCKER_CONFIG"));
     if let Ok(ref path) = from_env {
-        Ok(Path::new(path).to_owned())
+        Ok(PathBuf::from(path))
     } else {
         let home = dirs::home_dir().ok_or_else(|| ErrorKind::NoCertPath)?;
         Ok(home.join(".docker"))
@@ -162,9 +162,7 @@ impl Docker {
         // Dispatch to the correct connection function.
         let mkerr = || ErrorKind::CouldNotConnect { host: host.clone() };
         if host.starts_with("unix://") {
-            Docker::connect_with_unix(&host)
-                .context(mkerr())
-                .map_err(Into::into)
+            Ok(Docker::connect_with_unix(&host))
         } else if host.starts_with("tcp://") {
             if tls_verify {
                 Docker::connect_with_ssl(
@@ -185,17 +183,17 @@ impl Docker {
         }
     }
 
+    /// This ensures that using a fully-qualified path --
+    /// e.g. unix://.... -- works.  The unix socket provider expects a
+    /// Path, so we don't need scheme.
     #[cfg(unix)]
-    pub fn connect_with_unix(addr: &str) -> Result<Docker> {
-        // This ensures that using a fully-qualified path --
-        // e.g. unix://.... -- works.  The unix socket provider expects a
-        // Path, so we don't need scheme.
+    pub fn connect_with_unix(addr: &str) -> Docker {
         if addr.starts_with("unix://") {
             let client = HyperClient::connect_with_unix(&addr[7..]);
-            Ok(Docker::new(client, Protocol::Unix))
+            Docker::new(client, Protocol::Unix)
         } else {
             let client = HyperClient::connect_with_unix(addr);
-            Ok(Docker::new(client, Protocol::Unix))
+            Docker::new(client, Protocol::Unix)
         }
     }
 
