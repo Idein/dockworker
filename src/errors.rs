@@ -31,12 +31,8 @@ pub enum ErrorKind {
     Http,
     #[fail(display = "invalid uri: {}", var)]
     InvalidUri { var: String },
-    #[fail(display = "hyper tls error")]
-    HyperTlsError,
-    #[fail(display = "openssl error")]
-    OpenSSL,
-    #[fail(display = "could not fetch information about container '{}'", id)]
-    ContainerInfo { id: String },
+    #[fail(display = "ssl error")]
+    SSL,
     #[fail(display = "could not connect: {}", addr)]
     CouldNotConnect { addr: String },
     #[fail(display = "could not find DOCKER_CERT_PATH")]
@@ -158,7 +154,7 @@ impl From<http::Error> for Error {
 impl From<hyper_tls::Error> for Error {
     fn from(error: hyper_tls::Error) -> Self {
         Error {
-            inner: error.context(ErrorKind::HyperTlsError),
+            inner: error.context(ErrorKind::SSL),
         }
     }
 }
@@ -167,7 +163,7 @@ impl From<hyper_tls::Error> for Error {
 impl From<openssl::error::ErrorStack> for Error {
     fn from(error: openssl::error::ErrorStack) -> Self {
         Error {
-            inner: error.context(ErrorKind::OpenSSL),
+            inner: error.context(ErrorKind::SSL),
         }
     }
 }
