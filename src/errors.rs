@@ -34,8 +34,6 @@ pub enum ErrorKind {
     Http,
     #[fail(display = "http uri invalid error")]
     HttpUriInvalidUri,
-    #[fail(display = "http uri invalid uri parts error")]
-    HttpUriInvalidUriParts,
     #[fail(display = "http header to str error")]
     HttpHeaderToStrError,
     #[fail(display = "mime from str error")]
@@ -177,14 +175,6 @@ impl From<http::uri::InvalidUri> for Error {
     fn from(error: http::uri::InvalidUri) -> Self {
         Error {
             inner: error.context(ErrorKind::HttpUriInvalidUri),
-        }
-    }
-}
-
-impl From<http::uri::InvalidUriParts> for Error {
-    fn from(error: http::uri::InvalidUriParts) -> Self {
-        Error {
-            inner: error.context(ErrorKind::HttpUriInvalidUriParts),
         }
     }
 }
