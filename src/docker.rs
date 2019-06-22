@@ -160,7 +160,6 @@ impl Docker {
         let cert_path = default_cert_path()?;
 
         // Dispatch to the correct connection function.
-        let mkerr = || ErrorKind::CouldNotConnect { host: host.clone() };
         if host.starts_with("unix://") {
             Ok(Docker::connect_with_unix(&host))
         } else if host.starts_with("tcp://") {
@@ -171,12 +170,8 @@ impl Docker {
                     &cert_path.join("cert.pem"),
                     &cert_path.join("ca.pem"),
                 )
-                .context(mkerr())
-                .map_err(Into::into)
             } else {
                 Docker::connect_with_http(&host)
-                    .context(mkerr())
-                    .map_err(Into::into)
             }
         } else {
             Err(ErrorKind::UnsupportedScheme { host: host.clone() }.into())
@@ -200,14 +195,18 @@ impl Docker {
     #[cfg(not(unix))]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
         Err(ErrorKind::UnsupportedScheme {
-            host: addr.to_owned(),
+            addr: addr.to_owned(),
         }
         .into())
     }
 
     #[cfg(feature = "openssl")]
     pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
-        let client = HyperClient::connect_with_ssl(addr, key, cert, ca)?;
+        let client = HyperClient::connect_with_ssl(addr, key, cert, ca).context(
+            ErrorKind::CouldNotConnect {
+                addr: addr.to_owned(),
+            },
+        )?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
@@ -219,7 +218,9 @@ impl Docker {
     /// Connect using unsecured HTTP.  This is strongly discouraged
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
-        let client = HyperClient::connect_with_http(addr)?;
+        let client = HyperClient::connect_with_http(addr).context(ErrorKind::CouldNotConnect {
+            addr: addr.to_owned(),
+        })?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
