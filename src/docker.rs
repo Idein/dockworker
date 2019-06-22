@@ -161,7 +161,7 @@ impl Docker {
 
         // Dispatch to the correct connection function.
         if host.starts_with("unix://") {
-            Ok(Docker::connect_with_unix(&host))
+            Docker::connect_with_unix(&host)
         } else if host.starts_with("tcp://") {
             if tls_verify {
                 Docker::connect_with_ssl(
@@ -182,13 +182,13 @@ impl Docker {
     /// e.g. unix://.... -- works.  The unix socket provider expects a
     /// Path, so we don't need scheme.
     #[cfg(unix)]
-    pub fn connect_with_unix(addr: &str) -> Docker {
+    pub fn connect_with_unix(addr: &str) -> Result<Docker> {
         if addr.starts_with("unix://") {
             let client = HyperClient::connect_with_unix(&addr[7..]);
-            Docker::new(client, Protocol::Unix)
+            Ok(Docker::new(client, Protocol::Unix))
         } else {
             let client = HyperClient::connect_with_unix(addr);
-            Docker::new(client, Protocol::Unix)
+            Ok(Docker::new(client, Protocol::Unix))
         }
     }
 
