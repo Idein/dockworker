@@ -34,7 +34,7 @@ use signal::Signal;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
-pub const DEFAULT_DOCKER_HOST: &'static str = "unix:///var/run/docker.sock";
+pub static DEFAULT_DOCKER_HOST: &'static str = "unix:///var/run/docker.sock";
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 ///
@@ -42,7 +42,7 @@ pub const DEFAULT_DOCKER_HOST: &'static str = "unix:///var/run/docker.sock";
 /// Windows, but we don't support Windows pipes yet.  However, the TCP port
 /// is still available.
 #[cfg(windows)]
-pub const DEFAULT_DOCKER_HOST: &'static str = "tcp://localhost:2375";
+pub static DEFAULT_DOCKER_HOST: &'static str = "tcp://localhost:2375";
 
 /// The default directory in which to look for our Docker certificate
 /// files.
