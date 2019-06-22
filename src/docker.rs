@@ -195,7 +195,7 @@ impl Docker {
     #[cfg(not(unix))]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
         Err(ErrorKind::UnsupportedScheme {
-            addr: addr.to_owned(),
+            host: addr.to_owned(),
         }
         .into())
     }
