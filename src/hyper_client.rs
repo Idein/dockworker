@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::File;
 use std::path::Path;
 use std::result;
@@ -270,8 +271,9 @@ fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
 
 impl HyperClient {
     fn new(client: Client, base: Uri) -> result::Result<Self, Error> {
-        // Append Docker API version to base URI
-        let mut ver = DEFAULT_DOCKER_API_VERSION.to_string();
+        // Append Docker API version to base
+        let mut ver =
+            env::var("DOCKER_API_VERSION").unwrap_or(DEFAULT_DOCKER_API_VERSION.to_string());
         ver.insert_str(0, "v");
         let base = join_uri(&base, &ver)?;
 
