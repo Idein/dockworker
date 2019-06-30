@@ -8,7 +8,7 @@
 ### Environment
 
 - Docker
-    - API 1.31.1
+    - API version 1.26
 
 - OS
     - Linux (developped in Ubuntu(amd64))

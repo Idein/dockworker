@@ -44,6 +44,9 @@ pub static DEFAULT_DOCKER_HOST: &'static str = "unix:///var/run/docker.sock";
 #[cfg(windows)]
 pub static DEFAULT_DOCKER_HOST: &'static str = "tcp://localhost:2375";
 
+/// The default `DOCKER_API_VERSION` that we support.
+pub const DEFAULT_DOCKER_API_VERSION: &str = "1.26";
+
 /// The default directory in which to look for our Docker certificate
 /// files.
 pub fn default_cert_path() -> Result<PathBuf> {
@@ -191,10 +194,10 @@ impl Docker {
     #[cfg(unix)]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
         if addr.starts_with("unix://") {
-            let client = HyperClient::connect_with_unix(&addr[7..]);
+            let client = HyperClient::connect_with_unix(&addr[7..])?;
             Ok(Docker::new(client, Protocol::Unix))
         } else {
-            let client = HyperClient::connect_with_unix(addr);
+            let client = HyperClient::connect_with_unix(addr)?;
             Ok(Docker::new(client, Protocol::Unix))
         }
     }

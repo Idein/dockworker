@@ -8,6 +8,7 @@ use hyper::rt::Stream;
 use hyper::Uri;
 pub use hyperx::header::{ContentType, Headers};
 
+use docker::DEFAULT_DOCKER_API_VERSION;
 use errors::*;
 use http_client::HttpClient;
 
@@ -268,17 +269,22 @@ fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
 }
 
 impl HyperClient {
-    fn new(client: Client, base: Uri) -> Self {
-        Self {
+    fn new(client: Client, base: Uri) -> result::Result<Self, Error> {
+        // Append Docker API version to base URI
+        let mut ver = DEFAULT_DOCKER_API_VERSION.to_string();
+        ver.insert_str(0, "v");
+        let base = join_uri(&base, &ver)?;
+
+        Ok(Self {
             client,
             base,
             tokio_runtime: std::sync::Mutex::new(tokio::runtime::Runtime::new().unwrap()),
-        }
+        })
     }
 
     /// path to unix socket
     #[cfg(unix)]
-    pub fn connect_with_unix(path: &str) -> Self {
+    pub fn connect_with_unix(path: &str) -> result::Result<Self, Error> {
         let url = hyperlocal::Uri::new(path, "").into();
         let unix = hyperlocal::UnixConnector::new();
         let client = hyper::Client::builder().build::<_, hyper::Body>(unix);
@@ -321,14 +327,14 @@ impl HyperClient {
         http.enforce_http(false);
         let https = hyper_tls::HttpsConnector::from((http, builder.build()?));
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
-        Ok(Self::new(Client::HttpsClient(client), url))
+        Self::new(Client::HttpsClient(client), url)
     }
 
     pub fn connect_with_http(addr: &str) -> result::Result<Self, Error> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
         let addr_https = addr.clone().replace("tcp://", "http://");
         let url = Uri::from_str(&addr_https).context(ErrorKind::InvalidUri { var: addr_https })?;
-        Ok(Self::new(Client::HttpClient(hyper::Client::new()), url))
+        Self::new(Client::HttpClient(hyper::Client::new()), url)
     }
 }
 
