@@ -1318,6 +1318,7 @@ mod tests {
     #[test]
     #[ignore]
     fn attach_container() {
+        use nix::sys::signal::Signal::*;
         let docker = Docker::connect_with_defaults().unwrap();
 
         // expected files
@@ -1331,7 +1332,8 @@ mod tests {
         create
             .cmd(exps[0].to_owned())
             .cmd(exps[1].to_owned())
-            .host_config(host_config);
+            .host_config(host_config)
+            .env("WAIT_BEFORE_CONTINUING=YES".to_string());
 
         let container = docker.create_container(None, &create).unwrap();
         docker.start_container(&container.id).unwrap();
@@ -1339,6 +1341,12 @@ mod tests {
             .attach_container(&container.id, None, true, true, false, true, true)
             .unwrap();
         let cont: container::AttachContainer = res.into();
+
+        // We've successfully attached, tell the container
+        // to continue printing to stdout and stderr
+        docker
+            .kill_container(&container.id, Signal::from(SIGUSR1))
+            .unwrap();
 
         // expected files
         let exp_stdout = File::open(root.join(exps[0])).unwrap();
@@ -1359,7 +1367,7 @@ mod tests {
             .unwrap();
     }
 
-    /// This is executed after `docker-compose build iostream-exec`
+    /// This is executed after `docker-compose build iostream`
     #[test]
     #[ignore]
     fn exec_container() {
