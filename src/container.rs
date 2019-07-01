@@ -14,6 +14,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 pub struct Container {
     pub Id: String,
     pub Image: String,
+    pub ImageID: String,
+    pub State: String,
     pub Status: String,
     pub Command: String,
     pub Created: u64,
@@ -23,6 +25,8 @@ pub struct Container {
     pub SizeRootFs: Option<u64>,
     pub Labels: Option<HashMap<String, String>>,
     pub HostConfig: HostConfig,
+    pub NetworkSettings: Option<SummaryNetworkSettings>,
+    pub Mounts: Option<Vec<Mount>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +42,12 @@ pub struct Port {
 #[allow(non_snake_case)]
 pub struct HostConfig {
     pub NetworkMode: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct SummaryNetworkSettings {
+    pub Networks: Option<HashMap<String, Option<Network>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -170,13 +180,21 @@ pub struct Network {
     pub Gateway: String,
     pub GlobalIPv6Address: String,
     pub GlobalIPv6PrefixLen: u32,
-    //pub IPAMConfig: ,
+    pub IPAMConfig: Option<EndpointIPAMConfig>,
     pub IPAddress: String,
     pub IPPrefixLen: u32,
     pub IPv6Gateway: String,
-    //pub Links:
+    pub Links: Option<Vec<String>>,
     pub MacAddress: String,
     pub NetworkID: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct EndpointIPAMConfig {
+    pub IPv4Address: Option<String>,
+    pub IPv6Address: Option<String>,
+    pub LinkLocalIPs: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
