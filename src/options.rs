@@ -483,7 +483,6 @@ impl Default for ContainerLogOptions {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
 pub struct ContainerBuildOptions {
     /// Path within the build context to the Dockerfile.
     /// This is ignored if remote is specified and points to an external Dockerfile.
@@ -494,7 +493,7 @@ pub struct ContainerBuildOptions {
     pub t: Vec<String>,
 
     /// Extra hosts to add to /etc/hosts
-    pub extra_hosts: Option<String>,
+    pub extrahosts: Option<String>,
 
     /// A Git repository URI or HTTP/HTTPS context URI
     pub remote: Option<String>,
@@ -503,10 +502,10 @@ pub struct ContainerBuildOptions {
     pub q: bool,
 
     /// Do not use the cache when building the image.
-    pub no_cache: bool,
+    pub nocache: bool,
 
     /// JSON array of images used for build cache resolution.
-    pub cache_from: Option<Vec<String>>,
+    pub cachefrom: Option<Vec<String>>,
 
     /// Attempt to pull the image even if an older image exists locally.
     pub pull: Option<String>,
@@ -515,32 +514,32 @@ pub struct ContainerBuildOptions {
     pub rm: bool,
 
     /// Always remove intermediate containers, even upon failure.
-    pub force_rm: bool,
+    pub forcerm: bool,
 
     /// Set memory limit for build.
     pub memory: Option<u64>,
 
     /// Total memory (memory + swap). Set as -1 to disable swap.
-    pub mem_swap: Option<i64>,
+    pub memswap: Option<i64>,
 
     /// CPU shares (relative weight).
-    pub cpu_shares: Option<u64>,
+    pub cpushares: Option<u64>,
 
     /// CPUs in which to allow execution (e.g., 0-3, 0,1).
-    pub cpu_set_cpus: Option<String>,
+    pub cpusetcpus: Option<String>,
 
     /// The length of a CPU period in microseconds.
-    pub cpu_period: Option<u64>,
+    pub cpuperiod: Option<u64>,
 
     /// Microseconds of CPU time that the container can get in a CPU period.
-    pub cpu_quota: Option<u64>,
+    pub cpuquota: Option<u64>,
 
     /// JSON map of string pairs for build-time variables.
     /// This is not meant for passing secret values.
-    pub build_args: Option<HashMap<String, String>>,
+    pub buildargs: Option<HashMap<String, String>>,
 
     /// Size of /dev/shm in bytes. The size must be greater than 0. If omitted the system uses 64MB.
-    pub shm_size: Option<u64>,
+    pub shmsize: Option<u64>,
 
     /// Squash the resulting images layers into a single layer. (Experimental release only.)
     pub squash: Option<bool>,
@@ -548,13 +547,13 @@ pub struct ContainerBuildOptions {
     /// Arbitrary key/value labels to set on the image, as a JSON map of string pairs.
     pub labels: Option<HashMap<String, String>>,
 
-    ///    Sets the networking mode for the run commands during build.
+    /// Sets the networking mode for the run commands during build.
     /// Supported standard values are: bridge, host, none, and container:<name|id>.
     /// Any other value is taken as a custom network's name to which this container should connect to.
-    pub network_mode: Option<String>,
+    pub networkmode: Option<String>,
 
     /// Platform in the format os[/arch[/variant]]
-    pub platform: Option<String>,
+    pub platform: String,
 }
 
 impl ContainerBuildOptions {
@@ -565,8 +564,8 @@ impl ContainerBuildOptions {
         for tag in &self.t {
             params.append_pair("t", &tag);
         }
-        if let Some(ref extra_hosts) = self.extra_hosts {
-            params.append_pair("extra_hosts", &extra_hosts);
+        if let Some(ref extrahosts) = self.extrahosts {
+            params.append_pair("extrahosts", &extrahosts);
         }
         if let Some(ref remote) = self.remote {
             params.append_pair("remote", &remote);
@@ -574,11 +573,11 @@ impl ContainerBuildOptions {
         if self.q {
             params.append_pair("q", "true");
         }
-        if self.no_cache {
-            params.append_pair("no_cache", "true");
+        if self.nocache {
+            params.append_pair("nocache", "true");
         }
-        if let Some(ref cache_from) = self.cache_from {
-            params.append_pair("cache_from", &serde_json::to_string(&cache_from).unwrap());
+        if let Some(ref cachefrom) = self.cachefrom {
+            params.append_pair("cachefrom", &serde_json::to_string(&cachefrom).unwrap());
         }
         if let Some(ref pull) = self.pull {
             params.append_pair("pull", &pull);
@@ -586,35 +585,35 @@ impl ContainerBuildOptions {
         if self.rm {
             params.append_pair("rm", "true");
         }
-        if self.force_rm {
-            params.append_pair("force_rm", "true");
+        if self.forcerm {
+            params.append_pair("forcerm", "true");
         }
         if let Some(ref memory) = self.memory {
             params.append_pair("memory", &memory.to_string());
         }
-        if let Some(ref mem_swap) = self.mem_swap {
-            params.append_pair("mem_swap", &mem_swap.to_string());
+        if let Some(ref memswap) = self.memswap {
+            params.append_pair("memswap", &memswap.to_string());
         }
-        if let Some(ref cpu_shares) = self.cpu_shares {
-            params.append_pair("cpu_shares", &cpu_shares.to_string());
+        if let Some(ref cpushares) = self.cpushares {
+            params.append_pair("cpushares", &cpushares.to_string());
         }
-        if let Some(ref cpu_set_cpus) = self.cpu_set_cpus {
-            params.append_pair("cpu_set_cpus", &cpu_set_cpus);
+        if let Some(ref cpusetcpus) = self.cpusetcpus {
+            params.append_pair("cpusetcpus", &cpusetcpus);
         }
-        if let Some(ref cpu_period) = self.cpu_period {
-            params.append_pair("cpu_period", &cpu_period.to_string());
+        if let Some(ref cpuperiod) = self.cpuperiod {
+            params.append_pair("cpuperiod", &cpuperiod.to_string());
         }
-        if let Some(ref cpu_quota) = self.cpu_quota {
-            params.append_pair("cpu_quota", &cpu_quota.to_string());
+        if let Some(ref cpuquota) = self.cpuquota {
+            params.append_pair("cpuquota", &cpuquota.to_string());
         }
-        if let Some(ref build_args) = self.build_args {
+        if let Some(ref buildargs) = self.buildargs {
             params.append_pair(
-                "build_args",
-                &serde_json::to_string(&build_args).expect("Json parsing of build_args param"),
+                "buildargs",
+                &serde_json::to_string(&buildargs).expect("Json parsing of buildargs param"),
             );
         }
-        if let Some(ref shm_size) = self.shm_size {
-            params.append_pair("shm_size", &shm_size.to_string());
+        if let Some(ref shmsize) = self.shmsize {
+            params.append_pair("shmsize", &shmsize.to_string());
         }
         if let Some(ref squash) = self.squash {
             params.append_pair("squash", &squash.to_string());
@@ -625,12 +624,10 @@ impl ContainerBuildOptions {
                 &serde_json::to_string(&labels).expect("Json parsing of labels param"),
             );
         }
-        if let Some(ref network_mode) = self.network_mode {
-            params.append_pair("network_mode", &network_mode);
+        if let Some(ref networkmode) = self.networkmode {
+            params.append_pair("networkmode", &networkmode);
         }
-        if let Some(ref platform) = self.platform {
-            params.append_pair("platform", &platform);
-        }
+        params.append_pair("platform", &self.platform);
         params.finish()
     }
 }
@@ -640,26 +637,26 @@ impl Default for ContainerBuildOptions {
         ContainerBuildOptions {
             dockerfile: String::from("Dockerfile"),
             t: Vec::new(),
-            extra_hosts: None,
+            extrahosts: None,
             remote: None,
             q: false,
-            no_cache: false,
-            cache_from: None,
+            nocache: false,
+            cachefrom: None,
             pull: None,
             rm: true,
-            force_rm: false,
+            forcerm: false,
             memory: None,
-            mem_swap: None,
-            cpu_shares: None,
-            cpu_set_cpus: None,
-            cpu_period: None,
-            cpu_quota: None,
-            build_args: None,
-            shm_size: None,
+            memswap: None,
+            cpushares: None,
+            cpusetcpus: None,
+            cpuperiod: None,
+            cpuquota: None,
+            buildargs: None,
+            shmsize: None,
             squash: Some(false),
             labels: None,
-            network_mode: None,
-            platform: None,
+            networkmode: None,
+            platform: String::new(),
         }
     }
 }
