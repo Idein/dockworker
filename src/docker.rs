@@ -480,14 +480,14 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/top
-    pub fn container_top(&self, container: &Container) -> Result<Top> {
+    pub fn container_top(&self, container_id: &str) -> Result<Top> {
         self.http_client()
-            .get(self.headers(), &format!("/containers/{}/top", container.Id))
+            .get(self.headers(), &format!("/containers/{}/top", container_id))
             .and_then(api_result)
     }
 
-    pub fn processes(&self, container: &Container) -> Result<Vec<Process>> {
-        let top = self.container_top(container)?;
+    pub fn processes(&self, container_id: &str) -> Result<Vec<Process>> {
+        let top = self.container_top(container_id)?;
         Ok(top
             .Processes
             .iter()
@@ -522,10 +522,10 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/stats
-    pub fn stats(&self, container: &Container) -> Result<StatsReader> {
+    pub fn stats(&self, container_id: &str) -> Result<StatsReader> {
         let res = self.http_client().get(
             self.headers(),
-            &format!("/containers/{}/stats", container.Id),
+            &format!("/containers/{}/stats", container_id),
         )?;
         Ok(StatsReader::new(res))
     }
@@ -896,11 +896,11 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/json
-    pub fn container_info(&self, container: &Container) -> Result<ContainerInfo> {
+    pub fn container_info(&self, container_id: &str) -> Result<ContainerInfo> {
         self.http_client()
             .get(
                 self.headers(),
-                &format!("/containers/{}/json", container.Id),
+                &format!("/containers/{}/json", container_id),
             )
             .and_then(api_result)
     }
@@ -911,11 +911,11 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/changes
-    pub fn filesystem_changes(&self, container: &Container) -> Result<Vec<FilesystemChange>> {
+    pub fn filesystem_changes(&self, container_id: &str) -> Result<Vec<FilesystemChange>> {
         self.http_client()
             .get(
                 self.headers(),
-                &format!("/containers/{}/changes", container.Id),
+                &format!("/containers/{}/changes", container_id),
             )
             .and_then(api_result)
     }
@@ -927,11 +927,11 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/export
-    pub fn export_container(&self, container: &Container) -> Result<Box<Read>> {
+    pub fn export_container(&self, container_id: &str) -> Result<Box<Read>> {
         self.http_client()
             .get(
                 self.headers(),
-                &format!("/containers/{}/export", container.Id),
+                &format!("/containers/{}/export", container_id),
             )
             .and_then(|res| {
                 if res.status.is_success() {

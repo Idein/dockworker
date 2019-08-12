@@ -6,7 +6,7 @@ fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
     let opts = ContainerListOptions::default();
     if let Some(container) = docker.containers(opts).unwrap().get(0) {
-        for stats in docker.stats(container).unwrap() {
+        for stats in docker.stats(container.Id.as_str()).unwrap() {
             println!("{:#?}", stats);
         }
     }
