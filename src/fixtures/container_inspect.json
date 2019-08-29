@@ -151,7 +151,11 @@
             "0.0.0.0"
         ],
         "Image": "faraday/rails_hello",
-        "Volumes": null,
+        "Volumes": {
+            "/etc/grafana/provisioning": {},
+            "/var/lib/grafana/config.monitoring": {},
+            "/var/lib/grafana/dashboards": {}
+        },
         "WorkingDir": "/usr/src/app",
         "Entrypoint": null,
         "OnBuild": null,
