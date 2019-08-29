@@ -132,7 +132,7 @@ pub struct Config {
     pub Tty: bool,
     pub User: String,
     #[serde(deserialize_with = "null_to_default")]
-    pub Volumes: UnspecifiedObject,
+    pub Volumes: HashMap<String, UnspecifiedObject>,
     pub WorkingDir: String,
 }
 
