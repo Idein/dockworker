@@ -1091,6 +1091,20 @@ mod tests {
     }
 
     #[test]
+    fn test_container_info() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.8");
+        with_image(&docker, name, tag, |name, tag| {
+            let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+            let container = docker.create_container(None, &create).unwrap();
+            assert!(docker.container_info(&container.id).is_ok());
+            assert!(docker
+                .remove_container(&container.id, None, None, None)
+                .is_ok());
+        })
+    }
+
+    #[test]
     fn auto_remove_container() {
         let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("alpine", "3.7");
