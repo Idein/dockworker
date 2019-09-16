@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::result;
 
+use http::header::HeaderMap;
 use http::Request;
 pub use http::StatusCode;
 use hyper::rt::Stream;
@@ -351,6 +352,24 @@ impl HttpClient for HyperClient {
             )?)?;
 
         Ok(Response::new(res))
+    }
+
+    fn head(&self, headers: &Headers, path: &str) -> result::Result<HeaderMap, Self::Err> {
+        let url = join_uri(&self.base, path)?;
+
+        let res = self
+            .tokio_runtime
+            .lock()
+            .unwrap()
+            .block_on(request_with_redirect::<Vec<u8>>(
+                self.client.clone(),
+                http::Method::HEAD,
+                url,
+                headers.clone(),
+                None,
+            )?)?;
+
+        Ok(res.headers().clone())
     }
 
     fn post(
