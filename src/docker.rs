@@ -13,7 +13,7 @@ use container::{
 };
 pub use credentials::{Credential, UserPassword};
 use errors::*;
-use filesystem::FilesystemChange;
+use filesystem::{FilesystemChange, XDockerContainerPathStat};
 use hyper_client::HyperClient;
 use image::{Image, ImageId, SummaryImage};
 use options::*;
@@ -585,6 +585,32 @@ impl Docker {
             })
     }
 
+    /// Get information about files in a container
+    ///
+    /// # API
+    /// /containers/{id}/archive
+    pub fn head_file(&self, id: &str, path: &Path) -> Result<XDockerContainerPathStat> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        debug!("head_file({}, {})", id, path.display());
+        param.append_pair("path", path.to_str().unwrap_or(""));
+        self.http_client()
+            .head(
+                self.headers(),
+                &format!("/containers/{}/archive?{}", id, param.finish()),
+            )
+            .and_then(|res| {
+                let stat_base64: &str = res
+                    .get("X-Docker-Container-Path-Stat")
+                    .map(|h| h.to_str().unwrap_or(""))
+                    .unwrap_or("");
+                let bytes = base64::decode(stat_base64).context(ErrorKind::ParseError {
+                    input: String::from(stat_base64),
+                })?;
+                let path_stat: XDockerContainerPathStat = serde_json::from_slice(&bytes)?;
+                Ok(path_stat)
+            })
+    }
+
     /// Extract an archive of files or folders to a directory in a container
     ///
     /// # Summary
@@ -1098,6 +1124,27 @@ mod tests {
             let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
             let container = docker.create_container(None, &create).unwrap();
             assert!(docker.container_info(&container.id).is_ok());
+            assert!(docker
+                .remove_container(&container.id, None, None, None)
+                .is_ok());
+        })
+    }
+
+    #[test]
+    fn test_head_file() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("redis", "3.2.11-alpine");
+        with_image(&docker, name, tag, |name, tag| {
+            let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+            let container = docker.create_container(None, &create).unwrap();
+
+            let res = docker
+                .head_file(&container.id, Path::new("/bin/ls"))
+                .unwrap();
+            assert_eq!(res.name, "ls");
+            assert_eq!(res.linkTarget, "/bin/busybox");
+            assert_eq!(res.mode, 134218239);
+            assert!(chrono::DateTime::parse_from_rfc3339(&res.mtime).is_ok());
             assert!(docker
                 .remove_container(&container.id, None, None, None)
                 .is_ok());

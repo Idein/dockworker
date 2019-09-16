@@ -9,6 +9,8 @@ pub trait HttpClient {
 
     fn get(&self, headers: &Headers, path: &str) -> result::Result<Response, Self::Err>;
 
+    fn head(&self, headers: &Headers, path: &str) -> result::Result<http::HeaderMap, Self::Err>;
+
     fn post(
         &self,
         headers: &Headers,
