@@ -226,6 +226,7 @@ pub struct ContainerHostConfig {
     network_mode: String,
     devices: Vec<DeviceMapping>,
     sysctls: HashMap<String, String>,
+    runtime: String,
     // ulimits: TODO: Not sure the type of this. the provided is [{}]
     // log_config: TODO: not sure the type of this. the provided makes no sense
     // security_opt: TODO: Not sure the type of this. The provided is []
@@ -274,6 +275,7 @@ impl ContainerHostConfig {
             network_mode: "default".to_owned(),
             devices: Vec::new(),
             sysctls: HashMap::new(),
+            runtime: "".to_owned(),
             cgroup_parent: "".to_owned(),
             volume_driver: "".to_owned(),
             /// 64MB
@@ -419,6 +421,10 @@ impl ContainerHostConfig {
     }
     pub fn sysctls(&mut self, key: &str, value: &str) -> &mut Self {
         self.sysctls.insert(key.to_owned(), value.to_owned());
+        self
+    }
+    pub fn runtime(&mut self, runtime: String) -> &mut Self {
+        self.runtime = runtime;
         self
     }
     pub fn cgroup_parent(&mut self, cgroup_parent: String) -> &mut Self {
