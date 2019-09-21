@@ -639,10 +639,6 @@ impl Read for LogResponse {
 }
 
 impl LogResponse {
-    fn new(res: Response) -> Self {
-        Self { res }
-    }
-
     pub fn output(&mut self) -> errors::Result<String> {
         let mut str = String::new();
         self.res.read_to_string(&mut str)?;
