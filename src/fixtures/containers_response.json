@@ -1,0 +1,63 @@
+[
+  {
+    "Id": "ed3221f4adc05b9ecfbf56b1aa76d4e6e70d5b73b3876c322fc10d017c64ca86",
+    "Names": [
+      "/rust"
+    ],
+    "Image": "ghmlee/rust:latest",
+    "ImageID": "533da4fa223bfbca0f56f65724bb7a4aae7a1acd6afa2309f370463eaf9c34a4",
+    "Command": "bash",
+    "Created": 1439434052,
+    "Ports": [
+      {
+        "IP": "0.0.0.0",
+        "PrivatePort": 8888,
+        "PublicPort": 8888,
+        "Type": "tcp"
+      }
+    ],
+    "SizeRootFs": 253602755,
+    "Labels": null,
+    "State": "exited",
+    "Status": "Exited (137) 12 hours ago",
+    "HostConfig": {
+      "NetworkMode": "default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "bridge": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "NetworkID": "c033e08c176af51c8eca4aca77a0a6b3def00f181918ecd0836589d74e94973a",
+          "EndpointID": "7b4f20e7a13f2ccbfc31f3252dc1ca3afb65b5eb2b7250fe93074c6e83671baf",
+          "Gateway": "10.10.0.1",
+          "IPAddress": "10.10.0.4",
+          "IPPrefixLen": 24,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "MacAddress": "02:42:0a:0a:00:04",
+          "DriverOpts": null
+        },
+        "none": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "NetworkID": "3d8e6b21bced2737e634f897a54b83973da92498fe0774aa5fb6d8217b2c9322",
+          "EndpointID": "4cd498f3bc50a9c3e9ae606d94d447b121bb2719701410d5cc98f6a033349ec1",
+          "Gateway": "",
+          "IPAddress": "",
+          "IPPrefixLen": 0,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "MacAddress": "",
+          "DriverOpts": null
+        }
+      }
+    },
+    "Mounts": [],
+    "SizeRw": 10832473
+  }
+]
