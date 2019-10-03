@@ -1,0 +1,83 @@
+{
+  "Id": "sha256:301e280df919c411b7c2b049f938f3e26e4269a9be4a8ac3babce1ede930be0f",
+  "RepoTags": [
+    "debian:wheezy-20190204-slim"
+  ],
+  "RepoDigests": [
+    "debian@sha256:8af4c5d36bf9e97bd9e9d32f4b23c30197269a8690d1aee6771beb7bdc744d5d"
+  ],
+  "Parent": "",
+  "Comment": "",
+  "Created": "2019-02-06T03:31:46.89466512Z",
+  "Container": "bde93de20096d0e854d13ce9e3e8a506b3a2b7798c051bd1e2bebb644ad60b9a",
+  "ContainerConfig": {
+    "Hostname": "bde93de20096",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    ],
+    "Cmd": [
+      "/bin/sh",
+      "-c",
+      "#(nop) ",
+      "CMD [\"bash\"]"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:cf2bd8704a6c5c4fc4b7a9801c5dacac8ddd3fc699b6e02227119b168d8cf2a9",
+    "Volumes": null,
+    "WorkingDir": "",
+    "Entrypoint": null,
+    "OnBuild": null,
+    "Labels": null
+  },
+  "DockerVersion": "18.06.1-ce",
+  "Author": "",
+  "Config": {
+    "Hostname": "",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    ],
+    "Cmd": [
+      "bash"
+    ],
+    "ArgsEscaped": true,
+    "Image": "sha256:cf2bd8704a6c5c4fc4b7a9801c5dacac8ddd3fc699b6e02227119b168d8cf2a9",
+    "Volumes": null,
+    "WorkingDir": "",
+    "Entrypoint": null,
+    "OnBuild": null,
+    "Labels": null
+  },
+  "Architecture": "amd64",
+  "Os": "linux",
+  "Size": 46924746,
+  "VirtualSize": 46924746,
+  "GraphDriver": {
+    "Data": null,
+    "Name": "aufs"
+  },
+  "RootFS": {
+    "Type": "layers",
+    "Layers": [
+      "sha256:745d171eb8c3d69f788da3a1b053056231ad140b80be71d6869229846a1f3a77"
+    ]
+  },
+  "Metadata": {
+    "LastTagTime": "0001-01-01T00:00:00Z"
+  }
+}

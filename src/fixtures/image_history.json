@@ -1,0 +1,18 @@
+[
+  {
+    "Comment": "",
+    "Created": 1539614714,
+    "CreatedBy": "/bin/sh -c apk add --update openssl",
+    "Id": "1234",
+    "Size": 4736047,
+    "Tags": null
+  },
+  {
+    "Comment": "",
+    "Created": 1536704390,
+    "CreatedBy": "/bin/sh -c #(nop) ADD file:25c10b1d1b41d46a1827ad0b0d2389c24df6d31430005ff4e9a2d84ea23ebd42 in / ",
+    "Id": "<missing>",
+    "Size": 4413370,
+    "Tags": null
+  }
+]
