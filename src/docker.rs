@@ -1083,6 +1083,7 @@ mod tests {
 
     use container;
 
+    #[test]
     fn test_server_access() {
         let docker = Docker::connect_with_defaults().unwrap();
         assert!(docker.ping().is_ok());
