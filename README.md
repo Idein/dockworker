@@ -36,8 +36,8 @@ Supported Api List.
 	- [x] `/containers/{id}/kill`
 	- [ ] `/containers/{id}/update`
 	- [ ] `/containers/{id}/rename`
-	- [ ] `/containers/{id}/pause`
-	- [ ] `/containers/{id}/unpause`
+	- [x] `/containers/{id}/pause`
+	- [x] `/containers/{id}/unpause`
 	- [x] `/containers/{id}/attach`
 	- [ ] `/containers/{id}/attach/ws`
 	- [x] `/containers/{id}/wait`
