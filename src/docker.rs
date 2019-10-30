@@ -326,6 +326,34 @@ impl Docker {
             .and_then(no_content)
     }
 
+    /// Use the cgroups freezer to suspend all processes in a container.
+    ///
+    /// # API
+    /// /containers/{id}/pause
+    pub fn pause_container(&self, id: &str) -> Result<()> {
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/pause", id),
+                "",
+            )
+            .and_then(no_content)
+    }
+
+    /// Resume a container which has been paused.
+    ///
+    /// # API
+    /// /containers/{id}/unpause
+    pub fn unpause_container(&self, id: &str) -> Result<()> {
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/unpause", id),
+                "",
+            )
+            .and_then(no_content)
+    }
+
     /// Kill a container
     ///
     /// # API
@@ -1055,7 +1083,6 @@ mod tests {
 
     use container;
 
-    #[test]
     fn test_server_access() {
         let docker = Docker::connect_with_defaults().unwrap();
         assert!(docker.ping().is_ok());
@@ -1114,6 +1141,26 @@ mod tests {
         assert!(docker
             .remove_image(&format!("{}:{}", name, tag), None, None)
             .is_ok());
+    }
+
+    #[test]
+    fn pause_unpause_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "latest");
+        with_image(&docker, name, tag, |name, tag| {
+            let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+            create.cmd("sh".into()).cmd("-c".into()).cmd("sleep 30".into());
+            let container = docker.create_container(None, &create).unwrap();
+            assert!(docker.start_container(&container.id).is_ok());
+            assert!(docker.pause_container(&container.id).is_ok());
+            assert!(docker.unpause_container(&container.id).is_ok());
+            assert!(docker
+                .stop_container(&container.id, Duration::from_secs(0))
+                .is_ok());
+            assert!(docker
+                .remove_container(&container.id, None, None, None)
+                .is_ok());
+        })
     }
 
     #[test]
