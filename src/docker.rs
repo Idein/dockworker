@@ -332,11 +332,7 @@ impl Docker {
     /// /containers/{id}/pause
     pub fn pause_container(&self, id: &str) -> Result<()> {
         self.http_client()
-            .post(
-                self.headers(),
-                &format!("/containers/{}/pause", id),
-                "",
-            )
+            .post(self.headers(), &format!("/containers/{}/pause", id), "")
             .and_then(no_content)
     }
 
@@ -346,11 +342,7 @@ impl Docker {
     /// /containers/{id}/unpause
     pub fn unpause_container(&self, id: &str) -> Result<()> {
         self.http_client()
-            .post(
-                self.headers(),
-                &format!("/containers/{}/unpause", id),
-                "",
-            )
+            .post(self.headers(), &format!("/containers/{}/unpause", id), "")
             .and_then(no_content)
     }
 
@@ -1150,7 +1142,10 @@ mod tests {
         let (name, tag) = ("alpine", "latest");
         with_image(&docker, name, tag, |name, tag| {
             let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-            create.cmd("sh".into()).cmd("-c".into()).cmd("sleep 30".into());
+            create
+                .cmd("sh".into())
+                .cmd("-c".into())
+                .cmd("sleep 30".into());
             let container = docker.create_container(None, &create).unwrap();
             assert!(docker.start_container(&container.id).is_ok());
             assert!(docker.pause_container(&container.id).is_ok());
