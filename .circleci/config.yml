@@ -60,7 +60,7 @@ jobs:
       - run:
           name: Unit testing
           command: |
-            RUST_BACKTRACE=1 cargo test -j 0 --verbose --features ssl
+            RUST_BACKTRACE=1 cargo test -j 1 --verbose --features ssl
       - run:
           name: More unit testing
           command: |
