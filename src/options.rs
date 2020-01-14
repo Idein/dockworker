@@ -442,8 +442,34 @@ impl ContainerHostConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
 pub struct NetworkingConfig {
-    // TODO
+    pub endpoints_config: EndpointsConfig,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct EndpointsConfig {
+    pub IPAMConfig: IPAMConfig,
+    pub Links: Vec<String>,
+    pub Aliases: Vec<String>,
+    pub NetworkID: Option<String>,
+    pub EndpointID: Option<String>,
+    pub Gateway: Option<String>,
+    pub IPAddress: Option<String>,
+    pub IPPrefixLen: Option<String>,
+    pub IPv6Gateway: Option<String>,
+    pub GlobalIPv6Address: Option<String>,
+    pub GlobalIPv6PrefixLen: Option<u64>,
+    pub MacAddress: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct IPAMConfig {
+    pub IPv4Address: String,
+    pub IPv6Address: String,
+    pub LinkLocalIPs: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
