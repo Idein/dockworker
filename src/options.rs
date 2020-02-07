@@ -1,6 +1,7 @@
 //! Options which can be passed to various `Docker` commands.
 
 use std::collections::HashMap;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 use std::time::Duration;
 use url::{self, form_urlencoded};
@@ -441,13 +442,13 @@ impl ContainerHostConfig {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct NetworkingConfig {
     pub endpoints_config: EndpointsConfig,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct EndpointsConfig {
     pub IPAMConfig: IPAMConfig,
@@ -464,11 +465,11 @@ pub struct EndpointsConfig {
     pub MacAddress: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct IPAMConfig {
-    pub IPv4Address: String,
-    pub IPv6Address: String,
+    pub IPv4Address: Ipv4Addr,
+    pub IPv6Address: Ipv6Addr,
     pub LinkLocalIPs: Vec<String>,
 }
 
