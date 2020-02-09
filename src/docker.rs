@@ -16,7 +16,7 @@ use errors::*;
 use filesystem::{FilesystemChange, XDockerContainerPathStat};
 use hyper_client::HyperClient;
 use image::{Image, ImageId, SummaryImage};
-use network::{CreateNetworkResponse, Network, NetworkCreateOptions};
+use network::*;
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -1035,9 +1035,17 @@ impl Docker {
     ///
     /// # API
     /// /networks
-    pub fn list_networks(&self) -> Result<Vec<Network>> {
+    pub fn list_networks(&self, filters: ListNetworkFilters) -> Result<Vec<Network>> {
+        let path = if filters.is_empty() {
+            "/networks".to_string()
+        } else {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
+            debug!("filter: {}", serde_json::to_string(&filters).unwrap());
+            format!("/networks?{}", param.finish())
+        };
         self.http_client()
-            .get(self.headers(), "/networks")
+            .get(self.headers(), &path)
             .and_then(api_result)
     }
 
@@ -1445,7 +1453,7 @@ mod tests {
     #[test]
     fn inspect_networks() {
         let docker = Docker::connect_with_defaults().unwrap();
-        for network in &docker.list_networks().unwrap() {
+        for network in &docker.list_networks(ListNetworkFilters::default()).unwrap() {
             let network = docker
                 .inspect_network(&network.Id, Some(true), None)
                 .unwrap();
