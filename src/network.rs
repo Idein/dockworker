@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
@@ -29,6 +30,16 @@ pub struct IPAM {
     pub Options: Vec<HashMap<String, String>>,
 }
 
+impl Default for IPAM {
+    fn default() -> Self {
+        IPAM {
+            Driver: "default".to_string(),
+            Config: vec![],
+            Options: vec![],
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct NetworkContainer {
@@ -53,6 +64,59 @@ pub struct ListNetworkFilters {
     pub scope: Vec<NetworkScope>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub r#type: Vec<NetworkType>,
+}
+
+impl ListNetworkFilters {
+    pub fn is_empty(&self) -> bool {
+        self.driver.is_empty()
+            && self.id.is_empty()
+            && self.label.is_empty()
+            && self.name.is_empty()
+            && self.scope.is_empty()
+            && self.r#type.is_empty()
+    }
+
+    pub fn driver(&mut self, driver: Cow<str>) -> &mut Self {
+        self.driver.push(driver.into_owned());
+        self
+    }
+
+    pub fn id(&mut self, id: Cow<str>) -> &mut Self {
+        self.id.push(id.into_owned());
+        self
+    }
+
+    pub fn label(&mut self, label: Cow<str>) -> &mut Self {
+        self.label.push(label.into_owned());
+        self
+    }
+
+    pub fn name(&mut self, name: Cow<str>) -> &mut Self {
+        self.name.push(name.into_owned());
+        self
+    }
+    pub fn scope(&mut self, scope: NetworkScope) -> &mut Self {
+        self.scope.push(scope);
+        self
+    }
+
+    pub fn r#type(&mut self, r#type: NetworkType) -> &mut Self {
+        self.r#type.push(r#type);
+        self
+    }
+}
+
+impl Default for ListNetworkFilters {
+    fn default() -> Self {
+        ListNetworkFilters {
+            driver: vec![],
+            id: vec![],
+            label: vec![],
+            name: vec![],
+            scope: vec![],
+            r#type: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
