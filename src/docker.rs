@@ -1040,6 +1040,29 @@ impl Docker {
             .get(self.headers(), "/networks")
             .and_then(api_result)
     }
+
+    /// Inspect a network
+    ///
+    /// # API
+    /// GET /networks/{id}
+    pub fn inspect_network(
+        &self,
+        id: &str,
+        verbose: Option<bool>,
+        scope: Option<&str>,
+    ) -> Result<Network> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("verbose", &verbose.unwrap_or(false).to_string());
+        if let Some(scope) = scope {
+            param.append_pair("scope", scope);
+        }
+        self.http_client()
+            .get(
+                self.headers(),
+                &format!("/networks/{}?{}", id, param.finish()),
+            )
+            .and_then(api_result)
+    }
 }
 
 impl HaveHttpClient for Docker {
@@ -1384,6 +1407,17 @@ mod tests {
         docker
             .remove_image(&format!("{}:{}", name, tag), None, None)
             .unwrap();
+    }
+
+    #[test]
+    fn inspect_networks() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        for network in &docker.list_networks().unwrap() {
+            let network = docker
+                .inspect_network(&network.Id, Some(true), None)
+                .unwrap();
+            println!("network: {:?}", network);
+        }
     }
 
     /// This is executed after `docker-compose build iostream`
