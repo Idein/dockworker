@@ -75,7 +75,7 @@ Supported Api List.
 	- [ ] `/system/df`
 
 - network
-	- [ ] `/networks`
+	- [x] `/networks`
 	- [ ] `/networks/{id}`
 	- [ ] `/networks/{id}` # remove
 	- [ ] `/networks/create`

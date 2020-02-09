@@ -16,6 +16,7 @@ use errors::*;
 use filesystem::{FilesystemChange, XDockerContainerPathStat};
 use hyper_client::HyperClient;
 use image::{Image, ImageId, SummaryImage};
+use network::Network;
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -1028,6 +1029,16 @@ impl Docker {
                 )
                     as Box<Iterator<Item = Result<EventResponse>>>)
             })
+    }
+
+    /// List networks
+    ///
+    /// # API
+    /// GET /networks
+    pub fn list_networks(&self) -> Result<Vec<Network>> {
+        self.http_client()
+            .get(self.headers(), "/networks")
+            .and_then(api_result)
     }
 }
 
