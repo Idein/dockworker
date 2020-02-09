@@ -135,7 +135,7 @@ pub enum NetworkType {
 }
 
 /// request body of /networks/create api
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct NetworkCreateOptions {
     pub name: String,
@@ -152,14 +152,14 @@ pub struct NetworkCreateOptions {
     pub labels: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
 #[allow(non_snake_case)]
 pub struct CreateNetworkResponse {
     pub Id: String,
     pub Warning: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct PruneNetworkResponse {
     pub networks_deleted: Vec<String>,
