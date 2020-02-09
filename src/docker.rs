@@ -16,7 +16,7 @@ use errors::*;
 use filesystem::{FilesystemChange, XDockerContainerPathStat};
 use hyper_client::HyperClient;
 use image::{Image, ImageId, SummaryImage};
-use network::Network;
+use network::{CreateNetworkResponse, Network, NetworkCreateOptions};
 use options::*;
 use process::{Process, Top};
 use stats::StatsReader;
@@ -1034,7 +1034,7 @@ impl Docker {
     /// List networks
     ///
     /// # API
-    /// GET /networks
+    /// /networks
     pub fn list_networks(&self) -> Result<Vec<Network>> {
         self.http_client()
             .get(self.headers(), "/networks")
@@ -1044,7 +1044,7 @@ impl Docker {
     /// Inspect a network
     ///
     /// # API
-    /// GET /networks/{id}
+    /// /networks/{id}
     pub fn inspect_network(
         &self,
         id: &str,
@@ -1061,6 +1061,29 @@ impl Docker {
                 self.headers(),
                 &format!("/networks/{}?{}", id, param.finish()),
             )
+            .and_then(api_result)
+    }
+
+    /// Remove a network
+    ///
+    /// # API
+    /// /networks/{id}
+    pub fn remove_network(&self, id: &str) -> Result<()> {
+        self.http_client()
+            .delete(self.headers(), &format!("/networks/{}", id))
+            .and_then(no_content)
+    }
+
+    /// Create a network
+    ///
+    /// # API
+    /// /networks/create
+    pub fn create_network(&self, option: &NetworkCreateOptions) -> Result<CreateNetworkResponse> {
+        let json_body = serde_json::to_string(&option)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(&headers, "/networks/create", &json_body)
             .and_then(api_result)
     }
 }

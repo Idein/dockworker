@@ -76,9 +76,9 @@ Supported Api List.
 
 - network
 	- [x] `/networks`
-	- [ ] `/networks/{id}`
-	- [ ] `/networks/{id}` # remove
-	- [ ] `/networks/create`
+	- [x] `/networks/{id}`
+	- [x] `/networks/{id}` # remove
+	- [x] `/networks/create`
 	- [ ] `/networks/{id}/connect`
 	- [ ] `/networks/{id}/disconnect`
 	- [ ] `/networks/prune`
