@@ -1148,6 +1148,7 @@ mod tests {
     extern crate rand;
 
     use super::*;
+    use std::collections::HashMap;
     use std::convert::From;
     use std::env;
     use std::fs::{remove_file, File};
@@ -1489,6 +1490,37 @@ mod tests {
                 .unwrap();
             println!("network: {:?}", network);
         }
+        let create = NetworkCreateOptions {
+            name: "dockworker_test_network".to_string(),
+            check_duplicate: false,
+            driver: "bridge".to_string(),
+            internal: true,
+            attachable: false,
+            ingress: false,
+            ipam: IPAM::default(),
+            enable_ipv6: false,
+            options: HashMap::new(),
+            labels: HashMap::new(),
+        };
+        let res = docker.create_network(&create).unwrap();
+        let mut filter = ListNetworkFilters::default();
+        filter.id(res.Id.as_str().into());
+        assert_eq!(
+            docker
+                .list_networks(filter.clone())
+                .unwrap()
+                .iter()
+                .filter(|n| n.Id == res.Id)
+                .count(),
+            1
+        );
+        docker.remove_network(&res.Id).unwrap();
+        assert!(docker
+            .list_networks(filter)
+            .unwrap()
+            .iter()
+            .find(|n| n.Id == res.Id)
+            .is_none());
     }
 
     /// This is executed after `docker-compose build iostream`
