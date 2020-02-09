@@ -1086,6 +1086,16 @@ impl Docker {
             .post(&headers, "/networks/create", &json_body)
             .and_then(api_result)
     }
+
+    /// Delete unused networks
+    ///
+    /// # API
+    /// /networks/prune
+    pub fn prune_networks(&self) -> Result<PruneNetworkResponse> {
+        self.http_client()
+            .post(self.headers(), "/networks/prune", "")
+            .and_then(api_result)
+    }
 }
 
 impl HaveHttpClient for Docker {
