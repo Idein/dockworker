@@ -1095,6 +1095,36 @@ impl Docker {
             .and_then(api_result)
     }
 
+    /// Connect a container to a network
+    ///
+    /// # API
+    /// /networks/{id}/connect
+    pub fn connect_network(&self, id: &str, option: &NetworkConnectOptions) -> Result<()> {
+        let json_body = serde_json::to_string(&option)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(&headers, &format!("/networks/{}/connect", id), &json_body)
+            .and_then(no_content)
+    }
+
+    /// Disconnect a container from a network
+    ///
+    /// # API
+    /// /networks/{id}/disconnect
+    pub fn disconnect_network(&self, id: &str, option: &NetworkDisconnectOptions) -> Result<()> {
+        let json_body = serde_json::to_string(&option)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/network/{}/disconnect", id),
+                &json_body,
+            )
+            .and_then(no_content)
+    }
+
     /// Delete unused networks
     ///
     /// # API
