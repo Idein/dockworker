@@ -31,18 +31,6 @@ fn main() {
     println!("res: {:?}", res);
     let mut filter = ListNetworkFilters::default();
     filter.id(res.Id.as_str().into());
-    assert!(docker
-        .list_networks(filter)
-        .unwrap()
-        .iter()
-        .find(|n| n.Id == res.Id)
-        .is_some());
     println!("remove network: {}", res.Id);
     docker.remove_network(&res.Id).unwrap();
-    assert!(docker
-        .list_networks(ListNetworkFilters::default())
-        .unwrap()
-        .iter()
-        .find(|n| n.Id == res.Id)
-        .is_none());
 }
