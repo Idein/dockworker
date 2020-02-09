@@ -9,6 +9,8 @@ use std::io::{self, Read};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use network::EndpointIPAMConfig;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Container {
@@ -194,14 +196,6 @@ pub struct Network {
     pub Links: Option<Vec<String>>,
     pub MacAddress: String,
     pub NetworkID: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct EndpointIPAMConfig {
-    pub IPv4Address: Option<String>,
-    pub IPv6Address: Option<String>,
-    pub LinkLocalIPs: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]

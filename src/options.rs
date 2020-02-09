@@ -1,11 +1,11 @@
 //! Options which can be passed to various `Docker` commands.
 
 use std::collections::HashMap;
-use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 use std::time::Duration;
 use url::{self, form_urlencoded};
 
+use crate::network;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::Deserialize;
 use serde_json;
@@ -442,35 +442,19 @@ impl ContainerHostConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct NetworkingConfig {
     pub endpoints_config: EndpointsConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct EndpointsConfig {
-    pub IPAMConfig: IPAMConfig,
-    pub Links: Vec<String>,
-    pub Aliases: Vec<String>,
-    pub NetworkID: String,
-    pub EndpointID: String,
-    pub Gateway: String,
-    pub IPAddress: String,
-    pub IPPrefixLen: i64,
-    pub IPv6Gateway: String,
-    pub GlobalIPv6Address: String,
-    pub GlobalIPv6PrefixLen: i64,
-    pub MacAddress: String,
-}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EndpointsConfig(HashMap<String, network::EndpointConfig>);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct IPAMConfig {
-    pub IPv4Address: Ipv4Addr,
-    pub IPv6Address: Ipv6Addr,
-    pub LinkLocalIPs: Vec<String>,
+impl From<HashMap<String, network::EndpointConfig>> for EndpointsConfig {
+    fn from(endpoints: HashMap<String, network::EndpointConfig>) -> Self {
+        EndpointsConfig(endpoints)
+    }
 }
 
 #[derive(Debug, Clone)]

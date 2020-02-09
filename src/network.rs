@@ -25,7 +25,7 @@ pub struct Network {
 pub struct IPAM {
     pub Driver: String,
     pub Config: Vec<HashMap<String, String>>,
-    #[serde(serialize_with = "format::empty_to_null")]
+    #[serde(serialize_with = "format::vec_to_null")]
     #[serde(deserialize_with = "format::null_to_default")]
     pub Options: Vec<HashMap<String, String>>,
 }
@@ -152,20 +152,68 @@ pub struct NetworkCreateOptions {
     pub labels: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct CreateNetworkResponse {
     pub Id: String,
     pub Warning: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct PruneNetworkResponse {
     pub networks_deleted: Vec<String>,
 }
 
-pub mod format {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct EndpointConfig {
+    pub IPAMConfig: Option<EndpointIPAMConfig>,
+    pub Links: Vec<String>,
+    pub Aliases: Vec<String>,
+    pub NetworkID: String,
+    pub EndpointID: String,
+    pub Gateway: String,
+    pub IPAddress: String,
+    pub IPPrefixLen: i64,
+    pub IPv6Gateway: String,
+    pub GlobalIPv6Address: String,
+    pub GlobalIPv6PrefixLen: i64,
+    pub MacAddress: String,
+    #[serde(serialize_with = "format::hashmap_to_null")]
+    pub DriverOpts: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct EndpointIPAMConfig {
+    pub IPv4Address: String,
+    pub IPv6Address: String,
+    #[serde(deserialize_with = "format::null_to_default")]
+    #[serde(serialize_with = "format::vec_to_null")]
+    pub LinkLocalIPs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct NetworkConnectOptions {
+    /// The ID or name of the container to connect to the network
+    pub Container: String,
+    /// Configuration for a network endpoint
+    pub EndpointConfig: EndpointConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct NetworkDisconnectOptions {
+    /// The ID or name of the container to disconnect to the network
+    pub Container: String,
+    /// Force the container to disconnect from the network
+    pub Force: bool,
+}
+
+mod format {
+    use super::*;
     use serde::de::{DeserializeOwned, Deserializer};
     use serde::{Deserialize, Serialize, Serializer};
 
@@ -178,7 +226,19 @@ pub mod format {
         Ok(actual.unwrap_or_default())
     }
 
-    pub fn empty_to_null<T, S>(t: &Vec<T>, se: S) -> Result<S::Ok, S::Error>
+    pub fn vec_to_null<T, S>(t: &Vec<T>, se: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Serialize,
+    {
+        if t.is_empty() {
+            se.serialize_none()
+        } else {
+            t.serialize(se)
+        }
+    }
+
+    pub fn hashmap_to_null<T, S>(t: &HashMap<String, T>, se: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
         T: Serialize,
