@@ -29,13 +29,20 @@ pub struct Container {
     pub Mounts: Option<Vec<Mount>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(non_snake_case)]
 pub struct Port {
     pub IP: Option<String>,
     pub PrivatePort: u64,
     pub PublicPort: Option<u64>,
-    pub Type: String,
+    pub Type: PortType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum PortType {
+    Tcp,
+    Udp,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,7 +171,7 @@ pub struct NetworkSettings {
     pub LinkLocalIPv6PrefixLen: u32,
     pub MacAddress: String,
     pub Networks: HashMap<String, Network>,
-    pub Ports: Option<HashMap<String, Option<Vec<PortMapping>>>>,
+    pub Ports: HashMap<String, Vec<PortMapping>>,
     pub SandboxID: String,
     pub SandboxKey: String,
     // These two are null in the current output.
@@ -197,7 +204,7 @@ pub struct EndpointIPAMConfig {
     pub LinkLocalIPs: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(non_snake_case)]
 pub struct PortMapping {
     pub HostIp: String,
