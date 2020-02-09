@@ -74,6 +74,15 @@ Supported Api List.
 	- [x] `/events`
 	- [ ] `/system/df`
 
+- network
+	- [ ] `/networks`
+	- [ ] `/networks/{id}`
+	- [ ] `/networks/{id}` # remove
+	- [ ] `/networks/create`
+	- [ ] `/networks/{id}/connect`
+	- [ ] `/networks/{id}/disconnect`
+	- [ ] `/networks/prune`
+
 
 ## Test
 
