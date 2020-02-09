@@ -6,6 +6,7 @@ use container::{Container, ContainerInfo};
 use filesystem::FilesystemChange;
 use hyper_client::Response;
 use image::{Image, SummaryImage};
+use network::Network;
 use process::Top;
 use serde_json;
 use stats::{Stats, StatsReader};
@@ -16,6 +17,12 @@ use version::Version;
 fn get_containers() {
     let response = get_containers_response();
     assert!(serde_json::from_str::<Vec<Container>>(response).is_ok())
+}
+
+#[test]
+fn get_networks() {
+    let response = include_str!("fixtures/list_networks.json");
+    assert!(serde_json::from_str::<Vec<Network>>(response).is_ok())
 }
 
 #[test]

@@ -45,6 +45,7 @@ mod header;
 mod http_client;
 mod hyper_client;
 pub mod image;
+pub mod network;
 mod options;
 pub mod process;
 mod response;
