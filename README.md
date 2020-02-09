@@ -81,7 +81,7 @@ Supported Api List.
 	- [x] `/networks/create`
 	- [ ] `/networks/{id}/connect`
 	- [ ] `/networks/{id}/disconnect`
-	- [ ] `/networks/prune`
+	- [x] `/networks/prune`
 
 
 ## Test
