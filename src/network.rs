@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::net::Ipv4Addr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -154,6 +155,33 @@ pub struct NetworkCreateOptions {
 }
 
 impl NetworkCreateOptions {
+    pub fn default_bridge_option() -> HashMap<String, String> {
+        vec![
+            (
+                "com.docker.network.bridge.name".to_owned(),
+                "bridge".to_owned(),
+            ),
+            (
+                "com.docker.network.bridge.enable_ip_masquerade".to_owned(),
+                "true".to_owned(),
+            ),
+            (
+                "com.docker.network.bridge.enable_icc".to_owned(),
+                "true".to_owned(),
+            ),
+            (
+                "com.docker.network.bridge.host_binding_ipv4".to_owned(),
+                "0.0.0.0".to_owned(),
+            ),
+            (
+                "com.docker.network.driver.mtu".to_owned(),
+                "1500".to_owned(),
+            ),
+        ]
+        .into_iter()
+        .collect()
+    }
+
     /// equivalent to `docker network create <name>`
     pub fn new(name: &str) -> Self {
         Self {
@@ -166,8 +194,62 @@ impl NetworkCreateOptions {
             internal: false,
             labels: HashMap::new(),
             name: name.to_owned(),
-            options: HashMap::new(),
+            options: Self::default_bridge_option(),
         }
+    }
+
+    fn force_bridge_driver(&mut self) {
+        if &self.driver != "bridge" {
+            warn!("network driver is {} (!= bridge)", self.driver);
+            warn!("driver is enforced to bridge");
+            self.driver = "bridge".to_owned();
+        }
+    }
+
+    /// bridge name to be used when creating the Linux bridge
+    pub fn bridge_name(&mut self, name: &str) -> &mut Self {
+        self.force_bridge_driver();
+        self.options
+            .insert("com.docker.network.bridge.name".to_owned(), name.to_owned());
+        self
+    }
+
+    /// equivalent to `--ip-masq` of dockerd flag
+    pub fn enable_ip_masquerade(&mut self) -> &mut Self {
+        self.force_bridge_driver();
+        self.options.insert(
+            "com.docker.network.bridge.enable_ip_masquerade".to_owned(),
+            "true".to_owned(),
+        );
+        self
+    }
+
+    /// equivalent to `--icc` of dockerd flag
+    pub fn enable_icc(&mut self) -> &mut Self {
+        self.force_bridge_driver();
+        self.options.insert(
+            "com.docker.network.bridge.enable_icc".to_owned(),
+            "true".to_owned(),
+        );
+        self
+    }
+
+    /// equivalent to `--ip` of dockerd flag
+    pub fn host_binding_ipv4(&mut self, ipv4: Ipv4Addr) -> &mut Self {
+        self.force_bridge_driver();
+        self.options.insert(
+            "com.docker.network.bridge.host_binding_ipv4".to_owned(),
+            ipv4.to_string(),
+        );
+        self
+    }
+
+    /// equivalent to `--mtu` option
+    pub fn driver_mtu(&mut self, mtu: u16) -> &mut Self {
+        self.force_bridge_driver();
+        self.options
+            .insert("com.docker.network.driver.mtu".to_owned(), mtu.to_string());
+        self
     }
 }
 
