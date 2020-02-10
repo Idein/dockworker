@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::net::{Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -45,8 +44,8 @@ pub struct NetworkContainer {
     pub Name: String,
     pub EndpointID: String,
     pub MacAddress: String,
-    pub IPv4Address: Ipv4Addr,
-    pub IPv6Address: Ipv6Addr,
+    pub IPv4Address: String,
+    pub IPv6Address: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
