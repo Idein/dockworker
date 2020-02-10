@@ -14,6 +14,7 @@ pub struct Network {
     pub Internal: bool,
     pub Attachable: bool,
     pub Ingress: bool,
+    /// Container name to NetworkContainer
     pub Containers: HashMap<String, NetworkContainer>,
     pub Options: HashMap<String, String>,
     pub Labels: HashMap<String, String>,
@@ -41,6 +42,8 @@ impl Default for IPAM {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct NetworkContainer {
+    /// Container name
+    /// e.g. gifted_turing
     pub Name: String,
     pub EndpointID: String,
     pub MacAddress: String,
