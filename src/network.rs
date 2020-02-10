@@ -25,9 +25,8 @@ pub struct Network {
 pub struct IPAM {
     pub Driver: String,
     pub Config: Vec<HashMap<String, String>>,
-    #[serde(serialize_with = "format::vec_to_null")]
     #[serde(deserialize_with = "format::null_to_default")]
-    pub Options: Vec<HashMap<String, String>>,
+    pub Options: HashMap<String, String>,
 }
 
 impl Default for IPAM {
@@ -35,7 +34,7 @@ impl Default for IPAM {
         IPAM {
             Driver: "default".to_string(),
             Config: vec![],
-            Options: vec![],
+            Options: HashMap::new(),
         }
     }
 }
@@ -152,6 +151,24 @@ pub struct NetworkCreateOptions {
     pub labels: HashMap<String, String>,
 }
 
+impl NetworkCreateOptions {
+    /// equivalent to `docker network create <name>`
+    pub fn new(name: &str) -> Self {
+        Self {
+            attachable: false,
+            check_duplicate: true,
+            driver: "bridge".to_owned(),
+            enable_ipv6: false,
+            ipam: IPAM::default(),
+            ingress: false,
+            internal: false,
+            labels: HashMap::new(),
+            name: name.to_owned(),
+            options: HashMap::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct CreateNetworkResponse {
@@ -214,6 +231,7 @@ pub struct NetworkDisconnectOptions {
 
 mod format {
     use super::*;
+
     use serde::de::{DeserializeOwned, Deserializer};
     use serde::{Deserialize, Serialize, Serializer};
 

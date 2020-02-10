@@ -1148,7 +1148,6 @@ mod tests {
     extern crate rand;
 
     use super::*;
-    use std::collections::HashMap;
     use std::convert::From;
     use std::env;
     use std::fs::{remove_file, File};
@@ -1490,18 +1489,7 @@ mod tests {
                 .unwrap();
             println!("network: {:?}", network);
         }
-        let create = NetworkCreateOptions {
-            name: "dockworker_test_network".to_string(),
-            check_duplicate: false,
-            driver: "bridge".to_string(),
-            internal: true,
-            attachable: false,
-            ingress: false,
-            ipam: IPAM::default(),
-            enable_ipv6: false,
-            options: HashMap::new(),
-            labels: HashMap::new(),
-        };
+        let create = NetworkCreateOptions::new("dockworker_test_network");
         let res = docker.create_network(&create).unwrap();
         let mut filter = ListNetworkFilters::default();
         filter.id(res.Id.as_str().into());

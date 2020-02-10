@@ -1,7 +1,6 @@
 extern crate dockworker;
 
 use dockworker::{network::*, Docker};
-use std::collections::HashMap;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
@@ -11,18 +10,7 @@ fn main() {
             network.Id, network.Name, network.Driver, network.Scope
         );
     }
-    let create = NetworkCreateOptions {
-        name: "example_network".to_string(),
-        check_duplicate: false,
-        driver: "bridge".to_string(),
-        internal: true,
-        attachable: false,
-        ingress: false,
-        ipam: IPAM::default(),
-        enable_ipv6: false,
-        options: HashMap::new(),
-        labels: HashMap::new(),
-    };
+    let create = NetworkCreateOptions::new("example_network");
     println!(
         "create network: {}",
         serde_json::to_string_pretty(&create).unwrap()
