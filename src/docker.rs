@@ -1105,7 +1105,7 @@ impl Docker {
         headers.set::<ContentType>(ContentType::json());
         self.http_client()
             .post(&headers, &format!("/networks/{}/connect", id), &json_body)
-            .and_then(no_content)
+            .and_then(ignore_result)
     }
 
     /// Disconnect a container from a network
@@ -1122,7 +1122,7 @@ impl Docker {
                 &format!("/network/{}/disconnect", id),
                 &json_body,
             )
-            .and_then(no_content)
+            .and_then(ignore_result)
     }
 
     /// Delete unused networks
