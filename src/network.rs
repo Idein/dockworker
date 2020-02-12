@@ -224,6 +224,11 @@ impl NetworkCreateOptions {
             .insert("com.docker.network.driver.mtu".to_owned(), mtu.to_string());
         self
     }
+
+    pub fn label(&mut self, key: &str, value: &str) -> &mut Self {
+        self.labels.insert(key.to_owned(), value.to_owned());
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
