@@ -1118,8 +1118,8 @@ impl Docker {
         headers.set::<ContentType>(ContentType::json());
         self.http_client()
             .post(
-                self.headers(),
-                &format!("/network/{}/disconnect", id),
+                &headers,
+                &format!("/networks/{}/disconnect", id),
                 &json_body,
             )
             .and_then(ignore_result)
