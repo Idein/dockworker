@@ -1164,6 +1164,7 @@ mod tests {
     use std::path::PathBuf;
 
     use self::rand::Rng;
+    use chrono::Local;
     use tar::Builder as TarBuilder;
 
     use container;
@@ -1612,7 +1613,8 @@ mod tests {
         use network::NetworkCreateOptions as Net;
         use network::PruneNetworkFilters as Prune;
         let docker = Docker::connect_with_defaults().unwrap();
-        for i in 1..=5 {
+        let mut create_nw_3 = Local::now();
+        for i in 1..=6 {
             docker
                 .create_network(
                     &Net::new(&format!("nw_test_{}", i))
@@ -1621,6 +1623,11 @@ mod tests {
                         .label("not2", if i == 2 { "true" } else { "false" }),
                 )
                 .unwrap();
+
+            std::thread::sleep(Duration::from_secs(1)); // drift timestamp in sec
+            if i == 3 {
+                create_nw_3 = Local::now();
+            }
         }
 
         assert_eq!(
@@ -1642,7 +1649,7 @@ mod tests {
         assert_eq!(
             {
                 let mut filter = Prune::default();
-                filter.label(F::with(&[("test-network-3", Some("3"))]));
+                filter.until(vec![create_nw_3.timestamp()]);
                 docker.prune_networks(filter).unwrap().networks_deleted
             },
             &["nw_test_3".to_owned()]
@@ -1650,17 +1657,25 @@ mod tests {
         assert_eq!(
             {
                 let mut filter = Prune::default();
-                filter.label_not(F::with(&[("alias", Some("my-test-network-5"))]));
+                filter.label(F::with(&[("test-network-4", Some("4"))]));
                 docker.prune_networks(filter).unwrap().networks_deleted
             },
             &["nw_test_4".to_owned()]
+        );
+        assert_eq!(
+            {
+                let mut filter = Prune::default();
+                filter.label_not(F::with(&[("alias", Some("my-test-network-6"))]));
+                docker.prune_networks(filter).unwrap().networks_deleted
+            },
+            &["nw_test_5".to_owned()]
         );
         assert_eq!(
             docker
                 .prune_networks(Prune::default())
                 .unwrap()
                 .networks_deleted,
-            &["nw_test_5".to_owned()]
+            &["nw_test_6".to_owned()]
         );
     }
 
