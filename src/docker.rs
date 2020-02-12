@@ -1516,7 +1516,7 @@ mod tests {
         use std::collections::HashMap;
         let docker = Docker::connect_with_defaults().unwrap();
         pull_image(&docker, "busybox", "latest");
-        /// docker network create nw_test_1
+        // docker network create nw_test_1
         let nw_test_1 = docker
             .create_network(&NetworkCreateOptions::new("nw_test_1"))
             .unwrap()
@@ -1540,7 +1540,7 @@ mod tests {
                 .unwrap()
                 .id
         };
-        /// docker run --net=nw_test_1 -itd --name=nw_test_container_1 busybox
+        // docker run --net=nw_test_1 -itd --name=nw_test_container_1 busybox
         docker.start_container(&nw_test_container_1).unwrap();
         let connect_with_run = {
             let nw = docker.inspect_network(&nw_test_1, None, None).unwrap();
@@ -1550,7 +1550,7 @@ mod tests {
             );
             nw
         };
-        /// docker network disconnect nw_test1 nw_test_container_1
+        // docker network disconnect nw_test1 nw_test_container_1
         docker
             .disconnect_network(
                 &nw_test_1,
@@ -1564,8 +1564,8 @@ mod tests {
             let nw = docker.inspect_network(&nw_test_1, None, None).unwrap();
             assert!(nw.Containers.is_empty());
         }
-        /// docker network connect nw_test_1 nw_test_container_1
-        /// connecting with `docker network connect` command
+        // docker network connect nw_test_1 nw_test_container_1
+        // connecting with `docker network connect` command
         docker
             .connect_network(
                 &nw_test_1,
