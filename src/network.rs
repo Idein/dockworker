@@ -121,6 +121,75 @@ impl Default for ListNetworkFilters {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PruneNetworkFilters {
+    pub until: Vec<u64>,
+    pub label: LabelFilter,
+    pub label_not: LabelFilter,
+}
+
+impl Default for PruneNetworkFilters {
+    fn default() -> Self {
+        Self {
+            until: vec![],
+            label: LabelFilter::new(),
+            label_not: LabelFilter::new(),
+        }
+    }
+}
+
+impl PruneNetworkFilters {
+    pub fn is_empty(&self) -> bool {
+        self.until.is_empty() && self.label.is_empty() && self.label_not.is_empty()
+    }
+
+    pub fn until(&mut self, until: Vec<u64>) -> &mut Self {
+        self.until = until;
+        self
+    }
+
+    pub fn label(&mut self, label: LabelFilter) -> &mut Self {
+        self.label = label;
+        self
+    }
+
+    pub fn label_not(&mut self, label_not: LabelFilter) -> &mut Self {
+        self.label_not = label_not;
+        self
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LabelFilter(HashMap<String, Option<String>>);
+
+impl LabelFilter {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn with(filters: &[(&str, Option<&str>)]) -> Self {
+        let mut map = HashMap::new();
+        for (k, v) in filters {
+            map.insert((*k).to_owned(), (*v).map(ToOwned::to_owned));
+        }
+        Self(map)
+    }
+
+    pub fn key(&mut self, key: &str) -> &mut Self {
+        self.0.insert(key.to_owned(), None);
+        self
+    }
+
+    pub fn key_value(&mut self, key: &str, value: &str) -> &mut Self {
+        self.0.insert(key.to_owned(), Some(value.to_owned()));
+        self
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkScope {
@@ -315,7 +384,7 @@ mod format {
     use super::*;
 
     use serde::de::{DeserializeOwned, Deserializer};
-    use serde::{Deserialize, Serialize, Serializer};
+    use serde::{ser::*, Deserialize, Serialize, Serializer};
 
     pub fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
     where
@@ -347,6 +416,51 @@ mod format {
             se.serialize_none()
         } else {
             t.serialize(se)
+        }
+    }
+
+    impl Serialize for PruneNetworkFilters {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let count = [
+                self.until.is_empty(),
+                self.label.is_empty(),
+                self.label_not.is_empty(),
+            ]
+            .iter()
+            .filter(|x| **x == true)
+            .count();
+
+            let mut state = serializer.serialize_map(Some(count))?;
+            if !self.until.is_empty() {
+                state.serialize_entry("until", &self.until)?;
+            }
+            if !self.label.is_empty() {
+                state.serialize_entry("label", &self.label)?;
+            }
+            if !self.label_not.is_empty() {
+                state.serialize_entry("label!", &self.label_not)?;
+            }
+            state.end()
+        }
+    }
+
+    impl Serialize for LabelFilter {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(None)?;
+            for (k, v) in &self.0 {
+                let key = match v {
+                    Some(v) => format!("{}={}", k, v),
+                    None => format!("{}", k),
+                };
+                map.serialize_entry(&key, &true)?;
+            }
+            map.end()
         }
     }
 }

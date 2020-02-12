@@ -1129,9 +1129,17 @@ impl Docker {
     ///
     /// # API
     /// /networks/prune
-    pub fn prune_networks(&self) -> Result<PruneNetworkResponse> {
+    pub fn prune_networks(&self, filters: PruneNetworkFilters) -> Result<PruneNetworkResponse> {
+        let path = if filters.is_empty() {
+            "/networks/prune".to_string()
+        } else {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            println!("filters: {}", serde_json::to_string(&filters).unwrap());
+            param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
+            format!("/networks/prune?{}", param.finish())
+        };
         self.http_client()
-            .post(self.headers(), "/networks/prune", "")
+            .post(self.headers(), &path, "")
             .and_then(api_result)
     }
 }
