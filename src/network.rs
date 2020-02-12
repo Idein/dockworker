@@ -123,7 +123,7 @@ impl Default for ListNetworkFilters {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PruneNetworkFilters {
-    pub until: Vec<u64>,
+    pub until: Vec<i64>,
     pub label: LabelFilter,
     pub label_not: LabelFilter,
 }
@@ -143,7 +143,7 @@ impl PruneNetworkFilters {
         self.until.is_empty() && self.label.is_empty() && self.label_not.is_empty()
     }
 
-    pub fn until(&mut self, until: Vec<u64>) -> &mut Self {
+    pub fn until(&mut self, until: Vec<i64>) -> &mut Self {
         self.until = until;
         self
     }
@@ -435,7 +435,7 @@ mod format {
 
             let mut state = serializer.serialize_map(Some(count))?;
             if !self.until.is_empty() {
-                state.serialize_entry("until", &self.until)?;
+                state.serialize_entry("until", &UntilTimestamp(&self.until))?;
             }
             if !self.label.is_empty() {
                 state.serialize_entry("label", &self.label)?;
@@ -444,6 +444,22 @@ mod format {
                 state.serialize_entry("label!", &self.label_not)?;
             }
             state.end()
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    struct UntilTimestamp<'a>(&'a Vec<i64>);
+
+    impl<'a> Serialize for UntilTimestamp<'a> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(Some(self.0.len()))?;
+            for tm in self.0 {
+                map.serialize_entry(&tm.to_string(), &true)?;
+            }
+            map.end()
         }
     }
 
