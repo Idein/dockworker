@@ -310,6 +310,10 @@ pub struct CreateNetworkResponse {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct PruneNetworkResponse {
+    #[serde(
+        serialize_with = "format::vec_to_null",
+        deserialize_with = "format::null_to_default"
+    )]
     pub networks_deleted: Vec<String>,
 }
 
