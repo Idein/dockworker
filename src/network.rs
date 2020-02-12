@@ -285,6 +285,26 @@ pub struct EndpointConfig {
     pub DriverOpts: HashMap<String, String>,
 }
 
+impl Default for EndpointConfig {
+    fn default() -> Self {
+        Self {
+            IPAMConfig: None,
+            Links: vec![],
+            Aliases: vec![],
+            NetworkID: String::new(),
+            EndpointID: String::new(),
+            Gateway: String::new(),
+            IPAddress: String::new(),
+            IPPrefixLen: 0,
+            IPv6Gateway: String::new(),
+            GlobalIPv6Address: String::new(),
+            GlobalIPv6PrefixLen: 0,
+            MacAddress: String::new(),
+            DriverOpts: HashMap::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct EndpointIPAMConfig {
