@@ -155,33 +155,6 @@ pub struct NetworkCreateOptions {
 }
 
 impl NetworkCreateOptions {
-    pub fn default_bridge_option() -> HashMap<String, String> {
-        vec![
-            (
-                "com.docker.network.bridge.name".to_owned(),
-                "bridge".to_owned(),
-            ),
-            (
-                "com.docker.network.bridge.enable_ip_masquerade".to_owned(),
-                "true".to_owned(),
-            ),
-            (
-                "com.docker.network.bridge.enable_icc".to_owned(),
-                "true".to_owned(),
-            ),
-            (
-                "com.docker.network.bridge.host_binding_ipv4".to_owned(),
-                "0.0.0.0".to_owned(),
-            ),
-            (
-                "com.docker.network.driver.mtu".to_owned(),
-                "1500".to_owned(),
-            ),
-        ]
-        .into_iter()
-        .collect()
-    }
-
     /// equivalent to `docker network create <name>`
     pub fn new(name: &str) -> Self {
         Self {
@@ -194,7 +167,7 @@ impl NetworkCreateOptions {
             internal: false,
             labels: HashMap::new(),
             name: name.to_owned(),
-            options: Self::default_bridge_option(),
+            options: HashMap::new(),
         }
     }
 
