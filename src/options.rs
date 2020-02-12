@@ -448,6 +448,7 @@ pub struct NetworkingConfig {
     pub endpoints_config: EndpointsConfig,
 }
 
+/// network name to EndpointConfig
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EndpointsConfig(HashMap<String, network::EndpointConfig>);
 

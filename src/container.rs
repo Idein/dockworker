@@ -172,6 +172,7 @@ pub struct NetworkSettings {
     pub LinkLocalIPv6Address: String,
     pub LinkLocalIPv6PrefixLen: u32,
     pub MacAddress: String,
+    /// network name to Network mapping
     pub Networks: HashMap<String, Network>,
     pub Ports: HashMap<String, Vec<PortMapping>>,
     pub SandboxID: String,
