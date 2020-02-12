@@ -1489,6 +1489,12 @@ mod tests {
     }
 
     #[test]
+    fn test_networks() {
+        inspect_networks();
+        connect_networks();
+        prune_networks();
+    }
+
     fn inspect_networks() {
         let docker = Docker::connect_with_defaults().unwrap();
         for network in &docker.list_networks(ListNetworkFilters::default()).unwrap() {
@@ -1519,7 +1525,6 @@ mod tests {
             .is_none());
     }
 
-    #[test]
     fn connect_networks() {
         use std::collections::HashMap;
         let docker = Docker::connect_with_defaults().unwrap();
@@ -1600,6 +1605,63 @@ mod tests {
             .remove_container(&nw_test_container_1, None, None, None)
             .unwrap();
         docker.remove_network(&nw_test_1).unwrap();
+    }
+
+    fn prune_networks() {
+        use network::LabelFilter as F;
+        use network::NetworkCreateOptions as Net;
+        use network::PruneNetworkFilters as Prune;
+        let docker = Docker::connect_with_defaults().unwrap();
+        for i in 1..=5 {
+            docker
+                .create_network(
+                    &Net::new(&format!("nw_test_{}", i))
+                        .label("alias", &format!("my-test-network-{}", i))
+                        .label(&format!("test-network-{}", i), &i.to_string())
+                        .label("not2", if i == 2 { "true" } else { "false" }),
+                )
+                .unwrap();
+        }
+
+        assert_eq!(
+            {
+                let mut filter = Prune::default();
+                filter.label(F::with(&[("test-network-1", None)]));
+                &docker.prune_networks(filter).unwrap().networks_deleted
+            },
+            &["nw_test_1".to_owned()]
+        );
+        assert_eq!(
+            {
+                let mut filter = Prune::default();
+                filter.label_not(F::with(&[("not2", Some("false"))]));
+                docker.prune_networks(filter).unwrap().networks_deleted
+            },
+            &["nw_test_2".to_owned()]
+        );
+        assert_eq!(
+            {
+                let mut filter = Prune::default();
+                filter.label(F::with(&[("test-network-3", Some("3"))]));
+                docker.prune_networks(filter).unwrap().networks_deleted
+            },
+            &["nw_test_3".to_owned()]
+        );
+        assert_eq!(
+            {
+                let mut filter = Prune::default();
+                filter.label_not(F::with(&[("alias", Some("my-test-network-5"))]));
+                docker.prune_networks(filter).unwrap().networks_deleted
+            },
+            &["nw_test_4".to_owned()]
+        );
+        assert_eq!(
+            docker
+                .prune_networks(Prune::default())
+                .unwrap()
+                .networks_deleted,
+            &["nw_test_5".to_owned()]
+        );
     }
 
     /// This is executed after `docker-compose build iostream`
