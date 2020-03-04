@@ -184,7 +184,7 @@ fn with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
             let mut request = request_builder(&method, &uri, &headers);
             let uri_parts = http::uri::Parts::from(uri.clone());
 
-            if !res.status().is_redirection() {
+            if !res.status().is_redirection() || res.headers().get("Location").is_none() {
                 Box::new(Ok(res).into_future())
                     as Box<
                         hyper::rt::Future<
