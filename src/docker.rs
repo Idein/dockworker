@@ -118,6 +118,15 @@ fn no_content(res: Response) -> result::Result<(), Error> {
     }
 }
 
+/// Expect 204 NoContent or 304 NotModified
+fn no_content_or_not_modified(res: Response) -> result::Result<(), Error> {
+    if res.status == StatusCode::NO_CONTENT || res.status == StatusCode::NOT_MODIFIED {
+        Ok(())
+    } else {
+        Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+    }
+}
+
 /// Ignore succeed response
 ///
 /// Read whole response body, then ignore it.
@@ -323,7 +332,7 @@ impl Docker {
                 &format!("/containers/{}/stop?{}", id, param.finish()),
                 "",
             )
-            .and_then(no_content)
+            .and_then(no_content_or_not_modified)
     }
 
     /// Kill a container
