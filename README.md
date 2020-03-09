@@ -89,7 +89,7 @@ Supported Api List.
 Executing unit tests:
 
 ```shell
-$ docker test
+$ cargo test
 ```
 
 ### Depends on docker
