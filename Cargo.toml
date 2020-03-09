@@ -43,7 +43,7 @@ tokio = "0.1"
 log = "0.4"
 mime = "0.3"
 native-tls = { version = "0.2", optional = true }
-nix = "0.11"
+nix = "0.15"
 base64 = "0.9.2"
 dirs = "1.0.0"
 
