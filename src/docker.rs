@@ -5,12 +5,17 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::result;
+use std::thread;
 use std::time::Duration;
 use url;
+
+#[cfg(feature = "experimental")]
+use checkpoint::{Checkpoint, CheckpointCreateOptions, CheckpointDeleteOptions};
 
 use container::{
     AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus, LogResponse,
 };
+
 pub use credentials::{Credential, UserPassword};
 use errors::*;
 use filesystem::{FilesystemChange, XDockerContainerPathStat};
@@ -320,6 +325,33 @@ impl Docker {
             .and_then(no_content)
     }
 
+    /// Start a container from a checkpoint
+    ///
+    /// Using normal container start endpoint with preconfigured arguments
+    ///
+    /// # API
+    /// /containers/{id}/start
+    #[cfg(feature = "experimental")]
+    pub fn resume_container_from_checkpoint(
+        &self,
+        id: &str,
+        checkpoint_id: &str,
+        checkpoint_dir: Option<&str>,
+    ) -> Result<()> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("checkpoint", &checkpoint_id);
+        if let Some(dir) = checkpoint_dir {
+            param.append_pair("checkpoint-dir", &dir);
+        }
+        self.http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/start?{}", id, param.finish()),
+                "",
+            )
+            .and_then(no_content)
+    }
+
     /// Stop a container
     ///
     /// # API
@@ -408,6 +440,92 @@ impl Docker {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
             })
+    }
+
+    /// List existing checkpoints from container
+    ///
+    /// Lists all snapshots made from the container in the specified directory.
+    ///
+    /// # API
+    /// GET /containers/{id}/checkpoints
+    #[cfg(feature = "experimental")]
+    #[allow(non_snake_case)]
+    pub fn list_container_checkpoints(
+        &self,
+        id: &str,
+        dir: Option<String>,
+    ) -> Result<Vec<Checkpoint>> {
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        if let Some(_dir) = dir {
+            param.append_pair("dir", &_dir);
+        }
+
+        self.http_client()
+            .get(
+                &headers,
+                &format!("/containers/{}/checkpoints?{}", id, param.finish()),
+            )
+            .and_then(api_result)
+    }
+
+    /// Create Checkpoint from current running container
+    ///
+    /// Create a snapshot of the container's current state.
+    ///
+    /// # API
+    /// POST /containers/{id}/checkpoints
+    #[cfg(feature = "experimental")]
+    #[allow(non_snake_case)]
+    pub fn checkpoint_container(&self, id: &str, option: &CheckpointCreateOptions) -> Result<()> {
+        let json_body = serde_json::to_string(&option)?;
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+        self.http_client()
+            .post(
+                &headers,
+                &format!("/containers/{}/checkpoints", id),
+                &json_body,
+            )
+            .and_then(|res| {
+                if res.status.is_success() && res.status == StatusCode::CREATED {
+                    Ok(())
+                } else {
+                    Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+                }
+            })
+    }
+
+    /// Delete a checkpoint
+    ///
+    /// Delete a snapshot of a container specified by its name.
+    ///
+    /// # API
+    /// DELETE /containers/{id}/checkpoints
+    #[cfg(feature = "experimental")]
+    #[allow(non_snake_case)]
+    pub fn delete_checkpoint(&self, id: &str, option: &CheckpointDeleteOptions) -> Result<()> {
+        let mut headers = self.headers().clone();
+        headers.set::<ContentType>(ContentType::json());
+
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        let options = option.clone();
+        if let Some(checkpoint_dir) = options.checkpoint_dir {
+            param.append_pair("dir", &checkpoint_dir);
+        }
+        self.http_client()
+            .delete(
+                &headers,
+                &format!(
+                    "/containers/{}/checkpoints/{}?{}",
+                    id,
+                    option.checkpoint_id,
+                    param.finish()
+                ),
+            )
+            .and_then(no_content)
     }
 
     /// Create Exec instance for a container
@@ -1279,6 +1397,66 @@ mod tests {
         assert!(docker
             .remove_image(&format!("{}:{}", name, tag), None, None)
             .is_ok());
+    }
+
+    #[cfg(feature = "experimental")]
+    #[test]
+    fn test_container_checkpointing() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.10");
+        with_image(&docker, name, tag, |name, tag| {
+            let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+            create.host_config(ContainerHostConfig::new());
+            create.cmd("sleep".to_string());
+            create.cmd("10000".to_string());
+            let container = docker
+                .create_container(Some("dockworker_checkpoint_test"), &create)
+                .unwrap();
+            assert!(docker.start_container(&container.id).is_ok());
+
+            assert!(docker
+                .checkpoint_container(
+                    &container.id,
+                    &CheckpointCreateOptions {
+                        checkpoint_id: "v1".to_string(),
+                        checkpoint_dir: None,
+                        exit: Some(true),
+                    },
+                )
+                .is_ok());
+
+            assert_eq!(
+                "v1".to_string(),
+                docker
+                    .list_container_checkpoints(&container.id, None)
+                    .unwrap()[0]
+                    .Name
+            );
+
+            thread::sleep(Duration::from_secs(1));
+
+            assert!(docker
+                .resume_container_from_checkpoint(&container.id, "v1", None)
+                .is_ok());
+
+            assert!(docker
+                .stop_container(&container.id, Duration::new(0, 0))
+                .is_ok());
+
+            assert!(docker
+                .delete_checkpoint(
+                    &container.id,
+                    &CheckpointDeleteOptions {
+                        checkpoint_id: "v1".to_string(),
+                        checkpoint_dir: None
+                    }
+                )
+                .is_ok());
+
+            assert!(docker
+                .remove_container("dockworker_checkpoint_test", None, None, None)
+                .is_ok());
+        })
     }
 
     #[test]

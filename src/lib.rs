@@ -36,6 +36,7 @@ extern crate tokio;
 extern crate unix_socket;
 extern crate url;
 
+pub mod checkpoint;
 pub mod container;
 pub mod credentials;
 mod docker;

@@ -45,6 +45,9 @@ Supported Api List.
 	- [x] `/containers/{id}/archive`
 	- [ ] `/containers/{id}/prune`
 
+- checkpoints
+    - [x] `/containers/{id}/checkpoints`
+
 - exec
     - [x] `/exec/{id}/start`
     - [x] `/exec/{id}/json`
