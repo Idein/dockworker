@@ -19,6 +19,7 @@ maintenance = { status = "actively-developed" }
 # OpenSSL is fairly hard to build on certain platforms, especially if you
 # want to produce release binaries. So we disable it by default.
 default = []
+experimental = []
 
 # Enable OpenSSL both directly and for Hyper.
 ssl = ["openssl", "native-tls", "hyper-tls"]
