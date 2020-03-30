@@ -1126,6 +1126,48 @@ mod tests {
     }
 
     #[test]
+    fn create_double_stop_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("hello-world", "linux");
+        assert!(docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+            .is_ok());
+        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        create.host_config(ContainerHostConfig::new());
+
+        assert!(docker
+            .create_container(
+                Some("dockworker_test_create_remove_stop_container"),
+                &create
+            )
+            .is_ok());
+        assert!(docker
+            .stop_container(
+                "dockworker_test_create_remove_stop_container",
+                Duration::from_secs(10)
+            )
+            .is_ok());
+        assert!(docker
+            .stop_container(
+                "dockworker_test_create_remove_stop_container",
+                Duration::from_secs(10)
+            )
+            .is_ok());
+        assert!(docker
+            .remove_container(
+                "dockworker_test_create_remove_stop_container",
+                None,
+                None,
+                None
+            )
+            .is_ok());
+        assert!(docker
+            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .is_ok());
+    }
+
+    #[test]
     fn test_container_info() {
         let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("alpine", "3.8");
