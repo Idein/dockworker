@@ -1242,7 +1242,7 @@ mod tests {
     #[test]
     fn create_double_stop_container() {
         let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("hello-world", "linux");
+        let (name, tag) = ("alpine", "3.9");
         assert!(docker
             .create_image(name, tag)
             .map(|sts| sts.for_each(|st| println!("{:?}", st)))
