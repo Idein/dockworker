@@ -321,8 +321,8 @@ pub struct PruneNetworkResponse {
 #[allow(non_snake_case)]
 pub struct EndpointConfig {
     pub IPAMConfig: Option<EndpointIPAMConfig>,
-    pub Links: Vec<String>,
-    pub Aliases: Vec<String>,
+    pub Links: Option<Vec<String>>,
+    pub Aliases: Option<Vec<String>>,
     pub NetworkID: String,
     pub EndpointID: String,
     pub Gateway: String,
@@ -332,7 +332,11 @@ pub struct EndpointConfig {
     pub GlobalIPv6Address: String,
     pub GlobalIPv6PrefixLen: i64,
     pub MacAddress: String,
-    #[serde(serialize_with = "format::hashmap_to_null")]
+    #[serde(
+        serialize_with = "format::hashmap_to_null",
+        deserialize_with = "format::null_to_default",
+        default
+    )]
     pub DriverOpts: HashMap<String, String>,
 }
 
@@ -340,8 +344,8 @@ impl Default for EndpointConfig {
     fn default() -> Self {
         Self {
             IPAMConfig: None,
-            Links: vec![],
-            Aliases: vec![],
+            Links: None,
+            Aliases: None,
             NetworkID: String::new(),
             EndpointID: String::new(),
             Gateway: String::new(),
@@ -356,13 +360,12 @@ impl Default for EndpointConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Deserialize)]
 #[allow(non_snake_case)]
+#[serde(default)]
 pub struct EndpointIPAMConfig {
     pub IPv4Address: String,
     pub IPv6Address: String,
-    #[serde(deserialize_with = "format::null_to_default")]
-    #[serde(serialize_with = "format::vec_to_null")]
     pub LinkLocalIPs: Vec<String>,
 }
 
@@ -448,6 +451,27 @@ mod format {
                 state.serialize_entry("label!", &self.label_not)?;
             }
             state.end()
+        }
+    }
+
+    impl Serialize for EndpointIPAMConfig {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            if self.IPv4Address.is_empty()
+                && self.IPv6Address.is_empty()
+                && self.LinkLocalIPs.is_empty()
+            {
+                let map = serializer.serialize_map(Some(0))?;
+                map.end()
+            } else {
+                let mut map = serializer.serialize_map(Some(3))?;
+                map.serialize_entry("IPv4Address", &self.IPv4Address)?;
+                map.serialize_entry("IPv6Address", &self.IPv6Address)?;
+                map.serialize_entry("LinkLocalIPs", &self.LinkLocalIPs)?;
+                map.end()
+            }
         }
     }
 
