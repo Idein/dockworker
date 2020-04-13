@@ -9,7 +9,7 @@ use std::io::{self, Read};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use network::EndpointIPAMConfig;
+use network::EndpointConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -174,7 +174,7 @@ pub struct NetworkSettings {
     pub MacAddress: String,
     /// network name to Network mapping
     pub Networks: HashMap<String, Network>,
-    pub Ports: HashMap<String, Vec<PortMapping>>,
+    pub Ports: HashMap<String, Option<Vec<PortMapping>>>,
     pub SandboxID: String,
     pub SandboxKey: String,
     // These two are null in the current output.
@@ -182,22 +182,7 @@ pub struct NetworkSettings {
     //pub SecondaryIPv6Addresses: ,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(non_snake_case)]
-pub struct Network {
-    pub Aliases: Option<Vec<String>>,
-    pub EndpointID: String,
-    pub Gateway: String,
-    pub GlobalIPv6Address: String,
-    pub GlobalIPv6PrefixLen: u32,
-    pub IPAMConfig: Option<EndpointIPAMConfig>,
-    pub IPAddress: String,
-    pub IPPrefixLen: u32,
-    pub IPv6Gateway: String,
-    pub Links: Option<Vec<String>>,
-    pub MacAddress: String,
-    pub NetworkID: String,
-}
+pub type Network = EndpointConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(non_snake_case)]
@@ -679,4 +664,63 @@ where
 {
     let actual: Option<T> = Option::deserialize(de)?;
     Ok(actual.unwrap_or_default())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    // https://github.com/eldesh/dockworker/issues/84
+    #[test]
+    fn serde_network() {
+        let network_settings_str = r#"{
+            "Bridge": "",
+            "SandboxID": "7c5ebca03e210aa5cdfa81206950a72584930291812fc82502ae0406efca60cf",
+            "HairpinMode": false,
+            "LinkLocalIPv6Address": "",
+            "LinkLocalIPv6PrefixLen": 0,
+            "Ports": {
+                "3306/tcp": null
+            },
+            "SandboxKey": "/var/run/docker/netns/7c5ebcaace21",
+            "SecondaryIPAddresses": null,
+            "SecondaryIPv6Addresses": null,
+            "EndpointID": "0a9c1de4bebcbf778248009fe2b4a747478e2136645563de7ba8d48f287d9388",
+            "Gateway": "172.11.0.1",
+            "GlobalIPv6Address": "",
+            "GlobalIPv6PrefixLen": 0,
+            "IPAddress": "171.11.0.70",
+            "IPPrefixLen": 16,
+            "IPv6Gateway": "",
+            "MacAddress": "01:42:0c:11:c0:f9",
+            "Networks": {
+                "bridge": {
+                    "IPAMConfig": {},
+                    "Links": null,
+                    "Aliases": null,
+                    "NetworkID": "c6bcc45303b33fb881911c25e755da483291123b0a8099e42b2226bcd4f2d549",
+                    "EndpointID": "0a9c1de4bebcbf778248009fe2b4a74432012136645563de7ba8719e987d9388",
+                    "Gateway": "172.11.0.1",
+                    "IPAddress": "172.11.0.70",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "MacAddress": "01:42:0c:11:c0:f9",
+                    "DriverOpts": null
+                }
+            }
+        }"#;
+        let network_settings: NetworkSettings =
+            serde_json::from_str(&network_settings_str).unwrap();
+        let network_settings_json: serde_json::Value =
+            serde_json::to_value(&network_settings).unwrap();
+
+        let network_settings_serde: serde_json::Value = {
+            let network_settings_str = serde_json::to_string(&network_settings_json).unwrap();
+            serde_json::from_str(&network_settings_str).unwrap()
+        };
+
+        assert_eq!(network_settings_json, network_settings_serde);
+    }
 }

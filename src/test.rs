@@ -79,10 +79,10 @@ fn get_image_history() {
 #[test]
 fn get_container_info() {
     let response = get_container_info_response();
-    assert!(serde_json::from_str::<ContainerInfo>(&response).is_ok());
+    serde_json::from_str::<ContainerInfo>(&response).unwrap();
 
     let response = get_container_info_response_with_healthcheck();
-    assert!(serde_json::from_str::<ContainerInfo>(&response).is_ok());
+    serde_json::from_str::<ContainerInfo>(&response).unwrap();
 }
 
 #[test]
