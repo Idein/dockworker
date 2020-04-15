@@ -5,7 +5,6 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::result;
-use std::thread;
 use std::time::Duration;
 use url;
 
@@ -1289,6 +1288,7 @@ mod tests {
     use std::io::{self, Read, Write};
     use std::iter::{self, Iterator};
     use std::path::PathBuf;
+    use std::thread;
 
     use self::rand::Rng;
     use chrono::Local;
@@ -1853,7 +1853,7 @@ mod tests {
                 )
                 .unwrap();
 
-            std::thread::sleep(Duration::from_secs(1)); // drift timestamp in sec
+            thread::sleep(Duration::from_secs(1)); // drift timestamp in sec
             if i == 3 {
                 create_nw_3 = Local::now();
             }
