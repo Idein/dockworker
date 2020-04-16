@@ -49,7 +49,7 @@ pub mod image;
 pub mod network;
 mod options;
 pub mod process;
-mod response;
+pub mod response;
 pub mod signal;
 pub mod stats;
 pub mod system;
