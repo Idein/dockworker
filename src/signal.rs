@@ -5,6 +5,7 @@ mod unix {
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
     pub struct Signal(NixSignal);
 
+    #[derive(Debug, Clone)]
     pub struct SignalIterator(NixSignalIterator);
 
     impl Signal {
@@ -50,7 +51,8 @@ mod windows {
         SIGTERM = 15,
     }
 
-    pub struct SignalIterator(Vec<Signal>);
+    #[derive(Debug, Clone)]
+    pub struct SignalIterator(std::vec::IntoIter<Signal>);
 
     impl Signal {
         pub fn as_i32(&self) -> i32 {
@@ -59,14 +61,26 @@ mod windows {
 
         pub fn iterator() -> SignalIterator {
             use self::Signal::*;
-            SignalIterator(vec![SIGKILL, SIGTERM])
+            SignalIterator(vec![SIGKILL, SIGTERM].into_iter())
         }
     }
 
     impl Iterator for SignalIterator {
         type Item = Signal;
         fn next(&mut self) -> Option<Self::Item> {
-            self.0.pop()
+            self.0.next()
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+        #[test]
+        fn iterator() {
+            let mut it = Signal::iterator();
+            assert_eq!(it.next(), Some(Signal::SIGKILL));
+            assert_eq!(it.next(), Some(Signal::SIGTERM));
+            assert_eq!(it.next(), None);
         }
     }
 }
