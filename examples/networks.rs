@@ -1,6 +1,7 @@
 extern crate dockworker;
 
 use dockworker::{network::*, Docker};
+use std::net::Ipv4Addr;
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
@@ -10,7 +11,17 @@ fn main() {
             network.Id, network.Name, network.Driver, network.Scope
         );
     }
-    let create = NetworkCreateOptions::new("example_network");
+    let create = {
+        let mut opt = NetworkCreateOptions::new("example_network");
+        opt.enable_icc()
+            .enable_ip_masquerade()
+            .host_binding_ipv4(Ipv4Addr::new(0, 0, 0, 0))
+            .bridge_name("dockworker_example_0")
+            .driver_mtu(1500);
+        opt.internal = true;
+        opt
+    };
+
     println!(
         "create network: {}",
         serde_json::to_string_pretty(&create).unwrap()
