@@ -1912,7 +1912,7 @@ mod tests {
     #[test]
     #[ignore]
     fn attach_container() {
-        use nix::sys::signal::Signal::*;
+        use crate::signal::*;
         let docker = Docker::connect_with_defaults().unwrap();
 
         // expected files
@@ -2023,7 +2023,7 @@ mod tests {
     #[test]
     #[ignore]
     fn signal_container() {
-        use nix::sys::signal::Signal::*;
+        use crate::signal::*;
         let docker = Docker::connect_with_defaults().unwrap();
 
         let image_name = "test-signal:latest";
