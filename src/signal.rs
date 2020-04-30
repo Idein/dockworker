@@ -1,51 +1,58 @@
 #[cfg(unix)]
 mod unix {
+    use std::io;
+    use std::os::raw::c_int;
+
+    pub use self::NixSignal::*;
     use nix::sys::signal::{Signal as NixSignal, SignalIterator as NixSignalIterator};
 
-    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+    use crate::errors::Error;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Signal(NixSignal);
 
     #[derive(Debug, Clone)]
     pub struct SignalIterator(NixSignalIterator);
 
     impl Signal {
-        fn new(signal: NixSignal) -> Self {
-            Signal(signal)
-        }
-
         pub fn as_i32(&self) -> i32 {
             self.0 as i32
         }
 
         pub fn iterator() -> SignalIterator {
-            SignalIterator::new(NixSignal::iterator())
+            SignalIterator(NixSignal::iterator())
+        }
+
+        pub fn from_c_int(signum: c_int) -> Result<Self, Error> {
+            Ok(NixSignal::from_c_int(signum)
+                .map_err(|err| io::Error::from_raw_os_error(err.as_errno().unwrap() as i32))?
+                .into())
         }
     }
 
     impl From<NixSignal> for Signal {
-        fn from(signal: NixSignal) -> Self {
-            Self::new(signal)
-        }
-    }
-
-    impl SignalIterator {
-        fn new(iter: NixSignalIterator) -> Self {
-            Self { 0: iter }
+        fn from(sig: NixSignal) -> Self {
+            Self(sig)
         }
     }
 
     impl Iterator for SignalIterator {
         type Item = Signal;
         fn next(&mut self) -> Option<Self::Item> {
-            self.0.next().map(Signal::new)
+            self.0.next().map(Into::into)
         }
     }
 }
 
 #[cfg(windows)]
 mod windows {
+    use std::io;
+    use std::os::raw::c_int;
+
+    use crate::errors::Error;
+
     #[repr(i32)]
-    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
     pub enum Signal {
         SIGKILL = 9,
         SIGTERM = 15,
@@ -62,6 +69,18 @@ mod windows {
         pub fn iterator() -> SignalIterator {
             use self::Signal::*;
             SignalIterator(vec![SIGKILL, SIGTERM].into_iter())
+        }
+
+        pub fn from_c_int(signum: c_int) -> Result<Self, Error> {
+            match signum {
+                9 => Ok(Signal::SIGKILL),
+                15 => Ok(Signal::SIGTERM),
+                other => Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("unknown signal: {}", other),
+                )
+                .into()),
+            }
         }
     }
 
