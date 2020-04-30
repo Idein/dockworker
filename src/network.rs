@@ -212,6 +212,8 @@ pub struct NetworkCreateOptions {
     pub name: String,
     pub check_duplicate: bool,
     pub driver: String,
+    /// Restrict connections between containers to only those under the same network.
+    /// Default `false`
     pub internal: bool,
     pub attachable: bool,
     pub ingress: bool,
@@ -223,6 +225,23 @@ pub struct NetworkCreateOptions {
     pub labels: HashMap<String, String>,
 }
 
+/// Create network options
+///
+/// To create a network equivalent to the default bridge network,
+/// set the options as follows:
+///
+/// ```
+/// # use crate::dockworker::network::*;
+/// # use std::net::Ipv4Addr;
+/// let network_name = "sample-network";
+/// let mut opt = NetworkCreateOptions::new(network_name);
+/// opt.enable_icc()
+///     .enable_ip_masquerade()
+///     .host_binding_ipv4(Ipv4Addr::new(0, 0, 0, 0))
+///     .bridge_name("docker0")
+///     .driver_mtu(1500);
+/// // let network = docker.create_network(&opt)?;
+/// ```
 impl NetworkCreateOptions {
     /// equivalent to `docker network create <name>`
     pub fn new(name: &str) -> Self {
