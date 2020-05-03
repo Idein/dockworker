@@ -291,11 +291,25 @@ impl std::fmt::Display for ContainerInfo {
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ContainerStatus {
+    Created,
+    Restarting,
+    Running,
+    Removing,
+    Paused,
+    Exited,
+    Dead,
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Serialize)]
 pub struct ContainerFilters {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     id: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     name: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    status: Vec<ContainerStatus>,
 }
 
 impl Default for ContainerFilters {
@@ -303,6 +317,7 @@ impl Default for ContainerFilters {
         Self {
             id: vec![],
             name: vec![],
+            status: vec![],
         }
     }
 }
@@ -319,6 +334,11 @@ impl ContainerFilters {
 
     pub fn name(&mut self, name: &str) -> &mut Self {
         self.name.push(name.to_owned());
+        self
+    }
+
+    pub fn status(&mut self, status: ContainerStatus) -> &mut Self {
+        self.status.push(status);
         self
     }
 }
