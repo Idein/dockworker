@@ -168,15 +168,17 @@ fn with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
     body: Option<T>,
     future: hyper::client::ResponseFuture,
 ) -> Box<
-    hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
+    dyn hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
         + Send
         + 'static,
 > {
     if max_redirects == 0 {
         Box::new(future)
             as Box<
-                hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
-                    + Send
+                dyn hyper::rt::Future<
+                        Item = hyper::Response<hyper::Body>,
+                        Error = hyper::error::Error,
+                    > + Send
                     + 'static,
             >
     } else {
@@ -187,7 +189,7 @@ fn with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
             if !res.status().is_redirection() || res.headers().get("Location").is_none() {
                 Box::new(Ok(res).into_future())
                     as Box<
-                        hyper::rt::Future<
+                        dyn hyper::rt::Future<
                                 Item = hyper::Response<hyper::Body>,
                                 Error = hyper::error::Error,
                             > + Send
@@ -236,8 +238,10 @@ fn with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
             }
         }))
             as Box<
-                hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
-                    + Send
+                dyn hyper::rt::Future<
+                        Item = hyper::Response<hyper::Body>,
+                        Error = hyper::error::Error,
+                    > + Send
                     + 'static,
             >
     }
@@ -251,7 +255,7 @@ fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Clone>(
     body: Option<T>,
 ) -> Result<
     Box<
-        hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
+        dyn hyper::rt::Future<Item = hyper::Response<hyper::Body>, Error = hyper::error::Error>
             + Send
             + 'static,
     >,
