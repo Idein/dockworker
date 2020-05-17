@@ -100,7 +100,7 @@ impl ::std::error::Error for DockerError {
         &self.message
     }
 
-    fn cause(&self) -> Option<&::std::error::Error> {
+    fn cause(&self) -> Option<&(dyn std::error::Error + 'static)> {
         None
     }
 }
@@ -694,7 +694,7 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/archive
-    pub fn get_file(&self, id: &str, path: &Path) -> Result<tar::Archive<Box<Read>>> {
+    pub fn get_file(&self, id: &str, path: &Path) -> Result<tar::Archive<Box<dyn Read>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         debug!("get_file({}, {})", id, path.display());
         param.append_pair("path", path.to_str().unwrap_or("")); // FIXME: cause an invalid path error
@@ -705,7 +705,7 @@ impl Docker {
             )
             .and_then(|res| {
                 if res.status.is_success() {
-                    Ok(tar::Archive::new(Box::new(res) as Box<Read>))
+                    Ok(tar::Archive::new(Box::new(res) as Box<dyn Read>))
                 } else {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
@@ -814,7 +814,7 @@ impl Docker {
         &self,
         image: &str,
         tag: &str,
-    ) -> Result<Box<Iterator<Item = Result<DockerResponse>>>> {
+    ) -> Result<Box<dyn Iterator<Item = Result<DockerResponse>>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair("fromImage", image);
         param.append_pair("tag", tag);
@@ -951,12 +951,12 @@ impl Docker {
     ///
     /// # API
     /// /images/{name}/get
-    pub fn export_image(&self, name: &str) -> Result<Box<Read>> {
+    pub fn export_image(&self, name: &str) -> Result<Box<dyn Read>> {
         self.http_client()
             .get(self.headers(), &format!("/images/{}/get", name))
             .and_then(|res| {
                 if res.status.is_success() {
-                    Ok(Box::new(res) as Box<Read>)
+                    Ok(Box::new(res) as Box<dyn Read>)
                 } else {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
@@ -1080,7 +1080,7 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/export
-    pub fn export_container(&self, container_id: &str) -> Result<Box<Read>> {
+    pub fn export_container(&self, container_id: &str) -> Result<Box<dyn Read>> {
         self.http_client()
             .get(
                 self.headers(),
@@ -1088,7 +1088,7 @@ impl Docker {
             )
             .and_then(|res| {
                 if res.status.is_success() {
-                    Ok(Box::new(res) as Box<Read>)
+                    Ok(Box::new(res) as Box<dyn Read>)
                 } else {
                     Err(serde_json::from_reader::<_, DockerError>(res)?.into())
                 }
@@ -1130,7 +1130,7 @@ impl Docker {
         since: Option<u64>,
         until: Option<u64>,
         filters: Option<EventFilters>,
-    ) -> Result<Box<Iterator<Item = Result<EventResponse>>>> {
+    ) -> Result<Box<dyn Iterator<Item = Result<EventResponse>>>> {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
 
         if let Some(since) = since {
@@ -1153,7 +1153,7 @@ impl Docker {
                         .into_iter::<EventResponse>()
                         .map(|event_response| Ok(event_response?)),
                 )
-                    as Box<Iterator<Item = Result<EventResponse>>>)
+                    as Box<dyn Iterator<Item = Result<EventResponse>>>)
             })
     }
 
