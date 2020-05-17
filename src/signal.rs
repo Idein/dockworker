@@ -6,7 +6,7 @@ mod unix {
     pub use self::NixSignal::*;
     use nix::sys::signal::{Signal as NixSignal, SignalIterator as NixSignalIterator};
 
-    use crate::errors::Error;
+    use crate::errors::Result;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Signal(NixSignal);
@@ -23,7 +23,7 @@ mod unix {
             SignalIterator(NixSignal::iterator())
         }
 
-        pub fn from_c_int(signum: c_int) -> Result<Self, Error> {
+        pub fn from_c_int(signum: c_int) -> Result<Self> {
             Ok(NixSignal::from_c_int(signum)
                 .map_err(|err| io::Error::from_raw_os_error(err.as_errno().unwrap() as i32))?
                 .into())
@@ -71,7 +71,7 @@ mod windows {
             SignalIterator(vec![SIGKILL, SIGTERM].into_iter())
         }
 
-        pub fn from_c_int(signum: c_int) -> Result<Self, Error> {
+        pub fn from_c_int(signum: c_int) -> Result<Self, DockworkerError> {
             match signum {
                 9 => Ok(Signal::SIGKILL),
                 15 => Ok(Signal::SIGTERM),

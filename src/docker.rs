@@ -4,7 +4,6 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::result;
 use std::time::Duration;
 use url;
 
@@ -16,7 +15,7 @@ use container::{
 };
 
 pub use credentials::{Credential, UserPassword};
-use errors::*;
+use errors::{DockworkerError, Result};
 use filesystem::{FilesystemChange, XDockerContainerPathStat};
 use hyper_client::HyperClient;
 use image::{Image, ImageId, SummaryImage};
@@ -56,7 +55,7 @@ pub fn default_cert_path() -> Result<PathBuf> {
     if let Ok(ref path) = from_env {
         Ok(PathBuf::from(path))
     } else {
-        let home = dirs::home_dir().ok_or_else(|| ErrorKind::NoCertPath)?;
+        let home = dirs::home_dir().ok_or_else(|| DockworkerError::NoCertPath)?;
         Ok(home.join(".docker"))
     }
 }
@@ -106,7 +105,7 @@ impl ::std::error::Error for DockerError {
 }
 
 /// Deserialize from json string
-fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
+fn api_result<D: DeserializeOwned>(res: Response) -> Result<D> {
     if res.status.is_success() {
         Ok(serde_json::from_reader::<_, D>(res)?)
     } else {
@@ -115,7 +114,7 @@ fn api_result<D: DeserializeOwned>(res: Response) -> result::Result<D, Error> {
 }
 
 /// Expect 204 NoContent
-fn no_content(res: Response) -> result::Result<(), Error> {
+fn no_content(res: Response) -> Result<()> {
     if res.status == StatusCode::NO_CONTENT {
         Ok(())
     } else {
@@ -124,7 +123,7 @@ fn no_content(res: Response) -> result::Result<(), Error> {
 }
 
 /// Expect 204 NoContent or 304 NotModified
-fn no_content_or_not_modified(res: Response) -> result::Result<(), Error> {
+fn no_content_or_not_modified(res: Response) -> Result<()> {
     if res.status == StatusCode::NO_CONTENT || res.status == StatusCode::NOT_MODIFIED {
         Ok(())
     } else {
@@ -135,7 +134,7 @@ fn no_content_or_not_modified(res: Response) -> result::Result<(), Error> {
 /// Ignore succeed response
 ///
 /// Read whole response body, then ignore it.
-fn ignore_result(res: Response) -> result::Result<(), Error> {
+fn ignore_result(res: Response) -> Result<()> {
     if res.status.is_success() {
         res.bytes().last(); // ignore
         Ok(())
@@ -194,7 +193,7 @@ impl Docker {
                 Docker::connect_with_http(&host)
             }
         } else {
-            Err(ErrorKind::UnsupportedScheme { host: host.clone() }.into())
+            Err(DockworkerError::UnsupportedScheme { host: host.clone() }.into())
         }
     }
 
@@ -215,7 +214,7 @@ impl Docker {
 
     #[cfg(not(unix))]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
-        Err(ErrorKind::UnsupportedScheme {
+        Err(DockworkerError::UnsupportedScheme {
             host: addr.to_owned(),
         }
         .into())
@@ -223,24 +222,28 @@ impl Docker {
 
     #[cfg(feature = "openssl")]
     pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
-        let client = HyperClient::connect_with_ssl(addr, key, cert, ca).context(
-            ErrorKind::CouldNotConnect {
-                addr: addr.to_owned(),
-            },
-        )?;
+        let client = HyperClient::connect_with_ssl(addr, key, cert, ca).map_err(|err| {
+            DockworkerErr::CouldNotConnect {
+                addr: addr.to_string(),
+                source: err,
+            }
+        })?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
     #[cfg(not(feature = "openssl"))]
     pub fn connect_with_ssl(_addr: &str, _key: &Path, _cert: &Path, _ca: &Path) -> Result<Docker> {
-        Err(ErrorKind::SslDisabled.into())
+        Err(DockworkerError::SslDisabled.into())
     }
 
     /// Connect using unsecured HTTP.  This is strongly discouraged
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
-        let client = HyperClient::connect_with_http(addr).context(ErrorKind::CouldNotConnect {
-            addr: addr.to_owned(),
+        let client = HyperClient::connect_with_http(addr).map_err(|err| {
+            DockworkerError::CouldNotConnect {
+                addr: addr.to_string(),
+                source: err.into(),
+            }
         })?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
@@ -730,9 +733,11 @@ impl Docker {
                     .get("X-Docker-Container-Path-Stat")
                     .map(|h| h.to_str().unwrap_or(""))
                     .unwrap_or("");
-                let bytes = base64::decode(stat_base64).context(ErrorKind::ParseError {
-                    input: String::from(stat_base64),
-                })?;
+                let bytes =
+                    base64::decode(stat_base64).map_err(|src| DockworkerError::ParseError {
+                        input: String::from(stat_base64),
+                        source: src,
+                    })?;
                 let path_stat: XDockerContainerPathStat = serde_json::from_slice(&bytes)?;
                 Ok(path_stat)
             })
@@ -994,13 +999,13 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem.to_str().ok_or(ErrorKind::Unknown {
+                let id = stem.to_str().ok_or(DockworkerError::Unknown {
                     message: format!("convert to String: {:?}", stem),
                 })?;
                 return Ok(ImageId::new(id.to_string()));
             }
         }
-        Err(ErrorKind::Unknown {
+        Err(DockworkerError::Unknown {
             message: "no expected file: XXXXXX.json".to_owned(),
         }
         .into())
@@ -1627,7 +1632,7 @@ mod tests {
             assert!(match docker.get_file(&container.id, test_file) {
                 Ok(_) => false,
                 Err(err) => {
-                    if let ErrorKind::Docker = err.kind() {
+                    if let DockworkerError::Docker = err.kind() {
                         true // not found
                     } else {
                         false

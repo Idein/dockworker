@@ -3,7 +3,7 @@ use std::iter;
 
 use serde_json;
 
-use errors::*;
+use errors::Result;
 
 use hyper_client::Response;
 
@@ -28,11 +28,7 @@ impl iter::Iterator for StatsReader {
         let mut line = String::new();
         match self.buf.read_line(&mut line) {
             Ok(0) => None,
-            Ok(_) => Some(
-                serde_json::from_str::<Stats>(&line)
-                    .context(ErrorKind::ParseError { input: line })
-                    .map_err(Into::into),
-            ),
+            Ok(_) => Some(serde_json::from_str::<Stats>(&line).map_err(Into::into)),
             Err(err) => Some(Err(err.into())),
         }
     }

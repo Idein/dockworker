@@ -1,9 +1,8 @@
 extern crate dockworker;
-extern crate failure;
 
+use anyhow::Error;
 use dockworker::errors::*;
 use dockworker::{ContainerListOptions, Docker};
-use failure::Fail;
 
 fn find_all_exported_ports() -> Result<()> {
     let docker = Docker::connect_with_defaults()?;
@@ -25,7 +24,7 @@ fn find_all_exported_ports() -> Result<()> {
 fn main() {
     if let Err(err) = find_all_exported_ports() {
         eprint!("Error: ");
-        for e in Fail::iter_causes(&err) {
+        for e in Error::new(err).chain() {
             eprintln!("{}", e);
         }
     }

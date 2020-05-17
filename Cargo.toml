@@ -26,7 +26,8 @@ ssl = ["openssl", "native-tls", "hyper-tls"]
 
 [dependencies]
 chrono = "0.4.6"
-failure = "0.1.5"
+thiserror = "1.0"
+anyhow = "1.0"
 backtrace-sys = "=0.1.23"
 futures = "0.1"
 http = "0.1"
@@ -49,7 +50,7 @@ base64 = "0.9.2"
 dirs = "1.0.0"
 
 [dev-dependencies]
-failure = "0.1.5"
+anyhow = "1.0"
 env_logger = "0.5"
 rand = "0.5"
 
