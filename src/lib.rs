@@ -3,7 +3,6 @@
 // for the `error_chain` crate.
 #![recursion_limit = "1024"]
 
-extern crate anyhow;
 extern crate base64;
 extern crate byteorder;
 extern crate chrono;

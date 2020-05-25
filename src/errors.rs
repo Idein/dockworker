@@ -1,7 +1,6 @@
 use std::env;
 use std::io;
 
-use anyhow;
 use base64;
 use docker;
 use http;
@@ -56,7 +55,10 @@ pub enum DockworkerError {
         source: http::uri::InvalidUri,
     },
     #[error("could not connect: {addr:?}")]
-    CouldNotConnect { addr: String, source: anyhow::Error },
+    CouldNotConnect {
+        addr: String,
+        source: Box<DockworkerError>,
+    },
     #[error("ssl error")]
     SSL,
     #[error("could not find DOCKER_CERT_PATH")]

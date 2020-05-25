@@ -1,6 +1,5 @@
 extern crate dockworker;
 
-use anyhow::Error;
 use dockworker::errors::*;
 use dockworker::{ContainerListOptions, Docker};
 
@@ -21,11 +20,6 @@ fn find_all_exported_ports() -> Result<()> {
     Ok(())
 }
 
-fn main() {
-    if let Err(err) = find_all_exported_ports() {
-        eprint!("Error: ");
-        for e in Error::new(err).chain() {
-            eprintln!("{}", e);
-        }
-    }
+fn main() -> Result<()> {
+    find_all_exported_ports()
 }

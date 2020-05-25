@@ -1631,13 +1631,7 @@ mod tests {
 
             assert!(match docker.get_file(&container.id, test_file) {
                 Ok(_) => false,
-                Err(err) => {
-                    if let DockworkerError::Docker = err.kind() {
-                        true // not found
-                    } else {
-                        false
-                    }
-                }
+                Err(DockworkerError) => true,
             });
 
             docker
