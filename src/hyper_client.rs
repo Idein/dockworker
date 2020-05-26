@@ -8,7 +8,7 @@ use hyper::rt::Stream;
 use hyper::Uri;
 pub use hyperx::header::{ContentType, Headers};
 
-use errors::{DockworkerError, Result};
+use errors::{Error, Result};
 use http_client::HttpClient;
 
 use std::io::Read;
@@ -332,7 +332,7 @@ impl HyperClient {
 }
 
 impl HttpClient for HyperClient {
-    type Err = DockworkerError;
+    type Err = Error;
 
     fn get(&self, headers: &Headers, path: &str) -> Result<Response> {
         let url = join_uri(&self.base, path)?;

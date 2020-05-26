@@ -49,7 +49,7 @@ mod windows {
     use std::io;
     use std::os::raw::c_int;
 
-    use crate::errors::Error;
+    use crate::errors::Result;
 
     #[repr(i32)]
     #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
@@ -71,7 +71,7 @@ mod windows {
             SignalIterator(vec![SIGKILL, SIGTERM].into_iter())
         }
 
-        pub fn from_c_int(signum: c_int) -> Result<Self, DockworkerError> {
+        pub fn from_c_int(signum: c_int) -> Result<Self> {
             match signum {
                 9 => Ok(Signal::SIGKILL),
                 15 => Ok(Signal::SIGTERM),

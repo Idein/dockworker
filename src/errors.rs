@@ -10,10 +10,10 @@ use openssl;
 use response;
 use thiserror;
 
-pub type Result<T> = ::std::result::Result<T, DockworkerError>;
+pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(thiserror::Error, Debug)]
-pub enum DockworkerError {
+pub enum Error {
     #[error("io error")]
     Io {
         #[from]
@@ -55,10 +55,7 @@ pub enum DockworkerError {
         source: http::uri::InvalidUri,
     },
     #[error("could not connect: {addr:?}")]
-    CouldNotConnect {
-        addr: String,
-        source: Box<DockworkerError>,
-    },
+    CouldNotConnect { addr: String, source: Box<Error> },
     #[error("ssl error")]
     SSL,
     #[error("could not find DOCKER_CERT_PATH")]
