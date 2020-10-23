@@ -2070,4 +2070,21 @@ mod tests {
             .remove_container(&container.id, None, None, None)
             .unwrap();
     }
+
+    #[test]
+    fn workaround_hyper_hangup() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let count = Arc::new(AtomicUsize::new(0));
+        let count2 = count.clone();
+        std::thread::spawn(move || {
+            let docker = Docker::connect_with_defaults().unwrap();
+            while count2.fetch_add(1, Ordering::Relaxed) < 2000 {
+                let _events = docker.events(None, None, None).unwrap();
+            }
+        });
+        std::thread::sleep(std::time::Duration::from_secs(10));
+        assert_eq!(count.load(Ordering::Relaxed), 2000);
+    }
 }
