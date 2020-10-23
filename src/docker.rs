@@ -1,3 +1,28 @@
+use crate::container::{
+    AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus, LogResponse,
+};
+pub use crate::credentials::{Credential, UserPassword};
+use crate::errors::*;
+use crate::filesystem::{FilesystemChange, XDockerContainerPathStat};
+use crate::header::XRegistryAuth;
+use crate::http_client::{HaveHttpClient, HttpClient};
+use crate::hyper_client::{HyperClient, Response};
+use crate::image::{Image, ImageId, SummaryImage};
+use crate::network::*;
+use crate::options::*;
+use crate::process::{Process, Top};
+use crate::response::Response as DockerResponse;
+use crate::signal::Signal;
+use crate::stats::StatsReader;
+use crate::system::{AuthToken, SystemInfo};
+use crate::version::Version;
+#[cfg(feature = "experimental")]
+use checkpoint::{Checkpoint, CheckpointCreateOptions, CheckpointDeleteOptions};
+use http::{HeaderMap, StatusCode};
+use hyperx::header::{ContentType, TypedHeaders};
+use log::*;
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use std::env;
 use std::ffi::OsStr;
 use std::fmt;
@@ -6,36 +31,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::result;
 use std::time::Duration;
-use url;
-
-#[cfg(feature = "experimental")]
-use checkpoint::{Checkpoint, CheckpointCreateOptions, CheckpointDeleteOptions};
-
-use container::{
-    AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus, LogResponse,
-};
-
-pub use credentials::{Credential, UserPassword};
-use errors::*;
-use filesystem::{FilesystemChange, XDockerContainerPathStat};
-use hyper_client::HyperClient;
-use image::{Image, ImageId, SummaryImage};
-use network::*;
-use options::*;
-use process::{Process, Top};
-use stats::StatsReader;
-use system::{AuthToken, SystemInfo};
-use tar::{self, Archive};
-use version::Version;
-
-use header::XRegistryAuth;
-use http_client::{HaveHttpClient, HttpClient};
-use hyper_client::{ContentType, Headers, Response, StatusCode};
-use mime;
-use response::Response as DockerResponse;
-use serde::de::DeserializeOwned;
-use serde_json;
-use signal::Signal;
+use tar::Archive;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
@@ -78,7 +74,7 @@ pub struct Docker {
     /// connection protocol
     protocol: Protocol,
     /// http headers used for any requests
-    headers: Headers,
+    headers: HeaderMap,
     /// access credential for accessing apis
     credential: Option<Credential>,
 }
@@ -149,7 +145,7 @@ impl Docker {
         Self {
             client,
             protocol,
-            headers: Headers::new(),
+            headers: HeaderMap::new(),
             credential: None,
         }
     }
@@ -158,7 +154,7 @@ impl Docker {
         self.credential = Some(credential)
     }
 
-    fn headers(&self) -> &Headers {
+    fn headers(&self) -> &HeaderMap {
         &self.headers
     }
 
@@ -308,7 +304,7 @@ impl Docker {
 
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.encode(&ContentType::json());
         self.http_client()
             .post(&headers, &path, &json_body)
             .and_then(api_result)
@@ -541,7 +537,7 @@ impl Docker {
     ) -> Result<CreateExecResponse> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.encode(&ContentType::json());
         self.http_client()
             .post(&headers, &format!("/containers/{}/exec", id), &json_body)
             .and_then(api_result)
@@ -558,7 +554,7 @@ impl Docker {
         let json_body = serde_json::to_string(&option)?;
 
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.encode(&ContentType::json());
 
         self.http_client()
             .post(&headers, &format!("/exec/{}/start", id), &json_body)
@@ -784,7 +780,7 @@ impl Docker {
     pub fn build_image(&self, options: ContainerBuildOptions, tar_path: &Path) -> Result<Response> {
         let mut headers = self.headers().clone();
         let application_tar: mime::Mime = "application/x-tar".parse().unwrap();
-        headers.set::<ContentType>(ContentType(application_tar));
+        headers.encode(&ContentType(application_tar));
         let res = self.http_client().post_file(
             &headers,
             &format!("/build?{}", options.to_url_params()),
@@ -821,7 +817,13 @@ impl Docker {
 
         let mut headers = self.headers().clone();
         if let Some(ref credential) = self.credential {
-            headers.set::<XRegistryAuth>(credential.clone().into());
+            headers.insert(
+                "X-Registry-Auth",
+                XRegistryAuth::from(credential.clone())
+                    .to_string()
+                    .parse()
+                    .unwrap(),
+            );
         }
         let res =
             self.http_client()
@@ -862,7 +864,13 @@ impl Docker {
         param.append_pair("tag", tag);
         let mut headers = self.headers().clone();
         if let Some(ref credential) = self.credential {
-            headers.set::<XRegistryAuth>(credential.clone().into());
+            headers.insert(
+                "X-Registry-Auth",
+                XRegistryAuth::from(credential.clone())
+                    .to_string()
+                    .parse()
+                    .unwrap(),
+            );
         }
         self.http_client()
             .post(
@@ -973,7 +981,7 @@ impl Docker {
     pub fn load_image(&self, quiet: bool, path: &Path) -> Result<ImageId> {
         let mut headers = self.headers().clone();
         let application_tar: mime::Mime = "application/x-tar".parse().unwrap();
-        headers.set::<ContentType>(ContentType(application_tar));
+        headers.encode(&ContentType(application_tar));
         let res = self.http_client().post_file(
             &headers,
             &format!("/images/load?quiet={}", quiet),
@@ -1029,7 +1037,7 @@ impl Docker {
         );
         let json_body = serde_json::to_string(&req)?;
         let mut headers = self.headers().clone();
-        headers.set(ContentType::json());
+        headers.encode(&ContentType::json());
         self.http_client()
             .post(&headers, "/auth", &json_body)
             .and_then(api_result)
@@ -1215,7 +1223,7 @@ impl Docker {
     pub fn create_network(&self, option: &NetworkCreateOptions) -> Result<CreateNetworkResponse> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.encode(&ContentType::json());
         self.http_client()
             .post(&headers, "/networks/create", &json_body)
             .and_then(api_result)
@@ -1228,7 +1236,7 @@ impl Docker {
     pub fn connect_network(&self, id: &str, option: &NetworkConnectOptions) -> Result<()> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.encode(&ContentType::json());
         self.http_client()
             .post(&headers, &format!("/networks/{}/connect", id), &json_body)
             .and_then(ignore_result)
@@ -1241,7 +1249,7 @@ impl Docker {
     pub fn disconnect_network(&self, id: &str, option: &NetworkDisconnectOptions) -> Result<()> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.set::<ContentType>(ContentType::json());
+        headers.encode(&ContentType::json());
         self.http_client()
             .post(
                 &headers,
@@ -1279,8 +1287,6 @@ impl HaveHttpClient for Docker {
 
 #[cfg(all(test, unix))]
 mod tests {
-    extern crate rand;
-
     use super::*;
     use std::convert::From;
     use std::env;
@@ -1290,11 +1296,11 @@ mod tests {
     use std::path::PathBuf;
     use std::thread;
 
-    use self::rand::Rng;
     use chrono::Local;
+    use rand::Rng;
     use tar::Builder as TarBuilder;
 
-    use container;
+    use crate::container;
 
     #[test]
     fn test_server_access() {
@@ -1838,9 +1844,9 @@ mod tests {
     }
 
     fn prune_networks() {
-        use network::LabelFilter as F;
-        use network::NetworkCreateOptions as Net;
-        use network::PruneNetworkFilters as Prune;
+        use crate::network::LabelFilter as F;
+        use crate::network::NetworkCreateOptions as Net;
+        use crate::network::PruneNetworkFilters as Prune;
         let docker = Docker::connect_with_defaults().unwrap();
         let mut create_nw_3 = Local::now();
         for i in 1..=6 {

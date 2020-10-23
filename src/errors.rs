@@ -1,15 +1,10 @@
+use crate::docker;
+use crate::response;
+pub use failure::ResultExt;
+use failure::{Backtrace, Context, Fail};
 use std::env;
 use std::fmt;
 use std::io;
-
-use docker;
-pub use failure::ResultExt;
-use failure::{Backtrace, Context, Fail};
-use http;
-use hyper;
-#[cfg(feature = "openssl")]
-use openssl;
-use response;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
