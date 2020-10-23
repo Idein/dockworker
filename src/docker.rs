@@ -825,7 +825,7 @@ impl Docker {
         }
         let res =
             self.http_client()
-                .post(&headers, &format!("/images/create?{}", param.finish()), "")?;
+                .post(&headers, &format!("images/create?{}", param.finish()), "")?;
         if res.status.is_success() {
             Ok(Box::new(
                 BufReader::new(res)
@@ -1146,7 +1146,7 @@ impl Docker {
         }
 
         self.http_client()
-            .get(self.headers(), &format!("/events?{}", param.finish()))
+            .get(self.headers(), &format!("events?{}", param.finish()))
             .and_then(|res| {
                 Ok(Box::new(
                     serde_json::Deserializer::from_reader(res)
@@ -2085,6 +2085,6 @@ mod tests {
             }
         });
         std::thread::sleep(std::time::Duration::from_secs(10));
-        assert_eq!(count.load(Ordering::Relaxed), 2000);
+        assert_eq!(count.load(Ordering::Relaxed), 2001);
     }
 }
