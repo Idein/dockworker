@@ -1,7 +1,7 @@
+use serde::de::{self, Deserializer, Visitor};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
-
-use serde::de::{self, Deserializer, Visitor};
 
 struct NumToBoolVisitor;
 

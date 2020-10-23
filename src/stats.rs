@@ -1,11 +1,8 @@
+use crate::errors::*;
+use crate::hyper_client::Response;
+use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader};
 use std::iter;
-
-use serde_json;
-
-use errors::*;
-
-use hyper_client::Response;
 
 /// response of /containers/{}/stats api
 #[derive(Debug)]

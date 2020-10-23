@@ -1,17 +1,15 @@
 #![cfg(test)]
 
-use super::container::HealthState;
-use super::ImageLayer;
-use container::{Container, ContainerInfo};
-use filesystem::FilesystemChange;
-use hyper_client::Response;
-use image::{Image, SummaryImage};
-use network::Network;
-use process::Top;
-use serde_json;
-use stats::{Stats, StatsReader};
-use system::SystemInfo;
-use version::Version;
+use crate::container::{Container, ContainerInfo, HealthState};
+use crate::filesystem::FilesystemChange;
+use crate::hyper_client::Response;
+use crate::image::{Image, SummaryImage};
+use crate::network::Network;
+use crate::options::ImageLayer;
+use crate::process::Top;
+use crate::stats::{Stats, StatsReader};
+use crate::system::SystemInfo;
+use crate::version::Version;
 
 #[test]
 fn get_containers() {
@@ -154,10 +152,10 @@ fn get_version_response() -> &'static str {
 }
 
 fn get_stats_response() -> Response {
-    let mut response = http::Response::builder();
-    response.status(http::StatusCode::OK);
-    response.header("Transfer-Encoding", "chunked");
-    response.header("Connection", "Close");
+    let response = http::Response::builder()
+        .status(http::StatusCode::OK)
+        .header("Transfer-Encoding", "chunked")
+        .header("Connection", "Close");
     let s1 = get_stats_single_event(1);
     let s2 = get_stats_single_event(2);
     let s3 = get_stats_single_event(3);

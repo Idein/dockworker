@@ -1,9 +1,9 @@
 ///! Response from Dockerd
 ///!
+use serde::{Deserialize, Serialize};
+use serde_json::value as json;
 use std::error::Error as StdError;
 use std::fmt;
-
-use serde_json::value as json;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 pub struct ProgressDetail {

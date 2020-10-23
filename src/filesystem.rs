@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 /// response of /containers/{id}/changes
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_snake_case)]

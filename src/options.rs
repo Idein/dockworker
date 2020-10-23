@@ -1,14 +1,13 @@
 //! Options which can be passed to various `Docker` commands.
 
+use crate::network;
+use serde::de::{DeserializeOwned, Deserializer};
+use serde::{Deserialize, Serialize};
+use serde_json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 use url::{self, form_urlencoded};
-
-use crate::network;
-use serde::de::{DeserializeOwned, Deserializer};
-use serde::Deserialize;
-use serde_json;
 
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
@@ -858,6 +857,7 @@ impl ContainerCreateOptions {
 
 mod format {
     pub mod duration {
+        use serde::{Deserialize, Serialize};
         use std::time::Duration;
 
         #[derive(Serialize, Deserialize)]

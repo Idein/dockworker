@@ -1,15 +1,15 @@
+use crate::errors;
+use crate::hyper_client::Response;
+use crate::network::EndpointConfig;
 use byteorder::{BigEndian, ReadBytesExt};
-use errors;
-use hyper_client::Response;
-use serde::de::{self, Deserialize, DeserializeOwned, Deserializer};
-use std;
+use log::{debug, error};
+use serde::de::{self, DeserializeOwned, Deserializer};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::io::{self, Read};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
-
-use network::EndpointConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
@@ -470,7 +470,7 @@ impl ContainerStdio {
     }
 
     fn forcused_buff(&self) -> io::Result<MutexGuard<Vec<u8>>> {
-        use container::ContainerStdioType::*;
+        use crate::container::ContainerStdioType::*;
         match self.type_ {
             Stdin => self.stdin_buff.lock().map_err(poison),
             Stdout => self.stdout_buff.lock().map_err(poison),
@@ -480,7 +480,7 @@ impl ContainerStdio {
 
     // read next chunk from response to the inner buffer
     fn readin_next(&mut self) -> io::Result<usize> {
-        use container::ContainerStdioType::*;
+        use crate::container::ContainerStdioType::*;
 
         while let Some(xs) = self.src.lock().map_err(poison)?.next() {
             let AttachResponseFrame {
@@ -597,7 +597,7 @@ impl From<Response> for AttachResponseIter {
 impl Iterator for AttachResponseIter {
     type Item = io::Result<AttachResponseFrame>;
     fn next(&mut self) -> Option<Self::Item> {
-        use container::ContainerStdioType::*;
+        use crate::container::ContainerStdioType::*;
 
         let mut buf = [0u8; 8];
         // read header

@@ -1,9 +1,10 @@
 ///! Access credentials for accessing any docker daemon endpoints
 ///!
 ///! Currently, any values of these types are only used for `/images/{name}/push` api.
-use header::XRegistryAuth;
+use crate::header::XRegistryAuth;
+use crate::system::AuthToken;
+use serde::{Deserialize, Serialize};
 use serde_json;
-use system::AuthToken;
 
 /// Access credential
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]

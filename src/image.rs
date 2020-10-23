@@ -1,11 +1,10 @@
+use crate::container::Config;
 use chrono::offset::FixedOffset;
 use chrono::DateTime;
 use serde::de::{DeserializeOwned, Deserializer};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{fmt, result};
-
-use container::Config;
 
 fn null_to_default<'de, D, T>(de: D) -> Result<T, D::Error>
 where
