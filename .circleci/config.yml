@@ -41,10 +41,15 @@ jobs:
             # client only
             curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | tar -zxf - --strip 1 -C /usr/local/bin docker/docker
       - run:
+          name: Install rustfmt
+          command: |
+            rustup component add rustfmt
+      - run:
           name: Generate cache key
           command: |
             cat Cargo.toml Cargo.lock >  /tmp/build-dep
             rustc --version           >> /tmp/build-dep
+            rustfmt --version         >> /tmp/build-dep
             echo $OS_VERSION          >> /tmp/build-dep
             apt list --installed      >> /tmp/build-dep
       - restore_cache:
