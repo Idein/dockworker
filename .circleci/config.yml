@@ -22,7 +22,7 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: eldesh/rust:1.36.0
+      - image: rust:1.47.0
         environment:
           DOCKER_VERSION: 18.03.1-ce
     steps:
