@@ -1,6 +1,7 @@
 use crate::errors::*;
 use crate::http_client::HttpClient;
 use futures::prelude::*;
+use futures::stream::FusedStream;
 use http::{HeaderMap, Request, StatusCode};
 use hyper::Uri;
 use std::fs::File;
@@ -87,8 +88,8 @@ impl std::io::Read for Response {
         let mut j = i;
         let mut buffer = Vec::new();
 
-        {
-            let mut stream = self.rx.by_ref().skip_while(|bytes| {
+        if !self.rx.is_terminated() {
+            let stream = self.rx.by_ref().skip_while(|bytes| {
                 let m = std::cmp::min(bytes.len(), n - j);
                 let len = bytes.len();
                 j += len;
