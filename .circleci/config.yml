@@ -33,13 +33,13 @@ jobs:
       - run:
           name: Setup Packages
           command: |
-            sudo apt-get update
-            sudo apt-get install -y ca-certificates curl libssl-dev
+            apt-get update
+            apt-get install -y ca-certificates curl libssl-dev
       - run:
           name: Install Docker Client
           command: |
             # client only
-            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | sudo tar -zxf - --strip 1 -C /usr/local/bin docker/docker
+            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | tar -zxf - --strip 1 -C /usr/local/bin docker/docker
       - run:
           name: Generate cache key
           command: |
