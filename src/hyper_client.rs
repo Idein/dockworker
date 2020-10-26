@@ -272,9 +272,9 @@ impl HyperClient {
         // This ensures that using docker-machine-esque addresses work with Hyper.
         let addr_https = addr.clone().replacen("tcp://", "https://", 1);
         let url = Uri::from_str(&addr_https).context(ErrorKind::InvalidUri { var: addr_https })?;
-        let mut http = hyper::client::HttpConnector::new(4);
+        let mut http = hyper::client::HttpConnector::new();
         http.enforce_http(false);
-        let https = hyper_tls::HttpsConnector::from((http, builder.build()?));
+        let https = hyper_tls::HttpsConnector::from((http, builder.build()?.into()));
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Ok(Self::new(Client::HttpsClient(client), url))
     }
