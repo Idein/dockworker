@@ -146,8 +146,8 @@ impl From<http::Error> for Error {
 }
 
 #[cfg(feature = "openssl")]
-impl From<hyper_tls::Error> for Error {
-    fn from(error: hyper_tls::Error) -> Self {
+impl From<native_tls::Error> for Error {
+    fn from(error: native_tls::Error) -> Self {
         Error {
             inner: error.context(ErrorKind::SSL),
         }
