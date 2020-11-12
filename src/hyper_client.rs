@@ -236,7 +236,12 @@ impl HyperClient {
     #[cfg(unix)]
     pub fn connect_with_unix(path: &str) -> Self {
         let url = hyperlocal::Uri::new(path, "").into();
-        let client = hyper::Client::builder().build::<_, hyper::Body>(hyperlocal::UnixConnector);
+        // Prevent from using connection pooling.
+        // See https://github.com/hyperium/hyper/issues/2312.
+        let client: hyper::Client<_> = hyper::Client::builder()
+            .pool_idle_timeout(std::time::Duration::from_millis(0))
+            .pool_max_idle_per_host(0)
+            .build(hyperlocal::UnixConnector);
         Self::new(Client::UnixClient(client), url)
     }
 
