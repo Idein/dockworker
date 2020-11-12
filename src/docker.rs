@@ -2088,11 +2088,11 @@ mod tests {
         let count2 = count.clone();
         std::thread::spawn(move || {
             let docker = Docker::connect_with_defaults().unwrap();
-            while count2.fetch_add(1, Ordering::Relaxed) < 2000 {
+            while count2.fetch_add(1, Ordering::Relaxed) < 1000 {
                 let _events = docker.events(None, None, None).unwrap();
             }
         });
-        std::thread::sleep(std::time::Duration::from_secs(10));
-        assert_eq!(count.load(Ordering::Relaxed), 2001);
+        std::thread::sleep(std::time::Duration::from_secs(60));
+        assert_eq!(count.load(Ordering::Relaxed), 1001);
     }
 }
