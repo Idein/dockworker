@@ -2092,7 +2092,7 @@ mod tests {
                 let _events = docker.events(None, None, None).unwrap();
             }
         });
-        std::thread::sleep(std::time::Duration::from_secs(60));
+        std::thread::sleep(std::time::Duration::from_secs(120));
         assert_eq!(count.load(Ordering::Relaxed), 1001);
     }
 }
