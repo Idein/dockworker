@@ -2086,14 +2086,18 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
             let docker = Docker::connect_with_defaults().unwrap();
-            for i in 0..1000 {
+            for _ in 0..1000 {
                 let _events = docker.events(None, None, None).unwrap();
                 tx.send(()).unwrap();
-                println!("{}", i);
             }
         });
-        for _ in 0..1000 {
-            assert_eq!(rx.recv_timeout(std::time::Duration::from_secs(15)), Ok(()));
+        for i in 0..1000 {
+            assert_eq!(
+                rx.recv_timeout(std::time::Duration::from_secs(15)),
+                Ok(()),
+                "i = {}",
+                i
+            );
         }
     }
 }
