@@ -2081,18 +2081,19 @@ mod tests {
     #[test]
     #[ignore]
     fn workaround_hyper_hangup() {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-        use std::sync::Arc;
+        use std::sync::mpsc;
 
-        let count = Arc::new(AtomicUsize::new(0));
-        let count2 = count.clone();
+        let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
             let docker = Docker::connect_with_defaults().unwrap();
-            while count2.fetch_add(1, Ordering::Relaxed) < 1000 {
+            for i in 0..1000 {
                 let _events = docker.events(None, None, None).unwrap();
+                tx.send(()).unwrap();
+                println!("{}", i);
             }
         });
-        std::thread::sleep(std::time::Duration::from_secs(120));
-        assert_eq!(count.load(Ordering::Relaxed), 1001);
+        for _ in 0..1000 {
+            assert_eq!(rx.recv_timeout(std::time::Duration::from_secs(15)), Ok(()));
+        }
     }
 }
