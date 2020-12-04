@@ -690,7 +690,7 @@ where
 mod test {
     use super::*;
 
-    // https://github.com/eldesh/dockworker/issues/84
+    // https://github.com/idein/dockworker/issues/84
     #[test]
     fn serde_network() {
         let network_settings_str = r#"{
