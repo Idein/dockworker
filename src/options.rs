@@ -102,11 +102,20 @@ impl RestartPolicy {
         }
     }
 
+    pub fn no() -> Self {
+        Self::new("no".to_owned(), 0)
+    }
+
+    pub fn always() -> Self {
+        Self::new("always".to_owned(), 0)
+    }
+
+    pub fn on_failure() -> Self {
+        Self::new("on-failure".to_owned(), 10)
+    }
+
     pub fn unless_stopped() -> Self {
-        Self {
-            Name: "unless-stopped".to_owned(),
-            MaximumRetryCount: 0,
-        }
+        Self::new("unless-stopped".to_owned(), 0)
     }
 }
 
