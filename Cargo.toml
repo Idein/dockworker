@@ -2,10 +2,10 @@
 name = "dockworker"
 description = "Docker daemon API client. (a fork of Faraday's boondock)"
 version = "0.0.20"
-authors = ["eldesh <nephits@gmail.com>"]
+authors = ["takayuki goto <takayuki@idein.jp>"]
 license = "Apache-2.0"
-homepage = "https://github.com/eldesh/dockworker"
-repository = "https://github.com/eldesh/dockworker"
+homepage = "https://github.com/Idein/dockworker"
+repository = "https://github.com/Idein/dockworker"
 documentation = "https://docs.rs/dockworker"
 readme = "README.md"
 keywords = ["docker"]
@@ -13,7 +13,7 @@ edition = "2018"
 
 [badges]
 appveyor = { repository = "eldesh/dockworker", branch = "master", service = "github" }
-circle-ci = { repository = "eldesh/dockworker" }
+circle-ci = { repository = "Idein/dockworker" }
 maintenance = { status = "actively-developed" }
 
 [features]
