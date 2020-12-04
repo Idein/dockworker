@@ -128,19 +128,20 @@ mod tests {
     fn deser_restart_policy() {
         let no = r#"{"MaximumRetryCount":0, "Name":"no"}"#;
         assert_eq!(RestartPolicy::default(), serde_json::from_str(no).unwrap());
+        assert_eq!(RestartPolicy::no(), serde_json::from_str(no).unwrap());
         let always = r#"{"MaximumRetryCount":0, "Name":"always"}"#;
         assert_eq!(
-            RestartPolicy::new("always".to_owned(), 0),
+            RestartPolicy::always(),
             serde_json::from_str(always).unwrap()
         );
         let onfailure = r#"{"MaximumRetryCount":10, "Name":"on-failure"}"#;
         assert_eq!(
-            RestartPolicy::new("on-failure".to_owned(), 10),
+            RestartPolicy::on_failure(),
             serde_json::from_str(onfailure).unwrap()
         );
         let unlessstopped = r#"{"MaximumRetryCount":0, "Name":"unless-stopped"}"#;
         assert_eq!(
-            RestartPolicy::new("unless-stopped".to_owned(), 0),
+            RestartPolicy::unless_stopped(),
             serde_json::from_str(unlessstopped).unwrap()
         );
     }
