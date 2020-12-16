@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader};
+use std::iter;
+
 use crate::errors::*;
 use crate::hyper_client::Response;
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader};
-use std::iter;
 
 /// response of /containers/{}/stats api
 #[derive(Debug)]
@@ -38,7 +40,7 @@ impl iter::Iterator for StatsReader {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Stats {
     pub read: String,
-    pub network: Option<Network>,
+    pub networks: Option<HashMap<String, Network>>,
     pub memory_stats: MemoryStats,
     pub cpu_stats: CpuStats,
     pub blkio_stats: BlkioStats,
