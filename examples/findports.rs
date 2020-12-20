@@ -1,13 +1,14 @@
 extern crate dockworker;
 extern crate failure;
 
+use dockworker::container::ContainerFilters;
 use dockworker::errors::*;
-use dockworker::{ContainerListOptions, Docker};
+use dockworker::Docker;
 use failure::Fail;
 
 fn find_all_exported_ports() -> Result<()> {
     let docker = Docker::connect_with_defaults()?;
-    let containers = docker.containers(ContainerListOptions::default().all())?;
+    let containers = docker.list_containers(Some(true), None, None, ContainerFilters::default())?;
     for container in &containers {
         let info = docker.container_info(container.Id.as_str())?;
 
