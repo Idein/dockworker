@@ -51,68 +51,44 @@ impl Display for Process {
         s.push_str(",");
         s.push_str(&*self.pid.clone());
 
-        match self.cpu.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.cpu.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.memory.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.memory.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.vsz.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.vsz.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.rss.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.rss.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.tty.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.tty.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.stat.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.stat.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.start.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.start.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
-        match self.time.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.time.clone() {
+            s.push_str(",");
+            s.push_str(&*v);
         }
 
         s.push_str(",");

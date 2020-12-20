@@ -3,7 +3,6 @@
 use crate::network;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -921,8 +920,8 @@ pub struct CreateExecOptions {
     working_dir: PathBuf,
 }
 
-impl CreateExecOptions {
-    pub fn new() -> Self {
+impl Default for CreateExecOptions {
+    fn default() -> Self {
         Self {
             attach_stdin: false,
             attach_stdout: true,
@@ -935,6 +934,12 @@ impl CreateExecOptions {
             user: "".to_owned(),
             working_dir: PathBuf::new(),
         }
+    }
+}
+
+impl CreateExecOptions {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn attach_stdin(&mut self, attach_stdin: bool) -> &mut Self {
@@ -987,12 +992,18 @@ pub struct StartExecOptions {
     tty: bool,
 }
 
-impl StartExecOptions {
-    pub fn new() -> Self {
+impl Default for StartExecOptions {
+    fn default() -> Self {
         Self {
             detach: false,
             tty: false,
         }
+    }
+}
+
+impl StartExecOptions {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn detach(&mut self, detach: bool) -> &mut Self {

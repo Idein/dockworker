@@ -214,11 +214,11 @@ pub enum HealthState {
 
 impl fmt::Display for HealthState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &HealthState::NoHealthcheck => write!(f, "none"),
-            &HealthState::Starting => write!(f, "starting"),
-            &HealthState::Healthy => write!(f, "healthy"),
-            &HealthState::Unhealthy => write!(f, "unhealthy"),
+        match *self {
+            HealthState::NoHealthcheck => write!(f, "none"),
+            HealthState::Starting => write!(f, "starting"),
+            HealthState::Healthy => write!(f, "healthy"),
+            HealthState::Unhealthy => write!(f, "unhealthy"),
         }
     }
 }

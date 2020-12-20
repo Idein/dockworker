@@ -164,6 +164,12 @@ impl PruneNetworkFilters {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LabelFilter(HashMap<String, Option<String>>);
 
+impl Default for LabelFilter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LabelFilter {
     pub fn new() -> Self {
         Self(HashMap::new())
@@ -423,6 +429,7 @@ mod format {
         Ok(actual.unwrap_or_default())
     }
 
+    #[allow(clippy::ptr_arg)]
     pub fn vec_to_null<T, S>(t: &Vec<T>, se: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -458,7 +465,7 @@ mod format {
                 self.label_not.is_empty(),
             ]
             .iter()
-            .filter(|x| **x == true)
+            .filter(|x| **x)
             .count();
 
             let mut state = serializer.serialize_map(Some(count))?;
@@ -521,7 +528,7 @@ mod format {
             for (k, v) in &self.0 {
                 let key = match v {
                     Some(v) => format!("{}={}", k, v),
-                    None => format!("{}", k),
+                    None => k.to_string(),
                 };
                 map.serialize_entry(&key, &true)?;
             }

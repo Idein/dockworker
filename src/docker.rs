@@ -35,7 +35,7 @@ use tar::Archive;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
-pub static DEFAULT_DOCKER_HOST: &'static str = "unix:///var/run/docker.sock";
+pub static DEFAULT_DOCKER_HOST: &str = "unix:///var/run/docker.sock";
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 ///
@@ -171,7 +171,7 @@ impl Docker {
     /// and we try to interpret these as much like the standard `docker` client as possible.
     pub fn connect_with_defaults() -> Result<Docker> {
         // Read in our configuration from the Docker environment.
-        let host = env::var("DOCKER_HOST").unwrap_or(DEFAULT_DOCKER_HOST.to_string());
+        let host = env::var("DOCKER_HOST").unwrap_or_else(|_| DEFAULT_DOCKER_HOST.to_string());
         let tls_verify = env::var("DOCKER_TLS_VERIFY").is_ok();
         let cert_path = default_cert_path()?;
 
@@ -190,7 +190,7 @@ impl Docker {
                 Docker::connect_with_http(&host)
             }
         } else {
-            Err(ErrorKind::UnsupportedScheme { host: host.clone() }.into())
+            Err(ErrorKind::UnsupportedScheme { host }.into())
         }
     }
 
@@ -299,7 +299,7 @@ impl Docker {
                 param.append_pair("name", name);
                 format!("/containers/create?{}", param.finish())
             }
-            None => format!("/containers/create"),
+            None => "/containers/create".to_string(),
         };
 
         let json_body = serde_json::to_string(&option)?;
@@ -401,7 +401,7 @@ impl Docker {
     ///
     /// # API
     /// /containers/{id}/attach
-    #[allow(non_snake_case)]
+    #[allow(non_snake_case, clippy::too_many_arguments)]
     pub fn attach_container(
         &self,
         id: &str,
@@ -1155,13 +1155,12 @@ impl Docker {
 
         self.http_client()
             .get(self.headers(), &format!("/events?{}", param.finish()))
-            .and_then(|res| {
-                Ok(Box::new(
+            .map(|res| {
+                Box::new(
                     serde_json::Deserializer::from_reader(res)
                         .into_iter::<EventResponse>()
                         .map(|event_response| Ok(event_response?)),
-                )
-                    as Box<dyn Iterator<Item = Result<EventResponse>>>)
+                ) as Box<dyn Iterator<Item = Result<EventResponse>>>
             })
     }
 
@@ -1589,11 +1588,11 @@ mod tests {
     fn gen_rand_file(path: &Path, size: usize) -> io::Result<()> {
         let mut rng = rand::thread_rng();
         let mut file = File::create(path)?;
-        let vec: String = iter::repeat(())
+        let vec: Vec<u8> = iter::repeat(())
             .map(|_| rng.sample(rand::distributions::Alphanumeric))
             .take(size)
             .collect();
-        file.write_all(vec.as_bytes())
+        file.write_all(&vec)
     }
 
     fn equal_file(patha: &Path, pathb: &Path) -> bool {

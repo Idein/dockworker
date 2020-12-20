@@ -45,8 +45,7 @@ impl Response {
         let (tx, rx) = futures::channel::mpsc::unbounded();
 
         let handle = std::thread::spawn(move || {
-            let mut tokio_runtime = tokio::runtime::Builder::new()
-                .basic_scheduler()
+            let tokio_runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .unwrap();
@@ -62,10 +61,10 @@ impl Response {
         });
 
         Response {
-            status: status,
+            status,
             buf: Vec::new(),
-            rx: rx,
-            handle: handle,
+            rx,
+            handle,
         }
     }
 }
@@ -114,8 +113,7 @@ impl std::io::Read for Response {
                 futures::future::ready(false)
             });
 
-            let (_, _) = tokio::runtime::Builder::new()
-                .basic_scheduler()
+            let (_, _) = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .unwrap()
@@ -203,12 +201,10 @@ async fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Cl
 
                 future = client.request(if see_other {
                     request.body(hyper::Body::empty()).unwrap()
+                } else if let Some(body) = body.clone() {
+                    request.body(body.into()).unwrap()
                 } else {
-                    if let Some(body) = body.clone() {
-                        request.body(body.into()).unwrap()
-                    } else {
-                        request.body(hyper::Body::empty()).unwrap()
-                    }
+                    request.body(hyper::Body::empty()).unwrap()
                 });
 
                 max_redirects -= 1;
@@ -223,8 +219,7 @@ impl HyperClient {
             client,
             base,
             tokio_runtime: std::sync::Mutex::new(
-                tokio::runtime::Builder::new()
-                    .threaded_scheduler()
+                tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
                     .build()
                     .unwrap(),
@@ -286,7 +281,7 @@ impl HyperClient {
 
     pub fn connect_with_http(addr: &str) -> result::Result<Self, Error> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let addr_https = addr.clone().replace("tcp://", "http://");
+        let addr_https = addr.replace("tcp://", "http://");
         let url = Uri::from_str(&addr_https).context(ErrorKind::InvalidUri { var: addr_https })?;
         Ok(Self::new(Client::HttpClient(hyper::Client::new()), url))
     }

@@ -4,7 +4,6 @@
 use crate::header::XRegistryAuth;
 use crate::system::AuthToken;
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 /// Access credential
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
