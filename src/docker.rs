@@ -658,7 +658,11 @@ impl Docker {
             self.headers(),
             &format!("/containers/{}/stats?{}", container_id, query.finish()),
         )?;
-        Ok(StatsReader::new(res))
+        if res.status.is_success() {
+            Ok(StatsReader::new(res))
+        } else {
+            Err(serde_json::from_reader::<_, DockerError>(res)?.into())
+        }
     }
 
     /// Wait for a container
