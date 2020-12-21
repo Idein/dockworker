@@ -51,6 +51,8 @@ pub struct Stats {
     /// It is not an exact copy of the cpu_stats field.
     pub precpu_stats: CpuStats,
     pub blkio_stats: BlkioStats,
+    /// The number of pids in the cgroup
+    pub pids_stats: PidsStats,
 }
 
 impl Stats {
@@ -214,6 +216,12 @@ pub struct BlkioStat {
     pub minor: u64,
     pub op: String,
     pub value: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
+pub struct PidsStats {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current: Option<u64>,
 }
 
 mod format {
