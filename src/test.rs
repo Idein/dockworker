@@ -166,8 +166,8 @@ fn get_stats_response() -> Response {
     )
 }
 
-fn get_stats_single_event(n: u64) -> String {
-    let template = include_str!("fixtures/stats_single_event.json")
+fn get_stats_oneshot(n: u64) -> String {
+    let template = include_str!("fixtures/stats_oneshot.json")
         .to_string()
         .replace("\n", "");
     template.replace("{}", &n.to_string())
