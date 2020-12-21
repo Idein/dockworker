@@ -644,7 +644,7 @@ impl Docker {
     /// Get containers stats based resource usage
     ///
     /// # API
-    /// /containers/{id}/stats
+    /// GET /containers/{id}/stats
     pub fn stats(
         &self,
         container_id: &str,
@@ -1574,6 +1574,45 @@ mod tests {
         assert!(docker
             .remove_image(&format!("{}:{}", name, tag), None, None)
             .is_ok());
+    }
+
+    #[test]
+    fn read_stats_container() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        let (name, tag) = ("alpine", "3.11");
+        docker
+            .create_image(name, tag)
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
+            .unwrap();
+        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
+        create.host_config(ContainerHostConfig::new());
+
+        println!("create image {}:{}", name, tag);
+        let container_id = "dockworker_test_read_stats_container";
+        let res = docker
+            .create_container(Some(container_id), &create)
+            .unwrap();
+
+        let one_stats = docker
+            .stats(container_id, None, Some(true))
+            .unwrap()
+            .collect::<Vec<_>>();
+        assert_eq!(one_stats.len(), 1);
+        assert!(one_stats[0].as_ref().unwrap().networks.is_some());
+
+        println!("a container created: {}: {:?}", res.id, res.warnings);
+        docker
+            .stop_container(container_id, Duration::from_secs(10))
+            .unwrap();
+        println!("stop container");
+        docker
+            .remove_container(container_id, None, None, None)
+            .unwrap();
+        println!("remove container");
+        docker
+            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .unwrap();
+        println!("remove image");
     }
 
     #[test]
