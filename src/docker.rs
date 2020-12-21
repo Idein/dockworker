@@ -1587,32 +1587,34 @@ mod tests {
         let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
         create.host_config(ContainerHostConfig::new());
 
-        println!("create image {}:{}", name, tag);
         let container_id = "dockworker_test_read_stats_container";
-        let res = docker
+        docker
             .create_container(Some(container_id), &create)
             .unwrap();
+        docker.start_container(container_id).unwrap();
 
         let one_stats = docker
-            .stats(container_id, None, Some(true))
+            .stats(container_id, Some(false), Some(true))
             .unwrap()
             .collect::<Vec<_>>();
         assert_eq!(one_stats.len(), 1);
-        assert!(one_stats[0].as_ref().unwrap().networks.is_some());
 
-        println!("a container created: {}: {:?}", res.id, res.warnings);
+        let thr_stats = docker
+            .stats(container_id, Some(true), Some(false))
+            .unwrap()
+            .take(3)
+            .collect::<Vec<_>>();
+        assert!(thr_stats.iter().all(Result::is_ok));
+
         docker
             .stop_container(container_id, Duration::from_secs(10))
             .unwrap();
-        println!("stop container");
         docker
             .remove_container(container_id, None, None, None)
             .unwrap();
-        println!("remove container");
         docker
             .remove_image(&format!("{}:{}", name, tag), None, None)
             .unwrap();
-        println!("remove image");
     }
 
     #[test]
