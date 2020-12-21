@@ -37,14 +37,82 @@ impl iter::Iterator for StatsReader {
     }
 }
 
+/// response type of containers/stats api
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Stats {
+    pub id: String,
+    pub name: String,
     pub read: String,
     pub networks: Option<HashMap<String, Network>>,
     #[serde(deserialize_with = "format::empty_to_none")]
     pub memory_stats: Option<MemoryStats>,
     pub cpu_stats: CpuStats,
+    /// The precpu_stats is the CPU statistic of the previous read, and is used to calculate the CPU usage percentage.
+    /// It is not an exact copy of the cpu_stats field.
+    pub precpu_stats: CpuStats,
     pub blkio_stats: BlkioStats,
+}
+
+impl Stats {
+    pub fn used_memory(&self) -> Option<u64> {
+        self.memory_stats
+            .as_ref()
+            .map(|mem| mem.usage - mem.stats.cache)
+    }
+    pub fn available_memory(&self) -> Option<u64> {
+        self.memory_stats.as_ref().map(|mem| mem.limit)
+    }
+    /// memory usage %
+    pub fn memory_usage(&self) -> Option<f64> {
+        if let (Some(used_memory), Some(available_memory)) =
+            (self.used_memory(), self.available_memory())
+        {
+            Some((used_memory as f64 / available_memory as f64) * 100.0)
+        } else {
+            None
+        }
+    }
+    pub fn cpu_delta(&self) -> u64 {
+        self.cpu_stats.cpu_usage.total_usage - self.precpu_stats.cpu_usage.total_usage
+    }
+    pub fn system_cpu_delta(&self) -> Option<u64> {
+        if let (Some(cpu), Some(pre)) = (
+            self.cpu_stats.system_cpu_usage,
+            self.precpu_stats.system_cpu_usage,
+        ) {
+            Some(cpu - pre)
+        } else {
+            None
+        }
+    }
+    /// If either `precpu_stats.online_cpus` or `cpu_stats.online_cpus` is nil then for
+    /// compatibility with older daemons the length of the corresponding `cpu_usage.percpu_usage` array should be used.
+    pub fn number_cpus(&self) -> u64 {
+        if let Some(cpus) = self.cpu_stats.online_cpus {
+            cpus
+        } else {
+            let empty = &[];
+            self.cpu_stats
+                .cpu_usage
+                .percpu_usage
+                .as_ref()
+                .map(|v| v.as_slice())
+                .unwrap_or(empty)
+                .len() as u64
+        }
+    }
+    /// cpu usage %
+    pub fn cpu_usage(&self) -> Option<f64> {
+        if let Some(system_cpu_delta) = self.system_cpu_delta() {
+            Some(
+                (self.cpu_delta() as f64 / system_cpu_delta as f64)
+                    * self.number_cpus() as f64
+                    * 100.0,
+            )
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
@@ -104,12 +172,16 @@ pub struct MemoryStat {
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
 pub struct CpuStats {
     pub cpu_usage: CpuUsage,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub system_cpu_usage: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub online_cpus: Option<u64>,
     pub throttling_data: ThrottlingData,
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
 pub struct CpuUsage {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub percpu_usage: Option<Vec<u64>>,
     pub usage_in_usermode: u64,
     pub total_usage: u64,
