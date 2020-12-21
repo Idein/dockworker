@@ -35,6 +35,9 @@ fn get_stats_streaming() {
     let reader = StatsReader::new(get_stats_response());
     let stats = reader.collect::<Vec<Result<Stats, _>>>();
     assert_eq!(stats.len(), 3);
+    assert!(stats[0].as_ref().unwrap().memory_stats.is_some());
+    assert!(stats[1].as_ref().unwrap().memory_stats.is_some());
+    assert!(stats[2].as_ref().unwrap().memory_stats.is_some());
 }
 
 #[test]
