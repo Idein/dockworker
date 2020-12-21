@@ -219,28 +219,41 @@ pub struct BlkioStat {
 mod format {
     use super::*;
     use serde::de::{DeserializeOwned, Deserializer};
+    use serde::ser::{Serialize, Serializer};
+
+    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(untagged)]
+    enum Plus1<T> {
+        Item(T),
+        Empty {},
+    }
+
+    impl<T> From<Plus1<T>> for Option<T> {
+        fn from(value: Plus1<T>) -> Option<T> {
+            match value {
+                Plus1::Item(t) => Some(t),
+                Plus1::Empty {} => None,
+            }
+        }
+    }
 
     pub fn empty_to_none<'de, D, T>(de: D) -> std::result::Result<Option<T>, D::Error>
     where
         D: Deserializer<'de>,
         T: DeserializeOwned,
     {
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum Plus1<T> {
-            Empty {},
-            Item(T),
-        }
-
-        impl<T> From<Plus1<T>> for Option<T> {
-            fn from(value: Plus1<T>) -> Option<T> {
-                match value {
-                    Plus1::Empty {} => None,
-                    Plus1::Item(t) => Some(t),
-                }
-            }
-        }
-
         Plus1::<T>::deserialize(de).map(Into::into)
+    }
+
+    pub fn none_to_empty<T, S>(t: &Option<T>, se: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Serialize,
+    {
+        match t {
+            Some(stats) => Plus1::Item(stats),
+            None => Plus1::Empty {},
+        }
+        .serialize(se)
     }
 }
