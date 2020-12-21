@@ -44,7 +44,7 @@ pub struct Stats {
     pub name: String,
     pub read: String,
     pub networks: Option<HashMap<String, Network>>,
-    #[serde(deserialize_with = "format::empty_to_none")]
+    #[serde(with = "format::memory_stats")]
     pub memory_stats: Option<MemoryStats>,
     pub cpu_stats: CpuStats,
     /// The precpu_stats is the CPU statistic of the previous read, and is used to calculate the CPU usage percentage.
@@ -221,39 +221,48 @@ mod format {
     use serde::de::{DeserializeOwned, Deserializer};
     use serde::ser::{Serialize, Serializer};
 
-    #[derive(Debug, Serialize, Deserialize)]
-    #[serde(untagged)]
-    enum Plus1<T> {
-        Item(T),
-        Empty {},
-    }
+    pub mod memory_stats {
+        use super::*;
 
-    impl<T> From<Plus1<T>> for Option<T> {
-        fn from(value: Plus1<T>) -> Option<T> {
-            match value {
-                Plus1::Item(t) => Some(t),
-                Plus1::Empty {} => None,
+        #[derive(Debug, Serialize, Deserialize)]
+        #[serde(untagged)]
+        enum Plus1<T> {
+            Item(T),
+            Empty {},
+        }
+
+        impl<T> From<Plus1<T>> for Option<T> {
+            fn from(value: Plus1<T>) -> Option<T> {
+                match value {
+                    Plus1::Item(t) => Some(t),
+                    Plus1::Empty {} => None,
+                }
             }
         }
-    }
 
-    pub fn empty_to_none<'de, D, T>(de: D) -> std::result::Result<Option<T>, D::Error>
-    where
-        D: Deserializer<'de>,
-        T: DeserializeOwned,
-    {
-        Plus1::<T>::deserialize(de).map(Into::into)
-    }
-
-    pub fn none_to_empty<T, S>(t: &Option<T>, se: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-        T: Serialize,
-    {
-        match t {
-            Some(stats) => Plus1::Item(stats),
-            None => Plus1::Empty {},
+        impl<T> From<Option<T>> for Plus1<T> {
+            fn from(value: Option<T>) -> Plus1<T> {
+                match value {
+                    Option::Some(t) => Plus1::Item(t),
+                    Option::None => Plus1::Empty {},
+                }
+            }
         }
-        .serialize(se)
+
+        pub fn deserialize<'de, D, T>(de: D) -> std::result::Result<Option<T>, D::Error>
+        where
+            D: Deserializer<'de>,
+            T: DeserializeOwned,
+        {
+            Plus1::<T>::deserialize(de).map(Into::into)
+        }
+
+        pub fn serialize<T, S>(t: &Option<T>, se: S) -> std::result::Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+            T: Serialize,
+        {
+            Into::<Plus1<&T>>::into(t.as_ref()).serialize(se)
+        }
     }
 }
