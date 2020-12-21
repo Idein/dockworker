@@ -41,7 +41,8 @@ impl iter::Iterator for StatsReader {
 pub struct Stats {
     pub read: String,
     pub networks: Option<HashMap<String, Network>>,
-    pub memory_stats: MemoryStats,
+    #[serde(deserialize_with = "format::empty_to_none")]
+    pub memory_stats: Option<MemoryStats>,
     pub cpu_stats: CpuStats,
     pub blkio_stats: BlkioStats,
 }
@@ -103,13 +104,13 @@ pub struct MemoryStat {
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
 pub struct CpuStats {
     pub cpu_usage: CpuUsage,
-    pub system_cpu_usage: u64,
+    pub system_cpu_usage: Option<u64>,
     pub throttling_data: ThrottlingData,
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
 pub struct CpuUsage {
-    pub percpu_usage: Vec<u64>,
+    pub percpu_usage: Option<Vec<u64>>,
     pub usage_in_usermode: u64,
     pub total_usage: u64,
     pub usage_in_kernelmode: u64,
@@ -124,14 +125,14 @@ pub struct ThrottlingData {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
 pub struct BlkioStats {
-    pub io_service_bytes_recursive: Vec<BlkioStat>,
-    pub io_serviced_recursive: Vec<BlkioStat>,
-    pub io_queue_recursive: Vec<BlkioStat>,
-    pub io_service_time_recursive: Vec<BlkioStat>,
-    pub io_wait_time_recursive: Vec<BlkioStat>,
-    pub io_merged_recursive: Vec<BlkioStat>,
-    pub io_time_recursive: Vec<BlkioStat>,
-    pub sectors_recursive: Vec<BlkioStat>,
+    pub io_service_bytes_recursive: Option<Vec<BlkioStat>>,
+    pub io_serviced_recursive: Option<Vec<BlkioStat>>,
+    pub io_queue_recursive: Option<Vec<BlkioStat>>,
+    pub io_service_time_recursive: Option<Vec<BlkioStat>>,
+    pub io_wait_time_recursive: Option<Vec<BlkioStat>>,
+    pub io_merged_recursive: Option<Vec<BlkioStat>>,
+    pub io_time_recursive: Option<Vec<BlkioStat>>,
+    pub sectors_recursive: Option<Vec<BlkioStat>>,
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize)]
@@ -140,4 +141,33 @@ pub struct BlkioStat {
     pub minor: u64,
     pub op: String,
     pub value: u64,
+}
+
+mod format {
+    use super::*;
+    use serde::de::{DeserializeOwned, Deserializer};
+
+    pub fn empty_to_none<'de, D, T>(de: D) -> std::result::Result<Option<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: DeserializeOwned,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Plus1<T> {
+            Empty {},
+            Item(T),
+        }
+
+        impl<T> From<Plus1<T>> for Option<T> {
+            fn from(value: Plus1<T>) -> Option<T> {
+                match value {
+                    Plus1::Empty {} => None,
+                    Plus1::Item(t) => Some(t),
+                }
+            }
+        }
+
+        Plus1::<T>::deserialize(de).map(Into::into)
+    }
 }
