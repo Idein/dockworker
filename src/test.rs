@@ -24,27 +24,17 @@ fn get_networks() {
 }
 
 #[test]
-fn get_stats_single() {
-    let response = get_stats_single_event(1);
-    print!("{}", response);
-    assert!(serde_json::from_str::<Stats>(&response).is_ok())
+fn get_stats_suspended() {
+    let stats_oneshot = include_str!("fixtures/stats_suspend.json");
+    let v = serde_json::from_str::<Stats>(&stats_oneshot).unwrap();
+    assert!(v.memory_stats.is_none());
 }
 
 #[test]
 fn get_stats_streaming() {
-    let response = get_stats_response();
-    let mut reader = StatsReader::new(response);
-
-    let stats = reader.next().unwrap().unwrap();
-    assert_eq!(&stats.read, "2015-04-09T07:02:08.480022081Z");
-
-    let stats = reader.next().unwrap().unwrap();
-    assert_eq!(&stats.read, "2015-04-09T07:02:08.480022082Z");
-
-    let stats = reader.next().unwrap().unwrap();
-    assert_eq!(&stats.read, "2015-04-09T07:02:08.480022083Z");
-
-    assert!(reader.next().is_none());
+    let reader = StatsReader::new(get_stats_response());
+    let stats = reader.collect::<Vec<Result<Stats, _>>>();
+    assert_eq!(stats.len(), 3);
 }
 
 #[test]
@@ -156,19 +146,6 @@ fn get_stats_response() -> Response {
         .status(http::StatusCode::OK)
         .header("Transfer-Encoding", "chunked")
         .header("Connection", "Close");
-    let s1 = get_stats_single_event(1);
-    let s2 = get_stats_single_event(2);
-    let s3 = get_stats_single_event(3);
-    Response::new(
-        response
-            .body(hyper::Body::from(format!("{}\n{}\n{}", s1, s2, s3)))
-            .unwrap(),
-    )
-}
-
-fn get_stats_oneshot(n: u64) -> String {
-    let template = include_str!("fixtures/stats_oneshot.json")
-        .to_string()
-        .replace("\n", "");
-    template.replace("{}", &n.to_string())
+    let body = include_str!("fixtures/stats_stream.json").to_string();
+    Response::new(response.body(hyper::Body::from(body)).unwrap())
 }
