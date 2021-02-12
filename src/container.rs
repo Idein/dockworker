@@ -200,7 +200,8 @@ pub struct LogMessage {
     pub Output: String,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, PartialEq, PartialOrd, Eq, Ord)]
+#[serde(rename_all = "lowercase")]
 pub enum HealthState {
     /// Indicates there is no healthcheck
     NoHealthcheck,
