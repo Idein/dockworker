@@ -3,6 +3,7 @@ use crate::container::{
 };
 pub use crate::credentials::{Credential, UserPassword};
 use crate::errors::*;
+use crate::event::EventResponse;
 use crate::filesystem::{FilesystemChange, XDockerContainerPathStat};
 use crate::http_client::{HaveHttpClient, HttpClient};
 use crate::hyper_client::{HyperClient, Response};
