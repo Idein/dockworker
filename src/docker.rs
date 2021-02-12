@@ -1313,7 +1313,7 @@ impl Docker {
             "/networks/prune".to_string()
         } else {
             let mut param = url::form_urlencoded::Serializer::new(String::new());
-            println!("filters: {}", serde_json::to_string(&filters).unwrap());
+            debug!("filters: {}", serde_json::to_string(&filters).unwrap());
             param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
             format!("/networks/prune?{}", param.finish())
         };
@@ -1348,106 +1348,368 @@ mod tests {
     use crate::container;
 
     #[test]
-    fn test_server_access() {
+    fn test_ping() {
         let docker = Docker::connect_with_defaults().unwrap();
-        assert!(docker.ping().is_ok());
+        docker.ping().unwrap();
     }
 
     #[test]
-    fn test_info() {
+    fn test_system_info() {
         let docker = Docker::connect_with_defaults().unwrap();
-        assert!(docker.system_info().is_ok());
+        docker.system_info().unwrap();
     }
 
     #[test]
-    fn get_version() {
+    fn test_version() {
         let docker = Docker::connect_with_defaults().unwrap();
-        assert!(docker.version().is_ok());
+        docker.version().unwrap();
     }
 
     #[test]
-    fn get_events() {
+    fn test_events() {
         let docker = Docker::connect_with_defaults().unwrap();
-        assert!(docker.events(None, None, None).is_ok());
+        let _ = docker.events(None, None, None).unwrap();
     }
 
-    #[test]
-    fn create_remove_image() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("debian", "latest");
-        let sts = docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| assert!(st.is_ok())));
-        let image = docker.inspect_image(&format!("{}:{}", name, tag)).unwrap();
-        println!("inspect: {:?}", image);
-        assert!(sts.is_ok());
-        assert!(docker
+    fn double_stop_container(docker: &Docker, container: &str) {
+        println!(
+            "container info: {:?}",
+            docker.container_info(&container).unwrap()
+        );
+        docker
+            .stop_container(container, Duration::from_secs(10))
+            .unwrap();
+        docker
+            .stop_container(container, Duration::from_secs(10))
+            .unwrap();
+    }
+
+    fn stop_wait_container(docker: &Docker, container: &str) {
+        docker.start_container(container).unwrap();
+        docker.wait_container(container).unwrap();
+    }
+
+    fn head_file_container(docker: &Docker, container: &str) {
+        let res = docker.head_file(&container, Path::new("/bin/ls")).unwrap();
+        assert_eq!(res.name, "ls");
+        chrono::DateTime::parse_from_rfc3339(&res.mtime).unwrap();
+    }
+
+    fn stats_container(docker: &Docker, container: &str) {
+        docker.start_container(container).unwrap();
+
+        // one shot
+        let one_stats = docker
+            .stats(container, Some(false), Some(true))
+            .unwrap()
+            .collect::<Vec<_>>();
+        assert_eq!(one_stats.len(), 1);
+
+        // stream
+        let thr_stats = docker
+            .stats(container, Some(true), Some(false))
+            .unwrap()
+            .take(3)
+            .collect::<Vec<_>>();
+        assert!(thr_stats.iter().all(Result::is_ok));
+
+        docker
+            .stop_container(container, Duration::from_secs(10))
+            .unwrap();
+    }
+
+    fn wait_container(docker: &Docker, container: &str) {
+        assert_eq!(
+            docker.wait_container(container).unwrap(),
+            ExitStatus::new(0)
+        );
+    }
+
+    fn put_file_container(docker: &Docker, container: &str) {
+        let temp_dir = env::temp_dir();
+        let test_file = &temp_dir.join("test_file");
+
+        gen_rand_file(test_file, 1024).unwrap();
+        {
+            let mut builder =
+                TarBuilder::new(File::create(test_file.with_extension("tar")).unwrap());
+            builder
+                .append_file(
+                    test_file.strip_prefix("/").unwrap(),
+                    &mut File::open(test_file).unwrap(),
+                )
+                .unwrap();
+        }
+        assert!(matches!(
+            docker
+                .get_file(&container, test_file)
+                .map(|_| ())
+                .unwrap_err(),
+            Error::Docker(_) // not found
+        ));
+        docker
+            .put_file(
+                &container,
+                &test_file.with_extension("tar"),
+                Path::new("/"),
+                true,
+            )
+            .unwrap();
+        docker
+            .get_file(&container, test_file)
+            .unwrap()
+            .unpack(temp_dir.join("put"))
+            .unwrap();
+        docker.wait_container(&container).unwrap();
+
+        assert!(equal_file(
+            test_file,
+            &temp_dir.join("put").join(test_file.file_name().unwrap())
+        ));
+    }
+
+    fn log_container(docker: &Docker, container: &str) {
+        docker.start_container(&container).unwrap();
+
+        let log_options = ContainerLogOptions {
+            stdout: true,
+            stderr: true,
+            follow: true,
+            ..ContainerLogOptions::default()
+        };
+
+        let mut log = docker.log_container(&container, &log_options).unwrap();
+
+        let log_all = log.output().unwrap();
+        println!("log_all\n{}", log_all);
+    }
+
+    fn connect_container(docker: &Docker, container_name: &str, container_id: &str, network: &str) {
+        // docker run --net=network container
+        docker.start_container(&container_id).unwrap();
+        let network_start = docker.inspect_network(&network, None, None).unwrap();
+        assert_eq!(&network_start.Containers[container_id].Name, container_name);
+
+        // docker network disconnect network container
+        docker
+            .disconnect_network(
+                &network,
+                &NetworkDisconnectOptions {
+                    Container: container_id.to_owned(),
+                    Force: false,
+                },
+            )
+            .unwrap();
+
+        let network_disconn = docker.inspect_network(&network, None, None).unwrap();
+        assert!(network_disconn.Containers.is_empty());
+
+        // docker network connect network container
+        // connecting with `docker network connect` command
+        docker
+            .connect_network(
+                &network,
+                &NetworkConnectOptions {
+                    Container: container_id.to_owned(),
+                    EndpointConfig: EndpointConfig::default(),
+                },
+            )
+            .unwrap();
+
+        let network_conn = docker.inspect_network(&network, None, None).unwrap();
+        assert_eq!(&network_start.Id, &network_conn.Id);
+        // .keys == ID of containers
+        assert!(network_start
+            .Containers
+            .keys()
+            .eq(network_conn.Containers.keys()));
+
+        docker
+            .stop_container(&container_id, Duration::new(5, 0))
+            .unwrap();
+    }
+
+    fn test_container(docker: &Docker, image: &str) {
+        println!("stop container");
+        {
+            let mut create = ContainerCreateOptions::new(image);
+            let host_config = ContainerHostConfig::new();
+            create.host_config(host_config);
+
+            let container = docker
+                .create_container(Some("dockworker_test_0"), &create)
+                .unwrap();
+
+            double_stop_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("auto remove container");
+        {
+            let mut create = ContainerCreateOptions::new(image);
+            let mut host_config = ContainerHostConfig::new();
+            host_config.auto_remove(true);
+            create.host_config(host_config);
+
+            let container = docker
+                .create_container(Some("dockworker_test_1"), &create)
+                .unwrap();
+
+            stop_wait_container(&docker, &container.id);
+
+            // auto removed
+            assert!(
+                // 'no such container' or 'removel container in progress'
+                docker
+                    .remove_container(&container.id, None, None, None)
+                    .is_err()
+            );
+        }
+        println!("head file container");
+        {
+            let create = ContainerCreateOptions::new(image);
+
+            let container = docker
+                .create_container(Some("dockworker_test_2"), &create)
+                .unwrap();
+
+            head_file_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("stats container");
+        {
+            let mut create = ContainerCreateOptions::new(image);
+            create.host_config(ContainerHostConfig::new());
+
+            let container = docker
+                .create_container(Some("dockworker_test_3"), &create)
+                .unwrap();
+
+            stats_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("exit 0");
+        {
+            let mut create = ContainerCreateOptions::new(image);
+            create.cmd("ls".to_string());
+
+            let container = docker
+                .create_container(Some("dockworker_test_4"), &create)
+                .unwrap();
+
+            wait_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("put file");
+        {
+            let create = ContainerCreateOptions::new(image);
+
+            let container = docker
+                .create_container(Some("dockworker_test_5"), &create)
+                .unwrap();
+
+            put_file_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("logging container");
+        {
+            let mut create = ContainerCreateOptions::new(image);
+            create.entrypoint(vec!["cat".into()]);
+            create.cmd("/etc/motd".to_string());
+
+            let container = docker
+                .create_container(Some("dockworker_test_6"), &create)
+                .unwrap();
+
+            log_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("connect networks");
+        {
+            use std::collections::HashMap;
+            let network_name = "dockworker_test_network_1";
+            let network = docker
+                .create_network(&NetworkCreateOptions::new(network_name))
+                .unwrap();
+
+            let mut create = ContainerCreateOptions::new(image);
+            create
+                .attach_stdout(false)
+                .attach_stderr(false)
+                .tty(true)
+                .open_stdin(true);
+            let mut config = HashMap::new();
+            config.insert(network_name.to_owned(), EndpointConfig::default());
+            create.networking_config(NetworkingConfig {
+                endpoints_config: config.into(),
+            });
+
+            let container = docker
+                .create_container(Some("dockworker_test_7"), &create)
+                .unwrap();
+
+            connect_container(&docker, "dockworker_test_7", &container.id, &network.Id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+
+            docker.remove_network(&network.Id).unwrap();
+        }
+    }
+
+    fn test_image_api(docker: &Docker, name: &str, tag: &str) {
+        test_container(&docker, &format!("{}:{}", name, tag));
+    }
+
+    fn test_image(docker: &Docker, name: &str, tag: &str) {
+        docker.create_image(name, tag).unwrap().for_each(|st| {
+            println!("{:?}", st.unwrap());
+        });
+
+        let image = format!("{}:{}", name, tag);
+        let image_file = format!("dockworker_test_{}_{}.tar", name, tag);
+
+        {
+            let mut file = File::create(&image_file).unwrap();
+            let mut res = docker.export_image(&image).unwrap();
+            io::copy(&mut res, &mut file).unwrap();
+        }
+
+        docker.remove_image(&image, None, None).unwrap();
+        docker.load_image(false, Path::new(&image_file)).unwrap();
+        remove_file(&image_file).unwrap();
+
+        test_image_api(&docker, name, tag);
+
+        docker
             .remove_image(&format!("{}:{}", name, tag), None, None)
-            .is_ok());
+            .unwrap();
     }
 
     #[test]
-    fn create_remove_container() {
+    fn test_api() {
         let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("hello-world", "linux");
-        assert!(docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .is_ok());
-        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-        create.host_config(ContainerHostConfig::new());
 
-        assert!(docker
-            .create_container(Some("dockworker_test"), &create)
-            .is_ok());
-        assert!(docker
-            .remove_container("dockworker_test", None, None, None)
-            .is_ok());
-        assert!(docker
-            .remove_image(&format!("{}:{}", name, tag), None, None)
-            .is_ok());
-    }
-
-    #[test]
-    fn create_double_stop_container() {
-        let docker = Docker::connect_with_defaults().unwrap();
         let (name, tag) = ("alpine", "3.9");
-        assert!(docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .is_ok());
-        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-        create.host_config(ContainerHostConfig::new());
-
-        assert!(docker
-            .create_container(
-                Some("dockworker_test_create_remove_stop_container"),
-                &create
-            )
-            .is_ok());
-        assert!(docker
-            .stop_container(
-                "dockworker_test_create_remove_stop_container",
-                Duration::from_secs(10)
-            )
-            .is_ok());
-        assert!(docker
-            .stop_container(
-                "dockworker_test_create_remove_stop_container",
-                Duration::from_secs(10)
-            )
-            .is_ok());
-        assert!(docker
-            .remove_container(
-                "dockworker_test_create_remove_stop_container",
-                None,
-                None,
-                None
-            )
-            .is_ok());
-        assert!(docker
-            .remove_image(&format!("{}:{}", name, tag), None, None)
-            .is_ok());
+        test_image(&docker, name, tag);
     }
 
     #[cfg(feature = "experimental")]
@@ -1510,167 +1772,6 @@ mod tests {
         })
     }
 
-    #[test]
-    fn test_container_info() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("alpine", "3.8");
-        with_image(&docker, name, tag, |name, tag| {
-            let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-            let container = docker.create_container(None, &create).unwrap();
-            assert!(docker.container_info(&container.id).is_ok());
-            assert!(docker
-                .remove_container(&container.id, None, None, None)
-                .is_ok());
-        })
-    }
-
-    #[test]
-    fn test_head_file() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("redis", "3.2.11-alpine");
-        with_image(&docker, name, tag, |name, tag| {
-            let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-            let container = docker.create_container(None, &create).unwrap();
-
-            let res = docker
-                .head_file(&container.id, Path::new("/bin/ls"))
-                .unwrap();
-            assert_eq!(res.name, "ls");
-            assert_eq!(res.linkTarget, "/bin/busybox");
-            assert_eq!(res.mode, 134218239);
-            assert!(chrono::DateTime::parse_from_rfc3339(&res.mtime).is_ok());
-            assert!(docker
-                .remove_container(&container.id, None, None, None)
-                .is_ok());
-        })
-    }
-
-    #[test]
-    fn auto_remove_container() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("alpine", "3.7");
-        assert!(docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .is_ok());
-        let mut host_config = ContainerHostConfig::new();
-        host_config.auto_remove(true);
-        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-        create.host_config(host_config);
-
-        let container = docker
-            .create_container(Some("dockworker_auto_remove_container"), &create)
-            .unwrap();
-        assert!(docker.start_container(&container.id).is_ok());
-        assert!(docker.wait_container(&container.id).is_ok());
-        assert!(
-            docker
-                .remove_container("dockworker_auto_remove_container", None, None, None)
-                .is_err() // 'no such container' or 'removel container in progress'
-        );
-        assert!(docker
-            .remove_image(&format!("{}:{}", name, tag), Some(true), None)
-            .is_ok());
-    }
-
-    fn pull_image(docker: &Docker, name: &str, tag: &str) {
-        assert!(docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .is_ok());
-    }
-
-    #[test]
-    fn export_load_image() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        pull_image(&docker, "alpine", "latest");
-
-        {
-            let mut file = File::create("dockworker_test_alpine.tar").unwrap();
-            let mut res = docker.export_image("alpine:latest").unwrap();
-            io::copy(&mut res, &mut file).unwrap();
-        }
-
-        assert!(docker.remove_image("alpine:latest", None, None).is_ok());
-        assert!(docker
-            .load_image(false, Path::new("dockworker_test_alpine.tar"))
-            .is_ok());
-        assert!(remove_file("dockworker_test_alpine.tar").is_ok());
-    }
-
-    fn with_image<F>(docker: &Docker, name: &str, tag: &str, f: F)
-    where
-        F: Fn(&str, &str),
-    {
-        pull_image(&docker, name, tag);
-        f(name, tag);
-        assert!(docker
-            .remove_image(&format!("{}:{}", name, tag), None, None)
-            .is_ok());
-    }
-
-    #[test]
-    fn read_stats_container() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("alpine", "3.11");
-        docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .unwrap();
-        let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-        create.host_config(ContainerHostConfig::new());
-
-        let container_id = "dockworker_test_read_stats_container";
-        docker
-            .create_container(Some(container_id), &create)
-            .unwrap();
-        docker.start_container(container_id).unwrap();
-
-        let one_stats = docker
-            .stats(container_id, Some(false), Some(true))
-            .unwrap()
-            .collect::<Vec<_>>();
-        assert_eq!(one_stats.len(), 1);
-
-        let thr_stats = docker
-            .stats(container_id, Some(true), Some(false))
-            .unwrap()
-            .take(3)
-            .collect::<Vec<_>>();
-        assert!(thr_stats.iter().all(Result::is_ok));
-
-        docker
-            .stop_container(container_id, Duration::from_secs(10))
-            .unwrap();
-        docker
-            .remove_container(container_id, None, None, None)
-            .unwrap();
-        docker
-            .remove_image(&format!("{}:{}", name, tag), None, None)
-            .unwrap();
-    }
-
-    #[test]
-    fn wait_container() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("alpine", "3.4");
-        let container_name = "alpine34_exit0";
-        with_image(&docker, name, tag, |name, tag| {
-            let mut create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-            create.cmd("ls".to_string());
-            assert!(docker
-                .create_container(Some(container_name), &create)
-                .is_ok());
-            assert_eq!(
-                docker.wait_container(container_name).unwrap(),
-                ExitStatus::new(0)
-            );
-            assert!(docker
-                .remove_container(container_name, None, None, None)
-                .is_ok());
-        })
-    }
-
     // generate a file on path which is constructed from size chars alphanum seq
     fn gen_rand_file(path: &Path, size: usize) -> io::Result<()> {
         let mut rng = rand::thread_rng();
@@ -1692,133 +1793,13 @@ mod tests {
     }
 
     #[test]
-    fn put_file_to_container() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("alpine", "3.6");
-
-        let temp_dir = env::temp_dir();
-        let test_file = &temp_dir.join("test_file");
-
-        with_image(&docker, name, tag, |name, tag| {
-            let create = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-            let container = docker.create_container(None, &create).unwrap();
-            assert!(docker.start_container(&container.id).is_ok());
-
-            gen_rand_file(test_file, 1024).unwrap();
-            {
-                let mut builder =
-                    TarBuilder::new(File::create(test_file.with_extension("tar")).unwrap());
-                builder
-                    .append_file(
-                        test_file.strip_prefix("/").unwrap(),
-                        &mut File::open(test_file).unwrap(),
-                    )
-                    .unwrap();
-            }
-
-            assert!(match docker.get_file(&container.id, test_file) {
-                Ok(_) => false,
-                Err(err) => {
-                    if let Error::Docker(_) = err {
-                        true // not found
-                    } else {
-                        false
-                    }
-                }
-            });
-
-            docker
-                .put_file(
-                    &container.id,
-                    &test_file.with_extension("tar"),
-                    Path::new("/"),
-                    true,
-                )
-                .unwrap();
-
-            docker
-                .get_file(&container.id, test_file)
-                .unwrap()
-                .unpack(temp_dir.join("put"))
-                .unwrap();
-
-            docker.wait_container(&container.id).unwrap();
-
-            docker
-                .remove_container(&container.id, None, None, None)
-                .unwrap();
-        });
-
-        assert!(equal_file(
-            test_file,
-            &temp_dir.join("put").join(test_file.file_name().unwrap())
-        ));
-    }
-
-    #[test]
-    fn log_container() {
-        let docker = Docker::connect_with_defaults().unwrap();
-        let (name, tag) = ("alpine", "3.5");
-        docker
-            .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .unwrap();
-        let mut create_options = ContainerCreateOptions::new(&format!("{}:{}", name, tag));
-        create_options.entrypoint(vec!["cat".into()]);
-        create_options.cmd("/etc/motd".to_string());
-
-        let log_options = ContainerLogOptions {
-            stdout: true,
-            stderr: true,
-            follow: true,
-            ..ContainerLogOptions::default()
-        };
-
-        let lines = {
-            let container = docker.create_container(None, &create_options).unwrap();
-            docker.start_container(&container.id).unwrap();
-            let log = docker.log_container(&container.id, &log_options).unwrap();
-            let lines = BufReader::new(log)
-                .lines()
-                .map(|x| x.unwrap())
-                .fold("".to_string(), |acc, s| acc + &s);
-            docker
-                .remove_container(&container.id, None, None, None)
-                .unwrap();
-            lines
-        };
-
-        let once = {
-            let container = docker.create_container(None, &create_options).unwrap();
-            docker.start_container(&container.id).unwrap();
-            let mut log = docker.log_container(&container.id, &log_options).unwrap();
-            let once = log
-                .output()
-                .unwrap()
-                .replace(|c| c == '\r' || c == '\n', "")
-                .to_owned();
-            docker
-                .remove_container(&container.id, None, None, None)
-                .unwrap();
-            once
-        };
-
-        assert_eq!(lines, once);
-
-        docker
-            .remove_image(&format!("{}:{}", name, tag), None, None)
-            .unwrap();
-    }
-
-    #[test]
     fn test_networks() {
-        inspect_networks();
-        connect_networks();
-        prune_networks();
+        let docker = Docker::connect_with_defaults().unwrap();
+        inspect_networks(&docker);
+        prune_networks(&docker);
     }
 
-    fn inspect_networks() {
-        let docker = Docker::connect_with_defaults().unwrap();
+    fn inspect_networks(docker: &Docker) {
         for network in &docker.list_networks(ListNetworkFilters::default()).unwrap() {
             let network = docker
                 .inspect_network(&network.Id, Some(true), None)
@@ -1847,93 +1828,10 @@ mod tests {
             .is_none());
     }
 
-    fn connect_networks() {
-        use std::collections::HashMap;
-        let docker = Docker::connect_with_defaults().unwrap();
-        pull_image(&docker, "busybox", "latest");
-        // docker network create nw_test_1
-        let nw_test_1 = docker
-            .create_network(&NetworkCreateOptions::new("nw_test_1"))
-            .unwrap()
-            .Id;
-        let nw_test_container_1 = {
-            let create_opt = {
-                let mut opt = ContainerCreateOptions::new("busybox");
-                opt.attach_stdout(false)
-                    .attach_stderr(false)
-                    .tty(true)
-                    .open_stdin(true);
-                let mut config = HashMap::new();
-                config.insert("nw_test_1".to_owned(), EndpointConfig::default());
-                opt.networking_config(NetworkingConfig {
-                    endpoints_config: config.into(),
-                });
-                opt
-            };
-            docker
-                .create_container(Some("nw_test_container_1"), &create_opt)
-                .unwrap()
-                .id
-        };
-        // docker run --net=nw_test_1 -itd --name=nw_test_container_1 busybox
-        docker.start_container(&nw_test_container_1).unwrap();
-        let connect_with_run = {
-            let nw = docker.inspect_network(&nw_test_1, None, None).unwrap();
-            assert_eq!(
-                &nw.Containers[&nw_test_container_1].Name,
-                "nw_test_container_1"
-            );
-            nw
-        };
-        // docker network disconnect nw_test1 nw_test_container_1
-        docker
-            .disconnect_network(
-                &nw_test_1,
-                &NetworkDisconnectOptions {
-                    Container: nw_test_container_1.clone(),
-                    Force: false,
-                },
-            )
-            .unwrap();
-        {
-            let nw = docker.inspect_network(&nw_test_1, None, None).unwrap();
-            assert!(nw.Containers.is_empty());
-        }
-        // docker network connect nw_test_1 nw_test_container_1
-        // connecting with `docker network connect` command
-        docker
-            .connect_network(
-                &nw_test_1,
-                &NetworkConnectOptions {
-                    Container: nw_test_container_1.clone(),
-                    EndpointConfig: EndpointConfig::default(),
-                },
-            )
-            .unwrap();
-        {
-            let connect_with_network_cmd = docker.inspect_network(&nw_test_1, None, None).unwrap();
-            assert_eq!(&connect_with_run.Id, &connect_with_network_cmd.Id);
-            // .keys == ID of containers
-            assert!(connect_with_run
-                .Containers
-                .keys()
-                .eq(connect_with_network_cmd.Containers.keys()));
-        }
-
-        docker
-            .stop_container(&nw_test_container_1, Duration::new(5, 0))
-            .unwrap();
-        docker
-            .remove_container(&nw_test_container_1, None, None, None)
-            .unwrap();
-        docker.remove_network(&nw_test_1).unwrap();
-    }
-
-    fn prune_networks() {
+    fn prune_networks(docker: &Docker) {
         use crate::network::LabelFilter as F;
         use crate::network::NetworkCreateOptions as Net;
         use crate::network::PruneNetworkFilters as Prune;
-        let docker = Docker::connect_with_defaults().unwrap();
         let mut create_nw_3 = Local::now();
         for i in 1..=6 {
             docker
@@ -1951,6 +1849,7 @@ mod tests {
             }
         }
 
+        println!("filter network by label");
         assert_eq!(
             {
                 let mut filter = Prune::default();
@@ -1959,6 +1858,7 @@ mod tests {
             },
             &["nw_test_1".to_owned()]
         );
+        println!("filter network by negated label");
         assert_eq!(
             {
                 let mut filter = Prune::default();
@@ -1967,6 +1867,7 @@ mod tests {
             },
             &["nw_test_2".to_owned()]
         );
+        println!("filter network by timestamp");
         assert_eq!(
             {
                 let mut filter = Prune::default();
@@ -1975,6 +1876,7 @@ mod tests {
             },
             &["nw_test_3".to_owned()]
         );
+        println!("filter network by label");
         assert_eq!(
             {
                 let mut filter = Prune::default();
@@ -1983,6 +1885,7 @@ mod tests {
             },
             &["nw_test_4".to_owned()]
         );
+        println!("filter network by negated label");
         assert_eq!(
             {
                 let mut filter = Prune::default();
@@ -1991,6 +1894,7 @@ mod tests {
             },
             &["nw_test_5".to_owned()]
         );
+        println!("prune network");
         assert_eq!(
             docker
                 .prune_networks(Prune::default())
