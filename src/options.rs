@@ -1034,16 +1034,6 @@ pub struct ImageLayer {
     pub comment: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[allow(non_snake_case)]
-pub struct EventResponse {
-    pub Type: String,
-    pub Action: String,
-    pub Actor: EventActor,
-    pub time: u64,
-    pub timeNano: u64,
-}
-
 #[derive(Debug, PartialEq, PartialOrd, Serialize)]
 pub struct EventFilters {
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -1075,13 +1065,6 @@ pub struct EventFilters {
     type_: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     volume: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[allow(non_snake_case)]
-pub struct EventActor {
-    pub ID: String,
-    pub Attributes: HashMap<String, String>,
 }
 
 impl Default for EventFilters {
