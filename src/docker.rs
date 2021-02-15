@@ -968,7 +968,7 @@ impl Docker {
             .and_then(api_result)
             .map(|mut hs: Vec<ImageLayer>| {
                 hs.iter_mut().for_each(|change| {
-                    if change.id == Some("<missing>".into()) {
+                    if change.id.as_deref() == Some("<missing>") {
                         change.id = None;
                     }
                 });
