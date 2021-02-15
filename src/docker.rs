@@ -1676,7 +1676,14 @@ mod tests {
     }
 
     fn test_image_api(docker: &Docker, name: &str, tag: &str) {
+        let containers_pre = docker
+            .list_containers(Some(true), None, Some(true), ContainerFilters::new())
+            .unwrap();
         test_container(&docker, &format!("{}:{}", name, tag));
+        let containers_post = docker
+            .list_containers(Some(true), None, Some(true), ContainerFilters::new())
+            .unwrap();
+        assert_eq!(containers_pre, containers_post);
     }
 
     fn test_image(docker: &Docker, name: &str, tag: &str) {
