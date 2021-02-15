@@ -11,7 +11,7 @@ use std::io::{self, Read};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[allow(non_snake_case)]
 pub struct Container {
     pub Id: String,
@@ -47,13 +47,13 @@ pub enum PortType {
     Udp,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(non_snake_case)]
 pub struct HostConfig {
     pub NetworkMode: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[allow(non_snake_case)]
 pub struct SummaryNetworkSettings {
     pub Networks: Option<HashMap<String, Option<Network>>>,
@@ -145,7 +145,7 @@ pub struct Config {
     pub WorkingDir: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[allow(non_snake_case)]
 pub struct Mount {
     // Name (optional)
