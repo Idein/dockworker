@@ -1384,6 +1384,18 @@ mod tests {
             .unwrap();
     }
 
+    fn restart_container(docker: &Docker, container: &str) {
+        docker
+            .stop_container(container, Duration::from_secs(10))
+            .unwrap();
+        docker
+            .restart_container(container, Duration::from_secs(10))
+            .unwrap();
+        docker
+            .stop_container(container, Duration::from_secs(10))
+            .unwrap();
+    }
+
     fn stop_wait_container(docker: &Docker, container: &str) {
         docker.start_container(container).unwrap();
         docker.wait_container(container).unwrap();
@@ -1541,6 +1553,20 @@ mod tests {
                 .unwrap();
 
             double_stop_container(&docker, &container.id);
+
+            docker
+                .remove_container(&container.id, None, None, None)
+                .unwrap();
+        }
+        println!("restart container");
+        {
+            let create = ContainerCreateOptions::new(image);
+
+            let container = docker
+                .create_container(Some("dockworker_test_0"), &create)
+                .unwrap();
+
+            restart_container(&docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
