@@ -291,7 +291,7 @@ impl std::fmt::Display for ContainerInfo {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Serialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ContainerStatus {
     Created,
@@ -303,7 +303,7 @@ pub enum ContainerStatus {
     Dead,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Serialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize)]
 pub struct ContainerFilters {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     id: Vec<String>,

@@ -1550,7 +1550,6 @@ mod tests {
                 next
             }
         };
-
         println!("stop container");
         {
             let create = ContainerCreateOptions::new(image);
@@ -1693,14 +1692,21 @@ mod tests {
     }
 
     fn test_image_api(docker: &Docker, name: &str, tag: &str) {
-        let containers_pre = docker
-            .list_containers(Some(true), None, Some(true), ContainerFilters::new())
-            .unwrap();
+        let mut filter = ContainerFilters::new();
+        filter.name("test_container_");
+
+        assert!(
+            docker
+                .list_containers(Some(true), None, Some(true), filter.clone())
+                .unwrap()
+                .is_empty(),
+            "remove containers 'test_container_*'"
+        );
         test_container(&docker, &format!("{}:{}", name, tag));
-        let containers_post = docker
-            .list_containers(Some(true), None, Some(true), ContainerFilters::new())
-            .unwrap();
-        assert_eq!(containers_pre, containers_post);
+        assert!(docker
+            .list_containers(Some(true), None, Some(true), filter)
+            .unwrap()
+            .is_empty());
     }
 
     fn test_image(docker: &Docker, name: &str, tag: &str) {
