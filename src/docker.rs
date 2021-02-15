@@ -1542,13 +1542,20 @@ mod tests {
     }
 
     fn test_container(docker: &Docker, image: &str) {
+        let mut next_id = {
+            let mut id = 0;
+            move || {
+                let next = format!("test_container_{}", id);
+                id = id + 1;
+                next
+            }
+        };
+
         println!("stop container");
         {
             let create = ContainerCreateOptions::new(image);
 
-            let container = docker
-                .create_container(Some("dockworker_test_0"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             double_stop_container(&docker, &container.id);
 
@@ -1560,9 +1567,7 @@ mod tests {
         {
             let create = ContainerCreateOptions::new(image);
 
-            let container = docker
-                .create_container(Some("dockworker_test_0"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             restart_container(&docker, &container.id);
 
@@ -1577,9 +1582,7 @@ mod tests {
             host_config.auto_remove(true);
             create.host_config(host_config);
 
-            let container = docker
-                .create_container(Some("dockworker_test_1"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             stop_wait_container(&docker, &container.id);
 
@@ -1595,9 +1598,7 @@ mod tests {
         {
             let create = ContainerCreateOptions::new(image);
 
-            let container = docker
-                .create_container(Some("dockworker_test_2"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             head_file_container(&docker, &container.id);
 
@@ -1609,9 +1610,7 @@ mod tests {
         {
             let create = ContainerCreateOptions::new(image);
 
-            let container = docker
-                .create_container(Some("dockworker_test_3"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             stats_container(&docker, &container.id);
 
@@ -1624,9 +1623,7 @@ mod tests {
             let mut create = ContainerCreateOptions::new(image);
             create.cmd("ls".to_string());
 
-            let container = docker
-                .create_container(Some("dockworker_test_4"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             wait_container(&docker, &container.id);
 
@@ -1638,9 +1635,7 @@ mod tests {
         {
             let create = ContainerCreateOptions::new(image);
 
-            let container = docker
-                .create_container(Some("dockworker_test_5"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             put_file_container(&docker, &container.id);
 
@@ -1654,9 +1649,7 @@ mod tests {
             create.entrypoint(vec!["cat".into()]);
             create.cmd("/etc/motd".to_string());
 
-            let container = docker
-                .create_container(Some("dockworker_test_6"), &create)
-                .unwrap();
+            let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
             log_container(&docker, &container.id);
 
@@ -1684,11 +1677,12 @@ mod tests {
                 endpoints_config: config.into(),
             });
 
+            let container_name = next_id();
             let container = docker
-                .create_container(Some("dockworker_test_7"), &create)
+                .create_container(Some(&container_name), &create)
                 .unwrap();
 
-            connect_container(&docker, "dockworker_test_7", &container.id, &network.Id);
+            connect_container(&docker, &container_name, &container.id, &network.Id);
 
             docker
                 .remove_container(&container.id, None, None, None)
