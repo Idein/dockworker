@@ -1376,6 +1376,7 @@ mod tests {
             "container info: {:?}",
             docker.container_info(&container).unwrap()
         );
+        docker.start_container(&container).unwrap();
         docker
             .stop_container(container, Duration::from_secs(10))
             .unwrap();
@@ -1385,6 +1386,7 @@ mod tests {
     }
 
     fn restart_container(docker: &Docker, container: &str) {
+        docker.start_container(&container).unwrap();
         docker
             .stop_container(container, Duration::from_secs(10))
             .unwrap();
