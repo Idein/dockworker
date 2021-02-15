@@ -1544,9 +1544,7 @@ mod tests {
     fn test_container(docker: &Docker, image: &str) {
         println!("stop container");
         {
-            let mut create = ContainerCreateOptions::new(image);
-            let host_config = ContainerHostConfig::new();
-            create.host_config(host_config);
+            let create = ContainerCreateOptions::new(image);
 
             let container = docker
                 .create_container(Some("dockworker_test_0"), &create)
@@ -1609,8 +1607,7 @@ mod tests {
         }
         println!("stats container");
         {
-            let mut create = ContainerCreateOptions::new(image);
-            create.host_config(ContainerHostConfig::new());
+            let create = ContainerCreateOptions::new(image);
 
             let container = docker
                 .create_container(Some("dockworker_test_3"), &create)
