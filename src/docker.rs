@@ -1725,9 +1725,9 @@ mod tests {
             let container = docker
                 .create_container(Some("dockworker_checkpoint_test"), &create)
                 .unwrap();
-            assert!(docker.start_container(&container.id).is_ok());
+            docker.start_container(&container.id)..unwrap();
 
-            assert!(docker
+            docker
                 .checkpoint_container(
                     &container.id,
                     &CheckpointCreateOptions {
@@ -1736,7 +1736,7 @@ mod tests {
                         exit: Some(true),
                     },
                 )
-                .is_ok());
+                .unwrap();
 
             assert_eq!(
                 "v1".to_string(),
@@ -1748,27 +1748,27 @@ mod tests {
 
             thread::sleep(Duration::from_secs(1));
 
-            assert!(docker
+            docker
                 .resume_container_from_checkpoint(&container.id, "v1", None)
-                .is_ok());
+                .unwrap();
 
-            assert!(docker
+            docker
                 .stop_container(&container.id, Duration::new(0, 0))
-                .is_ok());
+                .unwrap();
 
-            assert!(docker
+            docker
                 .delete_checkpoint(
                     &container.id,
                     &CheckpointDeleteOptions {
                         checkpoint_id: "v1".to_string(),
-                        checkpoint_dir: None
-                    }
+                        checkpoint_dir: None,
+                    },
                 )
-                .is_ok());
+                .unwrap();
 
-            assert!(docker
+            docker
                 .remove_container("dockworker_checkpoint_test", None, None, None)
-                .is_ok());
+                .unwrap();
         })
     }
 
