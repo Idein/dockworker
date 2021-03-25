@@ -957,6 +957,11 @@ impl CreateExecOptions {
         self
     }
 
+    pub fn env(&mut self, env: String) -> &mut Self {
+        self.env.push(env);
+        self
+    }
+
     /// push back a cmd argment
     pub fn cmd(&mut self, cmd: String) -> &mut Self {
         self.cmd.push(cmd);
