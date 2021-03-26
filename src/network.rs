@@ -27,7 +27,7 @@ pub struct Network {
 #[allow(non_snake_case)]
 pub struct IPAM {
     pub Driver: String,
-    pub Config: Vec<HashMap<String, String>>,
+    pub Config: Vec<IPAMConfig>,
     #[serde(deserialize_with = "format::null_to_default")]
     pub Options: HashMap<String, String>,
 }
@@ -40,6 +40,23 @@ impl Default for IPAM {
             Options: HashMap::new(),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[allow(non_snake_case)]
+pub struct IPAMConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Subnet: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub IPRange: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Gateway: Option<String>,
+    #[serde(
+        skip_serializing_if = "HashMap::is_empty",
+        deserialize_with = "format::null_to_default",
+        default
+    )]
+    pub AuxiliaryAddresses: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
