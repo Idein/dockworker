@@ -110,5 +110,48 @@
       "com.docker.compose.network": "default",
       "com.docker.compose.project": "test"
     }
+  },
+  {
+    "Name": "test_macvlan",
+    "Id": "032c6988efef37feb7f7c807fc66e13708bec7325bff4eed90a38815c0d1501f",
+    "Created": "2020-12-10T12:00:07.472567245-04:00",
+    "Scope": "local",
+    "Driver": "macvlan",
+    "EnableIPv6": false,
+    "IPAM": {
+        "Driver": "default",
+        "Options": {},
+        "Config": [
+            {
+                "Subnet": "172.16.0.0/16",
+                "IPRange": "172.16.64.0/24",
+                "Gateway": "172.16.0.1",
+                "AuxiliaryAddresses": {
+                  "host": "172.16.64.0",
+                  "test_device": "172.16.64.1"
+                }
+            }
+        ]
+    },
+    "Internal": false,
+    "Attachable": false,
+    "Ingress": false,
+    "ConfigFrom": {
+        "Network": ""
+    },
+    "ConfigOnly": false,
+    "Containers": {
+        "042116c93520a9e1cd37999db08691a3ab343ac95947b3518d38293f026fc7cb": {
+            "Name": "macvlan_container",
+            "EndpointID": "8a54b40ee98d6918b26c5fdeecb3cc748f89782f0e7e3dc2f4b0ec990b5b0319",
+            "MacAddress": "02:42:ac:1b:27:6f",
+            "IPv4Address": "172.16.64.100/16",
+            "IPv6Address": ""
+        }
+    },
+    "Options": {
+        "parent": "eno1"
+    },
+    "Labels": {}
   }
 ]
