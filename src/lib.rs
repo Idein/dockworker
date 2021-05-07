@@ -6,7 +6,6 @@ pub mod credentials;
 mod docker;
 pub mod errors;
 pub mod filesystem;
-mod header;
 mod http_client;
 mod hyper_client;
 pub mod image;

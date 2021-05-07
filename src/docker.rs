@@ -4,7 +4,6 @@ use crate::container::{
 pub use crate::credentials::{Credential, UserPassword};
 use crate::errors::*;
 use crate::filesystem::{FilesystemChange, XDockerContainerPathStat};
-use crate::header::XRegistryAuth;
 use crate::http_client::{HaveHttpClient, HttpClient};
 use crate::hyper_client::{HyperClient, Response};
 use crate::image::{Image, ImageId, SummaryImage};
@@ -19,7 +18,6 @@ use crate::version::Version;
 #[cfg(feature = "experimental")]
 use checkpoint::{Checkpoint, CheckpointCreateOptions, CheckpointDeleteOptions};
 use http::{HeaderMap, StatusCode};
-use hyperx::header::{ContentType, TypedHeaders};
 use log::*;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -304,7 +302,10 @@ impl Docker {
 
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         self.http_client()
             .post(&headers, &path, &json_body)
             .and_then(api_result)
@@ -537,7 +538,10 @@ impl Docker {
     ) -> Result<CreateExecResponse> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         self.http_client()
             .post(&headers, &format!("/containers/{}/exec", id), &json_body)
             .and_then(api_result)
@@ -554,7 +558,10 @@ impl Docker {
         let json_body = serde_json::to_string(&option)?;
 
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
 
         self.http_client()
             .post(&headers, &format!("/exec/{}/start", id), &json_body)
@@ -791,8 +798,10 @@ impl Docker {
     /// /build?
     pub fn build_image(&self, options: ContainerBuildOptions, tar_path: &Path) -> Result<Response> {
         let mut headers = self.headers().clone();
-        let application_tar: mime::Mime = "application/x-tar".parse().unwrap();
-        headers.encode(&ContentType(application_tar));
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/x-tar".parse().unwrap(),
+        );
         let res = self.http_client().post_file(
             &headers,
             &format!("/build?{}", options.to_url_params()),
@@ -831,10 +840,12 @@ impl Docker {
         if let Some(ref credential) = self.credential {
             headers.insert(
                 "X-Registry-Auth",
-                XRegistryAuth::from(credential.clone())
-                    .to_string()
-                    .parse()
-                    .unwrap(),
+                base64::encode_config(
+                    serde_json::to_string(credential).unwrap().as_bytes(),
+                    base64::STANDARD,
+                )
+                .parse()
+                .unwrap(),
             );
         }
         let res =
@@ -878,10 +889,12 @@ impl Docker {
         if let Some(ref credential) = self.credential {
             headers.insert(
                 "X-Registry-Auth",
-                XRegistryAuth::from(credential.clone())
-                    .to_string()
-                    .parse()
-                    .unwrap(),
+                base64::encode_config(
+                    serde_json::to_string(credential).unwrap().as_bytes(),
+                    base64::STANDARD,
+                )
+                .parse()
+                .unwrap(),
             );
         }
         self.http_client()
@@ -992,8 +1005,10 @@ impl Docker {
     /// /images/load
     pub fn load_image(&self, quiet: bool, path: &Path) -> Result<ImageId> {
         let mut headers = self.headers().clone();
-        let application_tar: mime::Mime = "application/x-tar".parse().unwrap();
-        headers.encode(&ContentType(application_tar));
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/x-tar".parse().unwrap(),
+        );
         let res = self.http_client().post_file(
             &headers,
             &format!("/images/load?quiet={}", quiet),
@@ -1049,7 +1064,10 @@ impl Docker {
         );
         let json_body = serde_json::to_string(&req)?;
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         self.http_client()
             .post(&headers, "/auth", &json_body)
             .and_then(api_result)
@@ -1235,7 +1253,10 @@ impl Docker {
     pub fn create_network(&self, option: &NetworkCreateOptions) -> Result<CreateNetworkResponse> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         self.http_client()
             .post(&headers, "/networks/create", &json_body)
             .and_then(api_result)
@@ -1248,7 +1269,10 @@ impl Docker {
     pub fn connect_network(&self, id: &str, option: &NetworkConnectOptions) -> Result<()> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         self.http_client()
             .post(&headers, &format!("/networks/{}/connect", id), &json_body)
             .and_then(ignore_result)
@@ -1261,7 +1285,10 @@ impl Docker {
     pub fn disconnect_network(&self, id: &str, option: &NetworkDisconnectOptions) -> Result<()> {
         let json_body = serde_json::to_string(&option)?;
         let mut headers = self.headers().clone();
-        headers.encode(&ContentType::json());
+        headers.insert(
+            http::header::CONTENT_TYPE,
+            "application/json".parse().unwrap(),
+        );
         self.http_client()
             .post(
                 &headers,

@@ -1,10 +1,8 @@
 ///! Access credentials for accessing any docker daemon endpoints
 ///!
 ///! Currently, any values of these types are only used for `/images/{name}/push` api.
-use crate::header::XRegistryAuth;
 use crate::system::AuthToken;
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 /// Access credential
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -70,11 +68,5 @@ impl IdentityToken {
         Self {
             identitytoken: token,
         }
-    }
-}
-
-impl From<Credential> for XRegistryAuth {
-    fn from(credential: Credential) -> Self {
-        XRegistryAuth::new(serde_json::to_string(&credential).unwrap())
     }
 }
