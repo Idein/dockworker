@@ -215,7 +215,7 @@ dependencies = [
 
 [[package]]
 name = "dockworker"
-version = "0.0.22"
+version = "0.0.23"
 dependencies = [
  "backtrace-sys",
  "base64 0.9.3",
