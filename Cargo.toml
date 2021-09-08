@@ -43,7 +43,7 @@ tokio = { version = "0.2", features = ["full"] }
 log = "0.4"
 mime = "0.3"
 native-tls = { version = "0.2", optional = true }
-nix = "0.15"
+nix = "0.18"
 base64 = "0.9"
 dirs = "1"
 
