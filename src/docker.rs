@@ -70,6 +70,7 @@ pub struct Docker {
     /// http client
     client: HyperClient,
     /// connection protocol
+    #[allow(dead_code)]
     protocol: Protocol,
     /// http headers used for any requests
     headers: HeaderMap,
