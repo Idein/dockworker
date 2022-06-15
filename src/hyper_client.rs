@@ -45,8 +45,7 @@ impl Response {
         let (tx, rx) = futures::channel::mpsc::unbounded();
 
         let handle = std::thread::spawn(move || {
-            let mut tokio_runtime = tokio::runtime::Builder::new()
-                .basic_scheduler()
+            let tokio_runtime = tokio::runtime::Builder::new_multi_thread()
                 .enable_all()
                 .build()
                 .unwrap();
@@ -114,8 +113,7 @@ impl std::io::Read for Response {
                 futures::future::ready(false)
             });
 
-            let (_, _) = tokio::runtime::Builder::new()
-                .basic_scheduler()
+            let (_, _) = tokio::runtime::Builder::new_multi_thread()
                 .enable_all()
                 .build()
                 .unwrap()
@@ -140,7 +138,10 @@ pub struct HyperClient {
 
 fn join_uri(uri: &Uri, path: &str) -> Result<Uri> {
     let joined = format!("{}{}", uri.to_string(), path);
-    Ok(Uri::from_str(&joined).context(ErrorKind::InvalidUri { var: joined })?)
+    Ok(Uri::from_str(&joined).map_err(|err| Error::InvalidUri {
+        var: joined,
+        source: err,
+    })?)
 }
 
 fn request_builder(
@@ -223,8 +224,7 @@ impl HyperClient {
             client,
             base,
             tokio_runtime: std::sync::Mutex::new(
-                tokio::runtime::Builder::new()
-                    .threaded_scheduler()
+                tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
                     .build()
                     .unwrap(),
@@ -276,7 +276,10 @@ impl HyperClient {
         builder.add_root_certificate(ca);
         // This ensures that using docker-machine-esque addresses work with Hyper.
         let addr_https = addr.clone().replacen("tcp://", "https://", 1);
-        let url = Uri::from_str(&addr_https).context(ErrorKind::InvalidUri { var: addr_https })?;
+        let url = Uri::from_str(&addr_https).map_err(|err| Error::InvalidUri {
+            var: addr_https,
+            source: err,
+        })?;
         let mut http = hyper::client::HttpConnector::new();
         http.enforce_http(false);
         let https = hyper_tls::HttpsConnector::from((http, builder.build()?.into()));
@@ -287,7 +290,10 @@ impl HyperClient {
     pub fn connect_with_http(addr: &str) -> result::Result<Self, Error> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
         let addr_https = addr.clone().replace("tcp://", "http://");
-        let url = Uri::from_str(&addr_https).context(ErrorKind::InvalidUri { var: addr_https })?;
+        let url = Uri::from_str(&addr_https).map_err(|err| Error::InvalidUri {
+            var: addr_https,
+            source: err,
+        })?;
         Ok(Self::new(Client::HttpClient(hyper::Client::new()), url))
     }
 }

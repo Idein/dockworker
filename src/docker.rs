@@ -50,7 +50,7 @@ pub fn default_cert_path() -> Result<PathBuf> {
     if let Ok(ref path) = from_env {
         Ok(PathBuf::from(path))
     } else {
-        let home = dirs::home_dir().ok_or_else(|| ErrorKind::NoCertPath)?;
+        let home = dirs::home_dir().ok_or_else(|| Error::NoCertPath)?;
         Ok(home.join(".docker"))
     }
 }
@@ -188,7 +188,7 @@ impl Docker {
                 Docker::connect_with_http(&host)
             }
         } else {
-            Err(ErrorKind::UnsupportedScheme { host: host.clone() }.into())
+            Err(Error::UnsupportedScheme { host: host.clone() }.into())
         }
     }
 
@@ -209,7 +209,7 @@ impl Docker {
 
     #[cfg(not(unix))]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
-        Err(ErrorKind::UnsupportedScheme {
+        Err(Error::UnsupportedScheme {
             host: addr.to_owned(),
         }
         .into())
@@ -217,25 +217,28 @@ impl Docker {
 
     #[cfg(feature = "openssl")]
     pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
-        let client = HyperClient::connect_with_ssl(addr, key, cert, ca).context(
-            ErrorKind::CouldNotConnect {
+        let client = HyperClient::connect_with_ssl(addr, key, cert, ca).map_err(|err| {
+            Error::CouldNotConnect {
                 addr: addr.to_owned(),
-            },
-        )?;
+                source: err.into(),
+            }
+        })?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
     #[cfg(not(feature = "openssl"))]
     pub fn connect_with_ssl(_addr: &str, _key: &Path, _cert: &Path, _ca: &Path) -> Result<Docker> {
-        Err(ErrorKind::SslDisabled.into())
+        Err(Error::SslDisabled.into())
     }
 
     /// Connect using unsecured HTTP.  This is strongly discouraged
     /// everywhere but on Windows when npipe support is not available.
     pub fn connect_with_http(addr: &str) -> Result<Docker> {
-        let client = HyperClient::connect_with_http(addr).context(ErrorKind::CouldNotConnect {
-            addr: addr.to_owned(),
-        })?;
+        let client =
+            HyperClient::connect_with_http(addr).map_err(|err| Error::CouldNotConnect {
+                addr: addr.to_owned(),
+                source: err.into(),
+            })?;
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
@@ -745,8 +748,9 @@ impl Docker {
                     .get("X-Docker-Container-Path-Stat")
                     .map(|h| h.to_str().unwrap_or(""))
                     .unwrap_or("");
-                let bytes = base64::decode(stat_base64).context(ErrorKind::ParseError {
+                let bytes = base64::decode(stat_base64).map_err(|err| Error::ParseError {
                     input: String::from(stat_base64),
+                    source: err,
                 })?;
                 let path_stat: XDockerContainerPathStat = serde_json::from_slice(&bytes)?;
                 Ok(path_stat)
@@ -1029,13 +1033,13 @@ impl Docker {
             // looking for file name like XXXXXXXXXXXXXX.json
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
-                let id = stem.to_str().ok_or(ErrorKind::Unknown {
+                let id = stem.to_str().ok_or(Error::Unknown {
                     message: format!("convert to String: {:?}", stem),
                 })?;
                 return Ok(ImageId::new(id.to_string()));
             }
         }
-        Err(ErrorKind::Unknown {
+        Err(Error::Unknown {
             message: "no expected file: XXXXXX.json".to_owned(),
         }
         .into())
@@ -1670,7 +1674,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         let mut file = File::create(path)?;
         let vec: String = iter::repeat(())
-            .map(|_| rng.sample(rand::distributions::Alphanumeric))
+            .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
             .take(size)
             .collect();
         file.write_all(vec.as_bytes())
@@ -1713,7 +1717,7 @@ mod tests {
             assert!(match docker.get_file(&container.id, test_file) {
                 Ok(_) => false,
                 Err(err) => {
-                    if let ErrorKind::Docker = err.kind() {
+                    if let Error::Docker(_) = err {
                         true // not found
                     } else {
                         false

@@ -26,7 +26,7 @@ mod unix {
 
         pub fn from_c_int(signum: c_int) -> Result<Self, Error> {
             Ok(NixSignal::try_from(signum)
-                .map_err(|err| io::Error::from_raw_os_error(err.as_errno().unwrap() as i32))?
+                .map_err(|err| io::Error::from_raw_os_error(err as i32))?
                 .into())
         }
     }

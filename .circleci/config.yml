@@ -3,7 +3,7 @@ jobs:
   build_image:
     working_directory: /tmp/dockworker
     machine:
-      image: circleci/classic:201808-01
+      image: ubuntu-2004:202008-01
     steps:
       - checkout
       - run:
@@ -22,7 +22,7 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: rust:1.47.0
+      - image: rust:1.49.0
         environment:
           DOCKER_VERSION: 18.03.1-ce
     steps:

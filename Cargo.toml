@@ -27,35 +27,33 @@ ssl = ["openssl", "native-tls", "hyper-tls"]
 
 [dependencies]
 chrono = "0.4"
-failure = "0.1"
-backtrace-sys = "=0.1.23"
 futures = "0.3"
 http = "0.2"
-hyper = "0.13"
+hyper = { version = "0.14", features = ["client", "http1", "stream", "tcp"] }
 openssl = { version = "0.10", optional = true }
-hyper-tls = { version = "0.4", optional = true }
+hyper-tls = { version = "0.5", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = "2"
 byteorder = "1"
 tar = "0.4"
-tokio = { version = "0.2", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 log = "0.4"
 mime = "0.3"
 native-tls = { version = "0.2", optional = true }
-nix = "0.18"
-base64 = "0.9"
-dirs = "1"
+nix = "0.24"
+base64 = "0.13"
+dirs = "4"
+thiserror = "1"
 
 [dev-dependencies]
-failure = "0.1"
-env_logger = "0.8"
-rand = "0.5"
+env_logger = "0.9"
+rand = "0.8"
 
 [target.'cfg(unix)'.dependencies]
-hyperlocal = "0.7"
+hyperlocal = "0.8"
 unix_socket = "0.5"
 
 [target.'cfg(windows)'.dependencies]
-named_pipe = "0.2"
+named_pipe = "0.4"
 
