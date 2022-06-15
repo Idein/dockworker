@@ -36,6 +36,7 @@ pub struct Response {
     pub status: StatusCode,
     buf: Vec<u8>,
     rx: futures::channel::mpsc::UnboundedReceiver<hyper::body::Bytes>,
+    #[allow(dead_code)]
     handle: std::thread::JoinHandle<()>,
 }
 
