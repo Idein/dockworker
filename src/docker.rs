@@ -270,7 +270,7 @@ impl Docker {
             .and_then(api_result)
     }
 
-    #[deprecated]
+    #[deprecated(note = "please use `list_containers` instead")]
     pub fn containers(&self, opts: ContainerListOptions) -> Result<Vec<Container>> {
         self.http_client()
             .get(
