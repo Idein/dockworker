@@ -56,6 +56,14 @@ pub struct IPAMConfig {
         deserialize_with = "format::null_to_default",
         default
     )]
+    /// This field is given by "macvlan" network.
+    ///
+    /// # Example
+    /// When the docker command is executed like below:
+    /// ```ignore
+    /// docker network create -d macvlan .. --aux-address="my-router=172.16.86.1" ..
+    /// ```
+    /// The value will be equals to `HashMap::from([("my-router", "172.16.86.5")])`.
     pub AuxiliaryAddresses: HashMap<String, String>,
 }
 
