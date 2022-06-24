@@ -16,7 +16,7 @@ fn main() {
         opt.enable_icc()
             .enable_ip_masquerade()
             .host_binding_ipv4(Ipv4Addr::new(0, 0, 0, 0))
-            .bridge_name("dockworker_example_0")
+            .bridge_name("dockworker_ex_0")
             .driver_mtu(1500);
         opt.internal = true;
         opt
