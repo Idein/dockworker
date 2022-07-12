@@ -60,7 +60,7 @@ pub struct IPAMConfig {
     ///
     /// # Example
     /// When the docker command is executed like below:
-    /// ```ignore
+    /// ```text
     /// docker network create -d macvlan .. --aux-address="my-router=172.16.86.1" ..
     /// ```
     /// The value will be equals to `HashMap::from([("my-router", "172.16.86.5")])`.
