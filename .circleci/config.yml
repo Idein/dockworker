@@ -22,7 +22,7 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: rust:1.49.0
+      - image: rust:1.56.0
         environment:
           DOCKER_VERSION: 18.03.1-ce
     steps:
@@ -63,11 +63,21 @@ jobs:
             RUST_BACKTRACE=1 cargo build --verbose --features ssl
             RUST_BACKTRACE=1 cargo build --examples -j 8
       - run:
-          name: Unit testing
+          name: Unit testing with ssl feature
           command: |
             RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl
       - run:
-          name: More unit testing
+          name: Unit testing with ssl-rustls feature
+          command: |
+            RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl
+      - run:
+          name: More unit testing with ssl feature
+          command: |
+            docker load -i test-iostream
+            docker load -i test-signal
+            RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
+      - run:
+          name: More unit testing with ssl-rustls feature
           command: |
             docker load -i test-iostream
             docker load -i test-signal
