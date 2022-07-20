@@ -15,6 +15,8 @@ enum Client {
     HttpClient(hyper::Client<hyper::client::HttpConnector>),
     #[cfg(feature = "openssl")]
     HttpsClient(hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>>),
+    #[cfg(feature = "ssl-rustls")]
+    HttpsClient(hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>),
     #[cfg(unix)]
     UnixClient(hyper::Client<hyperlocal::UnixConnector>),
 }
@@ -24,6 +26,8 @@ impl Client {
         match self {
             Client::HttpClient(http_client) => http_client.request(req),
             #[cfg(feature = "openssl")]
+            Client::HttpsClient(https_client) => https_client.request(req),
+            #[cfg(feature = "ssl-rustls")]
             Client::HttpsClient(https_client) => https_client.request(req),
             #[cfg(unix)]
             Client::UnixClient(unix_client) => unix_client.request(req),
@@ -284,6 +288,42 @@ impl HyperClient {
         let mut http = hyper::client::HttpConnector::new();
         http.enforce_http(false);
         let https = hyper_tls::HttpsConnector::from((http, builder.build()?.into()));
+        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
+        Ok(Self::new(Client::HttpsClient(client), url))
+    }
+
+    #[cfg(feature = "ssl-rustls")]
+    pub fn connect_with_ssl(
+        addr: &str,
+        key: &Path,
+        cert: &Path,
+        ca: &Path,
+    ) -> result::Result<Self, Error> {
+        use rustls::{Certificate, PrivateKey};
+        use std::fs;
+        let addr_https = addr.clone().replacen("tcp://", "https://", 1);
+        let url = Uri::from_str(&addr_https).map_err(|err| Error::InvalidUri {
+            var: addr_https,
+            source: err,
+        })?;
+        let private_key = PrivateKey(fs::read(key)?);
+        let cert = Certificate(fs::read(cert)?);
+        let ca = Certificate(fs::read(ca)?);
+        let mut root_certs = rustls::RootCertStore::empty();
+        root_certs.add(&ca)?;
+        let config = rustls::ClientConfig::builder()
+            .with_safe_default_cipher_suites()
+            .with_safe_default_kx_groups()
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_root_certificates(root_certs)
+            .with_single_cert(vec![cert], private_key)
+            .expect("bad certificate/key");
+        let https = hyper_rustls::HttpsConnectorBuilder::new()
+            .with_tls_config(config)
+            .https_only()
+            .enable_http1()
+            .build();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Ok(Self::new(Client::HttpsClient(client), url))
     }

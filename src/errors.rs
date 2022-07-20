@@ -33,6 +33,12 @@ pub enum Error {
     #[cfg(feature = "openssl")]
     #[error("ssl error")]
     OpenSsl(#[from] openssl::error::ErrorStack),
+    #[cfg(feature = "ssl-rustls")]
+    #[error("tls error")]
+    Rustls(#[from] rustls::Error),
+    #[cfg(feature = "ssl-rustls")]
+    #[error("certificate error")]
+    Webpki(#[from] webpki::Error),
     #[error("could not connect: {}", addr)]
     CouldNotConnect { addr: String, source: Box<Error> },
     #[error("could not find DOCKER_CERT_PATH")]

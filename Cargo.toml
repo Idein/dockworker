@@ -24,6 +24,8 @@ experimental = []
 
 # Enable OpenSSL both directly and for Hyper.
 ssl = ["openssl", "native-tls", "hyper-tls"]
+# Enable TLS via Rustls
+ssl-rustls = ["rustls", "hyper-rustls", "webpki"]
 
 [dependencies]
 chrono = "0.4"
@@ -32,6 +34,9 @@ http = "0.2"
 hyper = { version = "0.14", features = ["client", "http1", "stream", "tcp"] }
 openssl = { version = "0.10", optional = true }
 hyper-tls = { version = "0.5", optional = true }
+hyper-rustls = { version = "0.23", optional = true }
+rustls = { version = "0.20.1", optional = true }
+webpki = { version = "0.22.0", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 url = "2"

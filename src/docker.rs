@@ -216,7 +216,7 @@ impl Docker {
         .into())
     }
 
-    #[cfg(feature = "openssl")]
+    #[cfg(any(feature = "openssl", feature = "ssl-rustls"))]
     pub fn connect_with_ssl(addr: &str, key: &Path, cert: &Path, ca: &Path) -> Result<Docker> {
         let client = HyperClient::connect_with_ssl(addr, key, cert, ca).map_err(|err| {
             Error::CouldNotConnect {
@@ -227,7 +227,7 @@ impl Docker {
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
-    #[cfg(not(feature = "openssl"))]
+    #[cfg(not(any(feature = "openssl", feature = "rustls")))]
     pub fn connect_with_ssl(_addr: &str, _key: &Path, _cert: &Path, _ca: &Path) -> Result<Docker> {
         Err(Error::SslDisabled.into())
     }
