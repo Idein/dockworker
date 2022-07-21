@@ -322,7 +322,7 @@ impl HyperClient {
                 PrivateKey(keys.remove(0))
             }
         };
-        let certs = rustls_pemfile::certs(&mut cert_buf)?
+        let certs = rustls_pemfile::pkcs8_private_keys(&mut cert_buf)?
             .into_iter()
             .map(Certificate)
             .collect();
