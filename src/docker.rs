@@ -1538,8 +1538,9 @@ mod tests {
             assert_eq!(res.linkTarget, "/bin/busybox");
             assert_eq!(res.mode, 134218239);
             assert!(chrono::DateTime::parse_from_rfc3339(&res.mtime).is_ok());
-            let ret = docker.remove_container(&container.id, None, None, None);
-            assert!(ret.is_ok(), "result is not Ok: {:?}", ret);
+            assert!(docker
+                .remove_container(&container.id, None, None, None)
+                .is_ok());
         })
     }
 
@@ -1572,10 +1573,10 @@ mod tests {
     }
 
     fn pull_image(docker: &Docker, name: &str, tag: &str) {
-        assert!(docker
+        let ret = docker
             .create_image(name, tag)
-            .map(|sts| sts.for_each(|st| println!("{:?}", st)))
-            .is_ok());
+            .map(|sts| sts.for_each(|st| println!("{:?}", st)));
+        assert!(ret.is_ok(), "create image failed {:?}", ret);
     }
 
     #[test]
