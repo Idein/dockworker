@@ -301,7 +301,6 @@ impl HyperClient {
         ca: &Path,
     ) -> result::Result<Self, Error> {
         use rustls::{Certificate, PrivateKey};
-        use rustls_pemfile::pkcs8_private_keys;
         use std::io::BufReader;
 
         let addr_https = addr.clone().replacen("tcp://", "https://", 1);
@@ -314,7 +313,7 @@ impl HyperClient {
         let mut cert_buf = BufReader::new(File::open(cert)?);
         let mut ca_buf = BufReader::new(File::open(ca)?);
 
-        let private_key = match pkcs8_private_keys(&mut key_buf)? {
+        let private_key = match rustls_pemfile::rsa_private_keys(&mut key_buf)? {
             keys if keys.is_empty() => return Err(rustls::Error::NoCertificatesPresented.into()),
             mut keys if keys.len() == 1 => PrivateKey(keys.remove(0)),
             mut keys => {
