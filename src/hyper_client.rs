@@ -4,7 +4,6 @@ use futures::prelude::*;
 use futures::stream::FusedStream;
 use http::{HeaderMap, Request, StatusCode};
 use hyper::Uri;
-use log::warn;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -300,6 +299,7 @@ impl HyperClient {
         cert: &Path,
         ca: &Path,
     ) -> result::Result<Self, Error> {
+        use log::warn;
         use rustls::{Certificate, PrivateKey};
         use std::io::BufReader;
 
