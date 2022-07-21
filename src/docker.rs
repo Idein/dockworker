@@ -1538,9 +1538,8 @@ mod tests {
             assert_eq!(res.linkTarget, "/bin/busybox");
             assert_eq!(res.mode, 134218239);
             assert!(chrono::DateTime::parse_from_rfc3339(&res.mtime).is_ok());
-            assert!(docker
-                .remove_container(&container.id, None, None, None)
-                .is_ok());
+            let ret = docker.remove_container(&container.id, None, None, None);
+            assert!(ret.is_ok(), "result is not Ok: {:?}", ret);
         })
     }
 
