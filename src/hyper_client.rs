@@ -301,6 +301,7 @@ impl HyperClient {
     ) -> result::Result<Self, Error> {
         use log::warn;
         use rustls::{Certificate, PrivateKey};
+        use rustls_pemfile::Item;
         use std::io::BufReader;
 
         let addr_https = addr.clone().replacen("tcp://", "https://", 1);
@@ -322,9 +323,12 @@ impl HyperClient {
                 PrivateKey(keys.remove(0))
             }
         };
-        let certs = rustls_pemfile::pkcs8_private_keys(&mut cert_buf)?
+        let certs = rustls_pemfile::read_all(&mut cert_buf)?
             .into_iter()
-            .map(Certificate)
+            .filter_map(|item| match item {
+                Item::X509Certificate(c) => Some(Certificate(c)),
+                _ => None,
+            })
             .collect();
         let mut root_certs = rustls::RootCertStore::empty();
         for c in rustls_pemfile::certs(&mut ca_buf)? {
@@ -341,8 +345,8 @@ impl HyperClient {
             .expect("bad certificate/key");
         let https = hyper_rustls::HttpsConnectorBuilder::new()
             .with_tls_config(config)
-            .https_only()
-            .enable_http1()
+            .https_or_http()
+            .enable_http2()
             .build();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Ok(Self::new(Client::HttpsClient(client), url))
