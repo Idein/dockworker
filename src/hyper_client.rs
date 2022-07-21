@@ -4,6 +4,7 @@ use futures::prelude::*;
 use futures::stream::FusedStream;
 use http::{HeaderMap, Request, StatusCode};
 use hyper::Uri;
+use log::warn;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -300,24 +301,44 @@ impl HyperClient {
         ca: &Path,
     ) -> result::Result<Self, Error> {
         use rustls::{Certificate, PrivateKey};
-        use std::fs;
+        use rustls_pemfile::pkcs8_private_keys;
+        use std::io::BufReader;
+
         let addr_https = addr.clone().replacen("tcp://", "https://", 1);
         let url = Uri::from_str(&addr_https).map_err(|err| Error::InvalidUri {
             var: addr_https,
             source: err,
         })?;
-        let private_key = PrivateKey(fs::read(key)?);
-        let cert = Certificate(fs::read(cert)?);
-        let ca = Certificate(fs::read(ca)?);
+
+        let mut key_buf = BufReader::new(File::open(key)?);
+        let mut cert_buf = BufReader::new(File::open(cert)?);
+        let mut ca_buf = BufReader::new(File::open(ca)?);
+
+        let private_key = match pkcs8_private_keys(&mut key_buf)? {
+            keys if keys.is_empty() => return Err(rustls::Error::NoCertificatesPresented.into()),
+            mut keys if keys.len() == 1 => PrivateKey(keys.remove(0)),
+            mut keys => {
+                // if keys.len() > 1
+                warn!("Private key file contains multiple keys. Using only first one.");
+                PrivateKey(keys.remove(0))
+            }
+        };
+        let certs = rustls_pemfile::certs(&mut cert_buf)?
+            .into_iter()
+            .map(Certificate)
+            .collect();
         let mut root_certs = rustls::RootCertStore::empty();
-        root_certs.add(&ca)?;
+        for c in rustls_pemfile::certs(&mut ca_buf)? {
+            root_certs.add(&Certificate(c))?;
+        }
+
         let config = rustls::ClientConfig::builder()
             .with_safe_default_cipher_suites()
             .with_safe_default_kx_groups()
             .with_safe_default_protocol_versions()
             .unwrap()
             .with_root_certificates(root_certs)
-            .with_single_cert(vec![cert], private_key)
+            .with_single_cert(certs, private_key)
             .expect("bad certificate/key");
         let https = hyper_rustls::HttpsConnectorBuilder::new()
             .with_tls_config(config)
