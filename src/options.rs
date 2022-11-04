@@ -466,21 +466,21 @@ impl ContainerHostConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct LogConfig {
-    pub type_: LogConfigType,
+    pub r#type: LogConfigType,
     pub config: HashMap<String, String>,
 }
 impl Default for LogConfig {
     fn default() -> Self {
         Self {
-            type_: LogConfigType::default(),
+            r#type: LogConfigType::default(),
             config: HashMap::new(),
         }
     }
 }
 impl LogConfig {
-    pub fn new(type_: LogConfigType) -> Self {
+    pub fn new(r#type: LogConfigType) -> Self {
         Self {
-            type_,
+            r#type,
             config: HashMap::new(),
         }
     }
