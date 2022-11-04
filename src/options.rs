@@ -477,6 +477,14 @@ impl Default for LogConfig {
         }
     }
 }
+impl LogConfig {
+    pub fn new(type_: LogConfigType) -> Self {
+        Self {
+            type_,
+            config: HashMap::new(),
+        }
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum LogConfigType {
