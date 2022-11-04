@@ -245,7 +245,7 @@ pub struct ContainerHostConfig {
     sysctls: HashMap<String, String>,
     runtime: String,
     // ulimits: TODO: Not sure the type of this. the provided is [{}]
-    // log_config: TODO: not sure the type of this. the provided makes no sense
+    log_config: LogConfig,
     // security_opt: TODO: Not sure the type of this. The provided is []
     // storage_opt: TODO: Not sure the type of this. the provided is {}
     cgroup_parent: String,
@@ -293,6 +293,7 @@ impl ContainerHostConfig {
             devices: Vec::new(),
             sysctls: HashMap::new(),
             runtime: "".to_owned(),
+            log_config: LogConfig::default(),
             cgroup_parent: "".to_owned(),
             volume_driver: "".to_owned(),
             /// 64MB
@@ -444,6 +445,10 @@ impl ContainerHostConfig {
         self.runtime = runtime;
         self
     }
+    pub fn log_config(&mut self, log_config: LogConfig) -> &mut Self {
+        self.log_config = log_config;
+        self
+    }
     pub fn cgroup_parent(&mut self, cgroup_parent: String) -> &mut Self {
         self.cgroup_parent = cgroup_parent;
         self
@@ -455,6 +460,39 @@ impl ContainerHostConfig {
     pub fn shm_size(&mut self, shm_size: u64) -> &mut Self {
         self.shm_size = shm_size;
         self
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct LogConfig {
+    pub type_: LogConfigType,
+    pub config: HashMap<String, String>,
+}
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            type_: LogConfigType::default(),
+            config: HashMap::new(),
+        }
+    }
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LogConfigType {
+    JsonFile,
+    Syslog,
+    Journald,
+    Gelf,
+    Fluentd,
+    Awslogs,
+    Splunk,
+    Etwlogs,
+    None,
+}
+impl Default for LogConfigType {
+    fn default() -> Self {
+        LogConfigType::Journald
     }
 }
 
