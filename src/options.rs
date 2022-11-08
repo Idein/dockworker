@@ -125,6 +125,31 @@ mod tests {
     use serde_json;
 
     #[test]
+    fn serde_logconfig() {
+        let cfg = LogConfig::new(LogConfigType::JsonFile);
+        let json = serde_json::to_string(&cfg).unwrap();
+        let json_cfg = serde_json::from_str(&json).unwrap();
+        assert_eq!(&cfg, &json_cfg);
+    }
+
+    #[test]
+    fn serde_logconfig_with_opt() {
+        let config = {
+            let mut cfg = HashMap::new();
+            cfg.insert("tagA".to_string(), "valueA".to_string());
+            cfg.insert("tagB".to_string(), "valueB".to_string());
+            cfg
+        };
+        let cfg = LogConfig {
+            r#type: LogConfigType::JsonFile,
+            config,
+        };
+        let json = serde_json::to_string(&cfg).unwrap();
+        let json_cfg = serde_json::from_str(&json).unwrap();
+        assert_eq!(&cfg, &json_cfg);
+    }
+
+    #[test]
     fn deser_restart_policy() {
         let no = r#"{"MaximumRetryCount":0, "Name":"no"}"#;
         assert_eq!(RestartPolicy::default(), serde_json::from_str(no).unwrap());
@@ -469,6 +494,7 @@ pub struct LogConfig {
     pub r#type: LogConfigType,
     pub config: HashMap<String, String>,
 }
+
 impl Default for LogConfig {
     fn default() -> Self {
         Self {
@@ -477,6 +503,7 @@ impl Default for LogConfig {
         }
     }
 }
+
 impl LogConfig {
     pub fn new(r#type: LogConfigType) -> Self {
         Self {
@@ -485,6 +512,7 @@ impl LogConfig {
         }
     }
 }
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum LogConfigType {
@@ -498,6 +526,7 @@ pub enum LogConfigType {
     Etwlogs,
     None,
 }
+
 impl Default for LogConfigType {
     fn default() -> Self {
         LogConfigType::Journald
