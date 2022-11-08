@@ -24,18 +24,12 @@ fn main() {
     };
 
     let res = docker.log_container(&container.id, &log_options).unwrap();
-    let mut line_reader = BufReader::new(res);
+    let mut lines = BufReader::new(res).lines();
 
-    loop {
-        let mut line = String::new();
-        match line_reader.read_line(&mut line) {
-            Ok(size) => {
-                print!("{:4}: {}", size, line);
-                if size == 0 {
-                    break;
-                }
-            }
-            Err(e) => eprint!("{:?}", e),
+    while let Some(line) = lines.next() {
+        match line {
+            Ok(line) => println!("read: {}", line),
+            Err(e) => eprintln!("err: {:?}", e),
         }
     }
     println!(""); // line break
