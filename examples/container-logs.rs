@@ -1,8 +1,12 @@
 extern crate dockworker;
 
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
+use std::iter::FromIterator;
 
-use dockworker::{ContainerCreateOptions, ContainerLogOptions, Docker};
+use dockworker::{
+    ContainerCreateOptions, ContainerHostConfig, ContainerLogOptions, Docker, LogConfig,
+};
 
 fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
@@ -11,6 +15,18 @@ fn main() {
     create.tty(true);
     create.entrypoint(vec!["/bin/ping".into(), "-c".into(), "5".into()]);
     create.cmd("localhost".to_string());
+    create.host_config({
+        let mut host = ContainerHostConfig::new();
+        let log_config = LogConfig {
+            config: HashMap::from_iter(
+                vec![("tag".to_string(), "dockworker-test".to_string())].into_iter(),
+            ),
+            ..Default::default()
+        };
+        println!("logging with: {:?}", log_config);
+        host.log_config(log_config);
+        host
+    });
 
     let container = docker.create_container(None, &create).unwrap();
     docker.start_container(&container.id).unwrap();
