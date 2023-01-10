@@ -93,23 +93,16 @@ impl Stats {
             self.cpu_stats
                 .cpu_usage
                 .percpu_usage
-                .as_ref()
-                .map(|v| v.as_slice())
+                .as_deref()
                 .unwrap_or(empty)
                 .len() as u64
         }
     }
     /// cpu usage %
     pub fn cpu_usage(&self) -> Option<f64> {
-        if let Some(system_cpu_delta) = self.system_cpu_delta() {
-            Some(
-                (self.cpu_delta() as f64 / system_cpu_delta as f64)
-                    * self.number_cpus() as f64
-                    * 100.0,
-            )
-        } else {
-            None
-        }
+        self.system_cpu_delta().map(|system_cpu_delta| {
+            (self.cpu_delta() as f64 / system_cpu_delta as f64) * self.number_cpus() as f64 * 100.0
+        })
     }
 }
 

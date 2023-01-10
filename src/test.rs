@@ -26,7 +26,7 @@ fn get_networks() {
 #[test]
 fn get_stats_suspended() {
     let stats_oneshot = include_str!("fixtures/stats_suspend.json");
-    let v = serde_json::from_str::<Stats>(&stats_oneshot).unwrap();
+    let v = serde_json::from_str::<Stats>(stats_oneshot).unwrap();
     assert!(v.memory_stats.is_none());
 }
 
@@ -70,16 +70,16 @@ fn get_image_history() {
 #[test]
 fn get_container_info() {
     let response = get_container_info_response();
-    serde_json::from_str::<ContainerInfo>(&response).unwrap();
+    serde_json::from_str::<ContainerInfo>(response).unwrap();
 
     let response = get_container_info_response_with_healthcheck();
-    serde_json::from_str::<ContainerInfo>(&response).unwrap();
+    serde_json::from_str::<ContainerInfo>(response).unwrap();
 }
 
 #[test]
 fn get_healthcheck_info() {
     let response = get_container_info_response_with_healthcheck();
-    let container_info = serde_json::from_str::<ContainerInfo>(&response).unwrap();
+    let container_info = serde_json::from_str::<ContainerInfo>(response).unwrap();
     assert!(container_info.State.Health.is_some());
     assert!(container_info.State.Health.unwrap().Status == HealthState::Healthy);
 }

@@ -23,9 +23,9 @@ fn main() {
         serveraddress.to_owned(),
     )));
 
-    println!("pulled: {}:{}", name, tag);
+    println!("pulled: {name}:{tag}");
     docker
-        .push_image(&format!("{}/{}", serveraddress, name), tag)
+        .push_image(&format!("{serveraddress}/{name}"), tag)
         .unwrap();
-    println!("pushed: {}:{}", name, tag);
+    println!("pushed: {name}:{tag}");
 }

@@ -23,7 +23,7 @@ fn main() {
             ),
             ..Default::default()
         };
-        println!("logging with: {:?}", log_config);
+        println!("logging with: {log_config:?}");
         host.log_config(log_config);
         host
     });
@@ -40,15 +40,15 @@ fn main() {
     };
 
     let res = docker.log_container(&container.id, &log_options).unwrap();
-    let mut lines = BufReader::new(res).lines();
+    let lines = BufReader::new(res).lines();
 
-    while let Some(line) = lines.next() {
+    for line in lines {
         match line {
-            Ok(line) => println!("read: {}", line),
-            Err(e) => eprintln!("err: {:?}", e),
+            Ok(line) => println!("read: {line}"),
+            Err(e) => eprintln!("err: {e:?}"),
         }
     }
-    println!(""); // line break
+    println!(); // line break
 
     // already stopped
     // docker

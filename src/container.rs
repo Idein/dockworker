@@ -216,10 +216,10 @@ pub enum HealthState {
 impl fmt::Display for HealthState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &HealthState::NoHealthcheck => write!(f, "none"),
-            &HealthState::Starting => write!(f, "starting"),
-            &HealthState::Healthy => write!(f, "healthy"),
-            &HealthState::Unhealthy => write!(f, "unhealthy"),
+            HealthState::NoHealthcheck => write!(f, "none"),
+            HealthState::Starting => write!(f, "starting"),
+            HealthState::Healthy => write!(f, "healthy"),
+            HealthState::Unhealthy => write!(f, "unhealthy"),
         }
     }
 }
@@ -243,10 +243,7 @@ impl FromStr for HealthState {
             "starting" => Ok(HealthState::Starting),
             "healthy" => Ok(HealthState::Healthy),
             "unhealthy" => Ok(HealthState::Unhealthy),
-            _ => Err(format!(
-                "Cannot parse {} into known HealthState variant!",
-                s
-            )),
+            _ => Err(format!("Cannot parse {s} into known HealthState variant!")),
         }
     }
 }
@@ -303,7 +300,7 @@ pub enum ContainerStatus {
     Dead,
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Serialize, Default)]
 pub struct ContainerFilters {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     id: Vec<String>,
@@ -311,16 +308,6 @@ pub struct ContainerFilters {
     name: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     status: Vec<ContainerStatus>,
-}
-
-impl Default for ContainerFilters {
-    fn default() -> Self {
-        Self {
-            id: vec![],
-            name: vec![],
-            status: vec![],
-        }
-    }
 }
 
 impl ContainerFilters {
@@ -433,7 +420,7 @@ impl Read for ContainerStderr {
 /// Convert to `io::Error`, because `Read` trait requires it.
 /// Should it use `WouldBlock` ?
 fn poison<T: fmt::Debug>(t: PoisonError<MutexGuard<T>>) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, format!("{:?}", t))
+    io::Error::new(io::ErrorKind::Other, format!("{t:?}"))
 }
 
 #[derive(Debug)]
@@ -732,10 +719,9 @@ mod test {
                 }
             }
         }"#;
-        let network_settings: NetworkSettings =
-            serde_json::from_str(&network_settings_str).unwrap();
+        let network_settings: NetworkSettings = serde_json::from_str(network_settings_str).unwrap();
         let network_settings_json: serde_json::Value =
-            serde_json::to_value(&network_settings).unwrap();
+            serde_json::to_value(network_settings).unwrap();
 
         let network_settings_serde: serde_json::Value = {
             let network_settings_str = serde_json::to_string(&network_settings_json).unwrap();

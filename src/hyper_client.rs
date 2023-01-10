@@ -62,10 +62,10 @@ impl Response {
         });
 
         Response {
-            status: status,
+            status,
             buf: Vec::new(),
-            rx: rx,
-            handle: handle,
+            rx,
+            handle,
         }
     }
 }
@@ -194,11 +194,11 @@ pub struct HyperClient {
 }
 
 fn join_uri(uri: &Uri, path: &str) -> Result<Uri> {
-    let joined = format!("{}{}", uri.to_string(), path);
-    Ok(Uri::from_str(&joined).map_err(|err| Error::InvalidUri {
+    let joined = format!("{uri}{path}");
+    Uri::from_str(&joined).map_err(|err| Error::InvalidUri {
         var: joined,
         source: err,
-    })?)
+    })
 }
 
 fn request_builder(
@@ -261,12 +261,10 @@ async fn request_with_redirect<T: Into<hyper::Body> + Sync + Send + 'static + Cl
 
                 future = client.request(if see_other {
                     request.body(hyper::Body::empty()).unwrap()
+                } else if let Some(body) = body.clone() {
+                    request.body(body.into()).unwrap()
                 } else {
-                    if let Some(body) = body.clone() {
-                        request.body(body.into()).unwrap()
-                    } else {
-                        request.body(hyper::Body::empty()).unwrap()
-                    }
+                    request.body(hyper::Body::empty()).unwrap()
                 });
 
                 max_redirects -= 1;
@@ -346,7 +344,7 @@ impl HyperClient {
 
     pub fn connect_with_http(addr: &str) -> result::Result<Self, Error> {
         // This ensures that using docker-machine-esque addresses work with Hyper.
-        let addr_https = addr.clone().replace("tcp://", "http://");
+        let addr_https = addr.to_string().replace("tcp://", "http://");
         let url = Uri::from_str(&addr_https).map_err(|err| Error::InvalidUri {
             var: addr_https,
             source: err,

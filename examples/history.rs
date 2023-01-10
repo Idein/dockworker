@@ -10,11 +10,11 @@ fn main() {
     match history {
         Ok(changes) => {
             for change in changes {
-                println!("{:#?}", change);
+                println!("{change:#?}");
             }
         }
         Err(e) => {
-            println!("Error {}", e);
+            println!("Error {e}");
         }
     }
 }

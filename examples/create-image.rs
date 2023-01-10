@@ -7,9 +7,9 @@ fn main() {
 
     let name = "debian";
     let tag = "latest";
-    println!("create an image {}:{} ...", name, tag);
+    println!("create an image {name}:{tag} ...");
     let stats = docker.create_image(name, tag).unwrap();
     for stat in stats {
-        println!("{:?}", stat);
+        println!("{stat:?}");
     }
 }

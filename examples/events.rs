@@ -17,7 +17,7 @@ fn main() {
     events
         .map(|e| e.unwrap())
         .map(|e| {
-            println!("{:?}", e);
+            println!("{e:?}");
             e
         })
         .find(|e| e.Type == "network" && e.Action == "disconnect");

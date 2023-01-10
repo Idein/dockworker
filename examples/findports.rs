@@ -14,7 +14,7 @@ fn find_all_exported_ports() -> Result<()> {
 
         println!("{}", info.Name);
         for (k, v) in info.NetworkSettings.Ports.iter() {
-            println!("{}: {:?}", k, v);
+            println!("{k}: {v:?}");
         }
     }
     Ok(())

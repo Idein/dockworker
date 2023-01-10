@@ -22,10 +22,10 @@ fn main() {
     loop {
         let mut line = String::new();
         let size = line_reader.read_line(&mut line).unwrap();
-        print!("{:4}: {}", size, line);
+        print!("{size:4}: {line}");
         if size == 0 {
             break;
         }
     }
-    println!("");
+    println!();
 }

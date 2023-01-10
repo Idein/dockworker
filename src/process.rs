@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Error;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Process {
     pub user: String,
     pub pid: String,
@@ -17,24 +17,6 @@ pub struct Process {
     pub command: String,
 }
 
-impl Default for Process {
-    fn default() -> Self {
-        Self {
-            user: String::new(),
-            pid: String::new(),
-            cpu: None,
-            memory: None,
-            vsz: None,
-            rss: None,
-            tty: None,
-            stat: None,
-            start: None,
-            time: None,
-            command: String::new(),
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Top {
@@ -46,78 +28,54 @@ impl Display for Process {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         let mut s = String::new();
 
-        s.push_str(&*self.user.clone());
+        s.push_str(&self.user.clone());
 
-        s.push_str(",");
-        s.push_str(&*self.pid.clone());
+        s.push(',');
+        s.push_str(&self.pid.clone());
 
-        match self.cpu.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.cpu.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.memory.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.memory.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.vsz.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.vsz.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.rss.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.rss.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.tty.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.tty.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.stat.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.stat.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.start.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.start.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        match self.time.clone() {
-            Some(v) => {
-                s.push_str(",");
-                s.push_str(&*v);
-            }
-            None => {}
+        if let Some(v) = self.time.clone() {
+            s.push(',');
+            s.push_str(&v);
         }
 
-        s.push_str(",");
-        s.push_str(&*self.command.clone());
+        s.push(',');
+        s.push_str(&self.command.clone());
 
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
