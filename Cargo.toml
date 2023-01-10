@@ -26,6 +26,9 @@ experimental = []
 ssl = ["openssl", "native-tls", "hyper-tls"]
 
 [dependencies]
+async-trait = "0.1"
+async-stream = "0.3"
+bytes = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 futures = "0.3"
 http = "0.2"
@@ -37,9 +40,10 @@ serde_json = "1"
 url = "2"
 byteorder = "1"
 tar = "0.4"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["time", "fs", "net", "io-util", "io-std", "test-util", "macros", "rt", "rt-multi-thread"] }
+tokio-stream = { version = "0.1", features = ["io-util"] }
+tokio-util = { version = "0.7", features = ["io"] }
 log = "0.4"
-mime = "0.3"
 native-tls = { version = "0.2", optional = true }
 nix = "0.26"
 base64 = "0.21"
@@ -47,12 +51,10 @@ dirs = "5.0"
 thiserror = "1"
 
 [dev-dependencies]
-env_logger = "0.10"
 rand = "0.8"
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.8"
-unix_socket = "0.5"
 
 [target.'cfg(windows)'.dependencies]
 named_pipe = "0.4"

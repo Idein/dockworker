@@ -1,14 +1,11 @@
-extern crate dockworker;
-
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
 use std::iter::FromIterator;
 
 use dockworker::{
     ContainerCreateOptions, ContainerHostConfig, ContainerLogOptions, Docker, LogConfig,
 };
-
-fn main() {
+#[tokio::main]
+async fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
 
     let mut create = ContainerCreateOptions::new("alpine:latest");
@@ -28,8 +25,8 @@ fn main() {
         host
     });
 
-    let container = docker.create_container(None, &create).unwrap();
-    docker.start_container(&container.id).unwrap();
+    let container = docker.create_container(None, &create).await.unwrap();
+    docker.start_container(&container.id).await.unwrap();
 
     println!("Container to log: {}", &container.id);
     let log_options = ContainerLogOptions {
@@ -39,10 +36,13 @@ fn main() {
         ..ContainerLogOptions::default()
     };
 
-    let res = docker.log_container(&container.id, &log_options).unwrap();
-    let lines = BufReader::new(res).lines();
+    let mut res = docker
+        .log_container(&container.id, &log_options)
+        .await
+        .unwrap();
 
-    for line in lines {
+    use futures::stream::StreamExt;
+    while let Some(line) = res.next().await {
         match line {
             Ok(line) => println!("read: {line}"),
             Err(e) => eprintln!("err: {e:?}"),
@@ -53,8 +53,10 @@ fn main() {
     // already stopped
     // docker
     //     .stop_container(&container.id, Duration::from_secs(2))
+    //     .await
     //     .unwrap();
     docker
         .remove_container(&container.id, None, Some(true), None)
+        .await
         .unwrap();
 }

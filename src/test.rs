@@ -2,12 +2,11 @@
 
 use crate::container::{Container, ContainerInfo, HealthState};
 use crate::filesystem::FilesystemChange;
-use crate::hyper_client::Response;
 use crate::image::{Image, SummaryImage};
 use crate::network::Network;
 use crate::options::ImageLayer;
 use crate::process::Top;
-use crate::stats::{Stats, StatsReader};
+use crate::stats::Stats;
 use crate::system::SystemInfo;
 use crate::version::Version;
 
@@ -30,14 +29,21 @@ fn get_stats_suspended() {
     assert!(v.memory_stats.is_none());
 }
 
-#[test]
-fn get_stats_streaming() {
-    let reader = StatsReader::new(get_stats_response());
-    let stats = reader.collect::<Vec<Result<Stats, _>>>();
+#[tokio::test]
+async fn get_stats_streaming() {
+    let res = get_stats_response();
+    let src = crate::docker::into_jsonlines::<Stats>(res.into_body()).unwrap();
+    use futures::stream::StreamExt;
+    let stats = src
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
     assert_eq!(stats.len(), 3);
-    assert!(stats[0].as_ref().unwrap().memory_stats.is_some());
-    assert!(stats[1].as_ref().unwrap().memory_stats.is_some());
-    assert!(stats[2].as_ref().unwrap().memory_stats.is_some());
+    assert!(stats[0].memory_stats.is_some());
+    assert!(stats[1].memory_stats.is_some());
+    assert!(stats[2].memory_stats.is_some());
 }
 
 #[test]
@@ -144,11 +150,11 @@ fn get_version_response() -> &'static str {
     include_str!("fixtures/version.json")
 }
 
-fn get_stats_response() -> Response {
+fn get_stats_response() -> http::Response<hyper::Body> {
     let response = http::Response::builder()
         .status(http::StatusCode::OK)
         .header("Transfer-Encoding", "chunked")
         .header("Connection", "Close");
     let body = include_str!("fixtures/stats_stream.json").to_string();
-    Response::new(response.body(hyper::Body::from(body)).unwrap())
+    response.body(hyper::Body::from(body)).unwrap()
 }

@@ -1,38 +1,51 @@
-use crate::hyper_client::Response;
-use http::HeaderMap;
+use http::{HeaderMap, Response};
 use std::path::Path;
-use std::result;
 
 /// A http client
+#[async_trait::async_trait]
 pub trait HttpClient {
     type Err: Send + 'static;
 
-    fn get(&self, headers: &HeaderMap, path: &str) -> result::Result<Response, Self::Err>;
+    async fn get(&self, headers: &HeaderMap, path: &str) -> Result<Response<Vec<u8>>, Self::Err>;
 
-    fn head(&self, headers: &HeaderMap, path: &str) -> result::Result<http::HeaderMap, Self::Err>;
+    async fn get_stream(
+        &self,
+        headers: &HeaderMap,
+        path: &str,
+    ) -> Result<Response<hyper::Body>, Self::Err>;
 
-    fn post(
+    async fn head(&self, headers: &HeaderMap, path: &str) -> Result<HeaderMap, Self::Err>;
+
+    async fn post(
         &self,
         headers: &HeaderMap,
         path: &str,
         body: &str,
-    ) -> result::Result<Response, Self::Err>;
+    ) -> Result<Response<Vec<u8>>, Self::Err>;
 
-    fn delete(&self, headers: &HeaderMap, path: &str) -> result::Result<Response, Self::Err>;
+    async fn post_stream(
+        &self,
+        headers: &HeaderMap,
+        path: &str,
+        body: &str,
+    ) -> Result<Response<hyper::Body>, Self::Err>;
 
-    fn post_file(
+    async fn delete(&self, headers: &HeaderMap, path: &str)
+        -> Result<Response<Vec<u8>>, Self::Err>;
+
+    async fn post_file(
         &self,
         headers: &HeaderMap,
         path: &str,
         file: &Path,
-    ) -> result::Result<Response, Self::Err>;
+    ) -> Result<Response<Vec<u8>>, Self::Err>;
 
-    fn put_file(
+    async fn put_file(
         &self,
         headers: &HeaderMap,
         path: &str,
         file: &Path,
-    ) -> result::Result<Response, Self::Err>;
+    ) -> Result<Response<Vec<u8>>, Self::Err>;
 }
 
 /// Access to inner HttpClient

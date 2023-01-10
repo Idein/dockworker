@@ -1,9 +1,7 @@
-extern crate dockworker;
-extern crate hyper;
-
 use dockworker::Docker;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
     let token = docker
         .auth(
@@ -12,6 +10,7 @@ fn main() {
             "someusername@example.com",
             "localhost:5000",
         )
+        .await
         .unwrap();
     println!("token: {token:?}");
 }
