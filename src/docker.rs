@@ -17,6 +17,7 @@ use crate::signal::Signal;
 use crate::stats::StatsReader;
 use crate::system::{AuthToken, SystemInfo};
 use crate::version::Version;
+use base64::{engine::general_purpose, Engine as _};
 #[cfg(feature = "experimental")]
 use checkpoint::{Checkpoint, CheckpointCreateOptions, CheckpointDeleteOptions};
 use http::{HeaderMap, StatusCode};
@@ -752,10 +753,12 @@ impl Docker {
                     .get("X-Docker-Container-Path-Stat")
                     .map(|h| h.to_str().unwrap_or(""))
                     .unwrap_or("");
-                let bytes = base64::decode(stat_base64).map_err(|err| Error::ParseError {
-                    input: String::from(stat_base64),
-                    source: err,
-                })?;
+                let bytes = general_purpose::STANDARD
+                    .decode(stat_base64)
+                    .map_err(|err| Error::ParseError {
+                        input: String::from(stat_base64),
+                        source: err,
+                    })?;
                 let path_stat: XDockerContainerPathStat = serde_json::from_slice(&bytes)?;
                 Ok(path_stat)
             })
@@ -848,12 +851,10 @@ impl Docker {
         if let Some(ref credential) = self.credential {
             headers.insert(
                 "X-Registry-Auth",
-                base64::encode_config(
-                    serde_json::to_string(credential).unwrap().as_bytes(),
-                    base64::STANDARD,
-                )
-                .parse()
-                .unwrap(),
+                general_purpose::STANDARD
+                    .encode(serde_json::to_string(credential).unwrap().as_bytes())
+                    .parse()
+                    .unwrap(),
             );
         }
         let res =
@@ -897,12 +898,10 @@ impl Docker {
         if let Some(ref credential) = self.credential {
             headers.insert(
                 "X-Registry-Auth",
-                base64::encode_config(
-                    serde_json::to_string(credential).unwrap().as_bytes(),
-                    base64::STANDARD,
-                )
-                .parse()
-                .unwrap(),
+                general_purpose::STANDARD
+                    .encode(serde_json::to_string(credential).unwrap().as_bytes())
+                    .parse()
+                    .unwrap(),
             );
         }
         self.http_client()
