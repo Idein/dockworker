@@ -29,7 +29,7 @@ fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
     let name = "test-image";
     let tag = "latest";
-    println!("build an image {}:{} ...", name, tag);
+    println!("build an image {name}:{tag} ...");
     let options = ContainerBuildOptions {
         dockerfile: "Dockerfile".into(),
         t: vec!["silly:lat".to_owned()],

@@ -10,5 +10,5 @@ fn main() {
     let id = docker
         .load_image(false, Path::new("image.tar"))
         .expect("prepare a tar-archive like: $docker save busybox > image.tar");
-    println!("loaded: {}", id);
+    println!("loaded: {id}");
 }

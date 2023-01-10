@@ -1,9 +1,10 @@
 //! Options which can be passed to various `Docker` commands.
+#![allow(clippy::new_without_default)]
 
 use crate::network;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::{Deserialize, Serialize};
-use serde_json;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -122,7 +123,6 @@ impl RestartPolicy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn serde_logconfig() {
@@ -490,18 +490,10 @@ impl ContainerHostConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
+#[derive(Default)]
 pub struct LogConfig {
     pub r#type: LogConfigType,
     pub config: HashMap<String, String>,
-}
-
-impl Default for LogConfig {
-    fn default() -> Self {
-        Self {
-            r#type: LogConfigType::default(),
-            config: HashMap::new(),
-        }
-    }
 }
 
 impl LogConfig {
@@ -671,13 +663,13 @@ impl ContainerBuildOptions {
         let mut params = form_urlencoded::Serializer::new(String::new());
         params.append_pair("dockerfile", &self.dockerfile);
         for tag in &self.t {
-            params.append_pair("t", &tag);
+            params.append_pair("t", tag);
         }
         if let Some(ref extrahosts) = self.extrahosts {
-            params.append_pair("extrahosts", &extrahosts);
+            params.append_pair("extrahosts", extrahosts);
         }
         if let Some(ref remote) = self.remote {
-            params.append_pair("remote", &remote);
+            params.append_pair("remote", remote);
         }
         if self.q {
             params.append_pair("q", "true");
@@ -689,7 +681,7 @@ impl ContainerBuildOptions {
             params.append_pair("cachefrom", &serde_json::to_string(&cachefrom).unwrap());
         }
         if let Some(ref pull) = self.pull {
-            params.append_pair("pull", &pull);
+            params.append_pair("pull", pull);
         }
         if self.rm {
             params.append_pair("rm", "true");
@@ -707,7 +699,7 @@ impl ContainerBuildOptions {
             params.append_pair("cpushares", &cpushares.to_string());
         }
         if let Some(ref cpusetcpus) = self.cpusetcpus {
-            params.append_pair("cpusetcpus", &cpusetcpus);
+            params.append_pair("cpusetcpus", cpusetcpus);
         }
         if let Some(ref cpuperiod) = self.cpuperiod {
             params.append_pair("cpuperiod", &cpuperiod.to_string());
@@ -734,7 +726,7 @@ impl ContainerBuildOptions {
             );
         }
         if let Some(ref networkmode) = self.networkmode {
-            params.append_pair("networkmode", &networkmode);
+            params.append_pair("networkmode", networkmode);
         }
         params.append_pair("platform", &self.platform);
         params.finish()
@@ -1114,7 +1106,7 @@ pub struct ImageLayer {
     pub comment: String,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Serialize)]
+#[derive(Debug, PartialEq, PartialOrd, Serialize, Default)]
 pub struct EventFilters {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     config: Vec<String>,
@@ -1145,27 +1137,6 @@ pub struct EventFilters {
     type_: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     volume: Vec<String>,
-}
-
-impl Default for EventFilters {
-    fn default() -> Self {
-        Self {
-            config: vec![],
-            container: vec![],
-            daemon: vec![],
-            event: vec![],
-            image: vec![],
-            label: vec![],
-            network: vec![],
-            node: vec![],
-            plugin: vec![],
-            scope: vec![],
-            secret: vec![],
-            service: vec![],
-            type_: vec![],
-            volume: vec![],
-        }
-    }
 }
 
 impl EventFilters {

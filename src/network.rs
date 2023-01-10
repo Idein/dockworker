@@ -1,3 +1,4 @@
+#![allow(clippy::new_without_default)]
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
@@ -79,7 +80,7 @@ pub struct NetworkContainer {
     pub IPv6Address: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize, Default)]
 pub struct ListNetworkFilters {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub driver: Vec<String>,
@@ -132,19 +133,6 @@ impl ListNetworkFilters {
     pub fn r#type(&mut self, r#type: NetworkType) -> &mut Self {
         self.r#type.push(r#type);
         self
-    }
-}
-
-impl Default for ListNetworkFilters {
-    fn default() -> Self {
-        ListNetworkFilters {
-            driver: vec![],
-            id: vec![],
-            label: vec![],
-            name: vec![],
-            scope: vec![],
-            r#type: vec![],
-        }
     }
 }
 
@@ -365,6 +353,7 @@ pub struct PruneNetworkResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
+#[derive(Default)]
 pub struct EndpointConfig {
     pub IPAMConfig: Option<EndpointIPAMConfig>,
     pub Links: Option<Vec<String>>,
@@ -384,26 +373,6 @@ pub struct EndpointConfig {
         default
     )]
     pub DriverOpts: HashMap<String, String>,
-}
-
-impl Default for EndpointConfig {
-    fn default() -> Self {
-        Self {
-            IPAMConfig: None,
-            Links: None,
-            Aliases: None,
-            NetworkID: String::new(),
-            EndpointID: String::new(),
-            Gateway: String::new(),
-            IPAddress: String::new(),
-            IPPrefixLen: 0,
-            IPv6Gateway: String::new(),
-            GlobalIPv6Address: String::new(),
-            GlobalIPv6PrefixLen: 0,
-            MacAddress: String::new(),
-            DriverOpts: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Deserialize)]
@@ -483,7 +452,7 @@ mod format {
                 self.label_not.is_empty(),
             ]
             .iter()
-            .filter(|x| **x == true)
+            .filter(|x| **x)
             .count();
 
             let mut state = serializer.serialize_map(Some(count))?;
@@ -545,8 +514,8 @@ mod format {
             let mut map = serializer.serialize_map(None)?;
             for (k, v) in &self.0 {
                 let key = match v {
-                    Some(v) => format!("{}={}", k, v),
-                    None => format!("{}", k),
+                    Some(v) => format!("{k}={v}"),
+                    None => k.to_string(),
                 };
                 map.serialize_entry(&key, &true)?;
             }

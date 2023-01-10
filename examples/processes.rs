@@ -10,7 +10,7 @@ fn main() {
         .get(0)
     {
         for process in docker.processes(container.Id.as_str()).unwrap() {
-            println!("{:#?}", process);
+            println!("{process:#?}");
         }
     }
 }

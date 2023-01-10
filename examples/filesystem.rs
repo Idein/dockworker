@@ -10,7 +10,7 @@ fn main() {
         .get(0)
     {
         for change in docker.filesystem_changes(container.Id.as_str()).unwrap() {
-            println!("{:#?}", change);
+            println!("{change:#?}");
         }
     }
 }

@@ -8,6 +8,6 @@ fn main() {
     let containers = docker.list_containers(None, None, None, filter).unwrap();
 
     containers.iter().for_each(|c| {
-        println!("{:?}", c);
+        println!("{c:?}");
     });
 }

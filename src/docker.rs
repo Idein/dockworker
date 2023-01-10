@@ -1,3 +1,4 @@
+#![allow(clippy::bool_assert_comparison)]
 use crate::container::{
     AttachResponse, Container, ContainerFilters, ContainerInfo, ExecInfo, ExitStatus, LogResponse,
 };
@@ -34,7 +35,7 @@ use tar::Archive;
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 #[cfg(unix)]
-pub static DEFAULT_DOCKER_HOST: &'static str = "unix:///var/run/docker.sock";
+pub static DEFAULT_DOCKER_HOST: &str = "unix:///var/run/docker.sock";
 
 /// The default `DOCKER_HOST` address that we will try to connect to.
 ///
@@ -51,7 +52,7 @@ pub fn default_cert_path() -> Result<PathBuf> {
     if let Ok(ref path) = from_env {
         Ok(PathBuf::from(path))
     } else {
-        let home = dirs::home_dir().ok_or_else(|| Error::NoCertPath)?;
+        let home = dirs::home_dir().ok_or(Error::NoCertPath)?;
         Ok(home.join(".docker"))
     }
 }
@@ -171,7 +172,7 @@ impl Docker {
     /// and we try to interpret these as much like the standard `docker` client as possible.
     pub fn connect_with_defaults() -> Result<Docker> {
         // Read in our configuration from the Docker environment.
-        let host = env::var("DOCKER_HOST").unwrap_or(DEFAULT_DOCKER_HOST.to_string());
+        let host = env::var("DOCKER_HOST").unwrap_or_else(|_| DEFAULT_DOCKER_HOST.to_string());
         let tls_verify = env::var("DOCKER_TLS_VERIFY").is_ok();
         let cert_path = default_cert_path()?;
 
@@ -190,7 +191,7 @@ impl Docker {
                 Docker::connect_with_http(&host)
             }
         } else {
-            Err(Error::UnsupportedScheme { host: host.clone() }.into())
+            Err(Error::UnsupportedScheme { host })
         }
     }
 
@@ -200,8 +201,8 @@ impl Docker {
     /// The unix socket provider expects a Path, so we don't need scheme.
     #[cfg(unix)]
     pub fn connect_with_unix(addr: &str) -> Result<Docker> {
-        if addr.starts_with("unix://") {
-            let client = HyperClient::connect_with_unix(&addr[7..]);
+        if let Some(addr) = addr.strip_prefix("unix://") {
+            let client = HyperClient::connect_with_unix(addr);
             Ok(Docker::new(client, Protocol::Unix))
         } else {
             let client = HyperClient::connect_with_unix(addr);
@@ -230,7 +231,7 @@ impl Docker {
 
     #[cfg(not(feature = "openssl"))]
     pub fn connect_with_ssl(_addr: &str, _key: &Path, _cert: &Path, _ca: &Path) -> Result<Docker> {
-        Err(Error::SslDisabled.into())
+        Err(Error::SslDisabled)
     }
 
     /// Connect using unsecured HTTP.  This is strongly discouraged
@@ -302,7 +303,7 @@ impl Docker {
                 param.append_pair("name", name);
                 format!("/containers/create?{}", param.finish())
             }
-            None => format!("/containers/create"),
+            None => "/containers/create".to_string(),
         };
 
         let json_body = serde_json::to_string(&option)?;
@@ -322,7 +323,7 @@ impl Docker {
     /// /containers/{id}/start
     pub fn start_container(&self, id: &str) -> Result<()> {
         self.http_client()
-            .post(self.headers(), &format!("/containers/{}/start", id), "")
+            .post(self.headers(), &format!("/containers/{id}/start"), "")
             .and_then(no_content)
     }
 
@@ -408,6 +409,7 @@ impl Docker {
     /// # API
     /// /containers/{id}/attach
     #[allow(non_snake_case)]
+    #[allow(clippy::too_many_arguments)]
     pub fn attach_container(
         &self,
         id: &str,
@@ -548,7 +550,7 @@ impl Docker {
             "application/json".parse().unwrap(),
         );
         self.http_client()
-            .post(&headers, &format!("/containers/{}/exec", id), &json_body)
+            .post(&headers, &format!("/containers/{id}/exec"), &json_body)
             .and_then(api_result)
     }
 
@@ -569,7 +571,7 @@ impl Docker {
         );
 
         self.http_client()
-            .post(&headers, &format!("/exec/{}/start", id), &json_body)
+            .post(&headers, &format!("/exec/{id}/start"), &json_body)
             .and_then(|res| {
                 if res.status.is_success() {
                     Ok(AttachResponse::new(res))
@@ -588,7 +590,7 @@ impl Docker {
     #[allow(non_snake_case)]
     pub fn exec_inspect(&self, id: &str) -> Result<ExecInfo> {
         self.http_client()
-            .get(self.headers(), &format!("/exec/{}/json", id))
+            .get(self.headers(), &format!("/exec/{id}/json"))
             .and_then(api_result)
     }
 
@@ -617,7 +619,7 @@ impl Docker {
     /// /containers/{id}/top
     pub fn container_top(&self, container_id: &str) -> Result<Top> {
         self.http_client()
-            .get(self.headers(), &format!("/containers/{}/top", container_id))
+            .get(self.headers(), &format!("/containers/{container_id}/top"))
             .and_then(api_result)
     }
 
@@ -683,7 +685,7 @@ impl Docker {
     /// /containers/{id}/wait
     pub fn wait_container(&self, id: &str) -> Result<ExitStatus> {
         self.http_client()
-            .post(self.headers(), &format!("/containers/{}/wait", id), "")
+            .post(self.headers(), &format!("/containers/{id}/wait"), "")
             .and_then(api_result)
     }
 
@@ -875,7 +877,7 @@ impl Docker {
     ///
     pub fn inspect_image(&self, name: &str) -> Result<Image> {
         self.http_client()
-            .get(self.headers(), &format!("/images/{}/json", name))
+            .get(self.headers(), &format!("/images/{name}/json"))
             .and_then(api_result)
     }
 
@@ -943,10 +945,7 @@ impl Docker {
         let mut param = url::form_urlencoded::Serializer::new(String::new());
         param.append_pair(
             "filters",
-            &format!(
-                r#"{{ "dangling": {{ "{}": true }} }}"#,
-                dangling.to_string()
-            ),
+            &format!(r#"{{ "dangling": {{ "{dangling}": true }} }}"#),
         );
         self.http_client()
             .post(
@@ -964,7 +963,7 @@ impl Docker {
     ///
     pub fn history_image(&self, name: &str) -> Result<Vec<ImageLayer>> {
         self.http_client()
-            .get(self.headers(), &format!("/images/{}/history", name))
+            .get(self.headers(), &format!("/images/{name}/history"))
             .and_then(api_result)
             .map(|mut hs: Vec<ImageLayer>| {
                 hs.iter_mut().for_each(|change| {
@@ -992,7 +991,7 @@ impl Docker {
     /// /images/{name}/get
     pub fn export_image(&self, name: &str) -> Result<Box<dyn Read>> {
         self.http_client()
-            .get(self.headers(), &format!("/images/{}/get", name))
+            .get(self.headers(), &format!("/images/{name}/get"))
             .and_then(|res| {
                 if res.status.is_success() {
                     Ok(Box::new(res) as Box<dyn Read>)
@@ -1015,11 +1014,9 @@ impl Docker {
             http::header::CONTENT_TYPE,
             "application/x-tar".parse().unwrap(),
         );
-        let res = self.http_client().post_file(
-            &headers,
-            &format!("/images/load?quiet={}", quiet),
-            path,
-        )?;
+        let res =
+            self.http_client()
+                .post_file(&headers, &format!("/images/load?quiet={quiet}"), path)?;
         if !res.status.is_success() {
             return Err(serde_json::from_reader::<_, DockerError>(res)?.into());
         }
@@ -1036,15 +1033,14 @@ impl Docker {
             if path.extension() == Some(OsStr::new("json")) && path != Path::new("manifest.json") {
                 let stem = path.file_stem().unwrap(); // contains .json
                 let id = stem.to_str().ok_or(Error::Unknown {
-                    message: format!("convert to String: {:?}", stem),
+                    message: format!("convert to String: {stem:?}"),
                 })?;
                 return Ok(ImageId::new(id.to_string()));
             }
         }
         Err(Error::Unknown {
             message: "no expected file: XXXXXX.json".to_owned(),
-        }
-        .into())
+        })
     }
 
     /// Check auth configuration
@@ -1095,10 +1091,7 @@ impl Docker {
     /// /containers/{id}/json
     pub fn container_info(&self, container_id: &str) -> Result<ContainerInfo> {
         self.http_client()
-            .get(
-                self.headers(),
-                &format!("/containers/{}/json", container_id),
-            )
+            .get(self.headers(), &format!("/containers/{container_id}/json"))
             .and_then(api_result)
     }
 
@@ -1112,7 +1105,7 @@ impl Docker {
         self.http_client()
             .get(
                 self.headers(),
-                &format!("/containers/{}/changes", container_id),
+                &format!("/containers/{container_id}/changes"),
             )
             .and_then(api_result)
     }
@@ -1128,7 +1121,7 @@ impl Docker {
         self.http_client()
             .get(
                 self.headers(),
-                &format!("/containers/{}/export", container_id),
+                &format!("/containers/{container_id}/export"),
             )
             .and_then(|res| {
                 if res.status.is_success() {
@@ -1191,13 +1184,12 @@ impl Docker {
 
         self.http_client()
             .get(self.headers(), &format!("/events?{}", param.finish()))
-            .and_then(|res| {
-                Ok(Box::new(
+            .map(|res| {
+                Box::new(
                     serde_json::Deserializer::from_reader(res)
                         .into_iter::<EventResponse>()
                         .map(|event_response| Ok(event_response?)),
-                )
-                    as Box<dyn Iterator<Item = Result<EventResponse>>>)
+                ) as Box<dyn Iterator<Item = Result<EventResponse>>>
             })
     }
 
@@ -1248,7 +1240,7 @@ impl Docker {
     /// /networks/{id}
     pub fn remove_network(&self, id: &str) -> Result<()> {
         self.http_client()
-            .delete(self.headers(), &format!("/networks/{}", id))
+            .delete(self.headers(), &format!("/networks/{id}"))
             .and_then(no_content)
     }
 
@@ -1280,7 +1272,7 @@ impl Docker {
             "application/json".parse().unwrap(),
         );
         self.http_client()
-            .post(&headers, &format!("/networks/{}/connect", id), &json_body)
+            .post(&headers, &format!("/networks/{id}/connect"), &json_body)
             .and_then(ignore_result)
     }
 
@@ -1296,11 +1288,7 @@ impl Docker {
             "application/json".parse().unwrap(),
         );
         self.http_client()
-            .post(
-                &headers,
-                &format!("/networks/{}/disconnect", id),
-                &json_body,
-            )
+            .post(&headers, &format!("/networks/{id}/disconnect"), &json_body)
             .and_then(ignore_result)
     }
 
@@ -1374,9 +1362,9 @@ mod tests {
     fn double_stop_container(docker: &Docker, container: &str) {
         println!(
             "container info: {:?}",
-            docker.container_info(&container).unwrap()
+            docker.container_info(container).unwrap()
         );
-        docker.start_container(&container).unwrap();
+        docker.start_container(container).unwrap();
         docker
             .stop_container(container, Duration::from_secs(10))
             .unwrap();
@@ -1386,7 +1374,7 @@ mod tests {
     }
 
     fn restart_container(docker: &Docker, container: &str) {
-        docker.start_container(&container).unwrap();
+        docker.start_container(container).unwrap();
         docker
             .stop_container(container, Duration::from_secs(10))
             .unwrap();
@@ -1404,7 +1392,7 @@ mod tests {
     }
 
     fn head_file_container(docker: &Docker, container: &str) {
-        let res = docker.head_file(&container, Path::new("/bin/ls")).unwrap();
+        let res = docker.head_file(container, Path::new("/bin/ls")).unwrap();
         assert_eq!(res.name, "ls");
         chrono::DateTime::parse_from_rfc3339(&res.mtime).unwrap();
     }
@@ -1413,11 +1401,8 @@ mod tests {
         docker.start_container(container).unwrap();
 
         // one shot
-        let one_stats = docker
-            .stats(container, Some(false), Some(true))
-            .unwrap()
-            .collect::<Vec<_>>();
-        assert_eq!(one_stats.len(), 1);
+        let one_stats = docker.stats(container, Some(false), Some(true)).unwrap();
+        assert_eq!(one_stats.count(), 1);
 
         // stream
         let thr_stats = docker
@@ -1456,25 +1441,25 @@ mod tests {
         }
         assert!(matches!(
             docker
-                .get_file(&container, test_file)
+                .get_file(container, test_file)
                 .map(|_| ())
                 .unwrap_err(),
             Error::Docker(_) // not found
         ));
         docker
             .put_file(
-                &container,
+                container,
                 &test_file.with_extension("tar"),
                 Path::new("/"),
                 true,
             )
             .unwrap();
         docker
-            .get_file(&container, test_file)
+            .get_file(container, test_file)
             .unwrap()
             .unpack(temp_dir.join("put"))
             .unwrap();
-        docker.wait_container(&container).unwrap();
+        docker.wait_container(container).unwrap();
 
         assert!(equal_file(
             test_file,
@@ -1483,7 +1468,7 @@ mod tests {
     }
 
     fn log_container(docker: &Docker, container: &str) {
-        docker.start_container(&container).unwrap();
+        docker.start_container(container).unwrap();
 
         let log_options = ContainerLogOptions {
             stdout: true,
@@ -1492,22 +1477,22 @@ mod tests {
             ..ContainerLogOptions::default()
         };
 
-        let mut log = docker.log_container(&container, &log_options).unwrap();
+        let mut log = docker.log_container(container, &log_options).unwrap();
 
         let log_all = log.output().unwrap();
-        println!("log_all\n{}", log_all);
+        println!("log_all\n{log_all}");
     }
 
     fn connect_container(docker: &Docker, container_name: &str, container_id: &str, network: &str) {
         // docker run --net=network container
-        docker.start_container(&container_id).unwrap();
-        let network_start = docker.inspect_network(&network, None, None).unwrap();
+        docker.start_container(container_id).unwrap();
+        let network_start = docker.inspect_network(network, None, None).unwrap();
         assert_eq!(&network_start.Containers[container_id].Name, container_name);
 
         // docker network disconnect network container
         docker
             .disconnect_network(
-                &network,
+                network,
                 &NetworkDisconnectOptions {
                     Container: container_id.to_owned(),
                     Force: false,
@@ -1515,14 +1500,14 @@ mod tests {
             )
             .unwrap();
 
-        let network_disconn = docker.inspect_network(&network, None, None).unwrap();
+        let network_disconn = docker.inspect_network(network, None, None).unwrap();
         assert!(network_disconn.Containers.is_empty());
 
         // docker network connect network container
         // connecting with `docker network connect` command
         docker
             .connect_network(
-                &network,
+                network,
                 &NetworkConnectOptions {
                     Container: container_id.to_owned(),
                     EndpointConfig: EndpointConfig::default(),
@@ -1530,7 +1515,7 @@ mod tests {
             )
             .unwrap();
 
-        let network_conn = docker.inspect_network(&network, None, None).unwrap();
+        let network_conn = docker.inspect_network(network, None, None).unwrap();
         assert_eq!(&network_start.Id, &network_conn.Id);
         // .keys == ID of containers
         assert!(network_start
@@ -1539,7 +1524,7 @@ mod tests {
             .eq(network_conn.Containers.keys()));
 
         docker
-            .stop_container(&container_id, Duration::new(5, 0))
+            .stop_container(container_id, Duration::new(5, 0))
             .unwrap();
     }
 
@@ -1547,8 +1532,8 @@ mod tests {
         let mut next_id = {
             let mut id = 0;
             move || {
-                let next = format!("test_container_{}", id);
-                id = id + 1;
+                let next = format!("test_container_{id}");
+                id += 1;
                 next
             }
         };
@@ -1558,7 +1543,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            double_stop_container(&docker, &container.id);
+            double_stop_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1570,7 +1555,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            restart_container(&docker, &container.id);
+            restart_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1585,7 +1570,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            stop_wait_container(&docker, &container.id);
+            stop_wait_container(docker, &container.id);
 
             // auto removed
             assert!(
@@ -1601,7 +1586,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            head_file_container(&docker, &container.id);
+            head_file_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1613,7 +1598,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            stats_container(&docker, &container.id);
+            stats_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1626,7 +1611,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            wait_container(&docker, &container.id);
+            wait_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1638,7 +1623,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            put_file_container(&docker, &container.id);
+            put_file_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1652,7 +1637,7 @@ mod tests {
 
             let container = docker.create_container(Some(&next_id()), &create).unwrap();
 
-            log_container(&docker, &container.id);
+            log_container(docker, &container.id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1683,7 +1668,7 @@ mod tests {
                 .create_container(Some(&container_name), &create)
                 .unwrap();
 
-            connect_container(&docker, &container_name, &container.id, &network.Id);
+            connect_container(docker, &container_name, &container.id, &network.Id);
 
             docker
                 .remove_container(&container.id, None, None, None)
@@ -1704,7 +1689,7 @@ mod tests {
                 .is_empty(),
             "remove containers 'test_container_*'"
         );
-        test_container(&docker, &format!("{}:{}", name, tag));
+        test_container(docker, &format!("{name}:{tag}"));
         assert!(docker
             .list_containers(Some(true), None, Some(true), filter)
             .unwrap()
@@ -1716,8 +1701,8 @@ mod tests {
             println!("{:?}", st.unwrap());
         });
 
-        let image = format!("{}:{}", name, tag);
-        let image_file = format!("dockworker_test_{}_{}.tar", name, tag);
+        let image = format!("{name}:{tag}");
+        let image_file = format!("dockworker_test_{name}_{tag}.tar");
 
         {
             let mut file = File::create(&image_file).unwrap();
@@ -1729,10 +1714,10 @@ mod tests {
         docker.load_image(false, Path::new(&image_file)).unwrap();
         remove_file(&image_file).unwrap();
 
-        test_image_api(&docker, name, tag);
+        test_image_api(docker, name, tag);
 
         docker
-            .remove_image(&format!("{}:{}", name, tag), None, None)
+            .remove_image(&format!("{name}:{tag}"), None, None)
             .unwrap();
     }
 
@@ -1836,7 +1821,7 @@ mod tests {
             let network = docker
                 .inspect_network(&network.Id, Some(true), None)
                 .unwrap();
-            println!("network: {:?}", network);
+            println!("network: {network:?}");
         }
         let create = NetworkCreateOptions::new("dockworker_test_network");
         let res = docker.create_network(&create).unwrap();
@@ -1852,12 +1837,11 @@ mod tests {
             1
         );
         docker.remove_network(&res.Id).unwrap();
-        assert!(docker
+        assert!(!docker
             .list_networks(filter)
             .unwrap()
             .iter()
-            .find(|n| n.Id == res.Id)
-            .is_none());
+            .any(|n| n.Id == res.Id));
     }
 
     fn prune_networks(docker: &Docker) {
@@ -1868,9 +1852,9 @@ mod tests {
         for i in 1..=6 {
             docker
                 .create_network(
-                    &Net::new(&format!("nw_test_{}", i))
-                        .label("alias", &format!("my-test-network-{}", i))
-                        .label(&format!("test-network-{}", i), &i.to_string())
+                    Net::new(&format!("nw_test_{i}"))
+                        .label("alias", &format!("my-test-network-{i}"))
+                        .label(&format!("test-network-{i}"), &i.to_string())
                         .label("not2", if i == 2 { "true" } else { "false" }),
                 )
                 .unwrap();
@@ -2083,7 +2067,7 @@ mod tests {
         signals.iter().for_each(|sig| {
             trace!("cause signal: {:?}", sig);
             docker
-                .kill_container(&container.id, Signal::from(sig.clone()))
+                .kill_container(&container.id, Signal::from(*sig))
                 .ok();
         });
 
@@ -2123,8 +2107,7 @@ mod tests {
             assert_eq!(
                 rx.recv_timeout(std::time::Duration::from_secs(15)),
                 Ok(()),
-                "i = {}",
-                i
+                "i = {i}"
             );
         }
     }

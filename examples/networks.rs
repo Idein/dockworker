@@ -7,7 +7,7 @@ fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
     for network in docker.list_networks(ListNetworkFilters::default()).unwrap() {
         println!(
-            "{:20.12}{:25.}{:10.}{:8.}",
+            "{:20.12}{:25}{:10}{:8}",
             network.Id, network.Name, network.Driver, network.Scope
         );
     }
@@ -27,7 +27,7 @@ fn main() {
         serde_json::to_string_pretty(&create).unwrap()
     );
     let res = docker.create_network(&create).unwrap();
-    println!("res: {:?}", res);
+    println!("res: {res:?}");
     let mut filter = ListNetworkFilters::default();
     filter.id(res.Id.as_str().into());
     println!("remove network: {}", res.Id);

@@ -77,7 +77,7 @@ impl StdError for Error {
 impl Response {
     pub fn as_error(&self) -> Option<&Error> {
         use self::Response::*;
-        if let &Error(ref err) = self {
+        if let Error(err) = self {
             Some(err)
         } else {
             None
@@ -142,7 +142,7 @@ mod progress_detail_opt {
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["current", "total"];
+        const FIELDS: &[&str] = &["current", "total"];
         de.deserialize_map(OptVisitor)
     }
 }
@@ -154,7 +154,7 @@ mod tests {
     use serde_json;
 
     #[test]
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn progress() {
         let s = r#"{
             "status": "Downloading",
@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn error() {
         let s = r#"{
             "errorDetail":{

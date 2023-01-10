@@ -13,5 +13,5 @@ fn main() {
             "localhost:5000",
         )
         .unwrap();
-    println!("token: {:?}", token);
+    println!("token: {token:?}");
 }
