@@ -3,9 +3,14 @@ extern crate dockworker;
 use dockworker::{network::*, Docker};
 use std::net::Ipv4Addr;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    for network in docker.list_networks(ListNetworkFilters::default()).unwrap() {
+    for network in docker
+        .list_networks(ListNetworkFilters::default())
+        .await
+        .unwrap()
+    {
         println!(
             "{:20.12}{:25}{:10}{:8}",
             network.Id, network.Name, network.Driver, network.Scope
@@ -26,10 +31,10 @@ fn main() {
         "create network: {}",
         serde_json::to_string_pretty(&create).unwrap()
     );
-    let res = docker.create_network(&create).unwrap();
+    let res = docker.create_network(&create).await.unwrap();
     println!("res: {res:?}");
     let mut filter = ListNetworkFilters::default();
     filter.id(res.Id.as_str().into());
     println!("remove network: {}", res.Id);
-    docker.remove_network(&res.Id).unwrap();
+    docker.remove_network(&res.Id).await.unwrap();
 }

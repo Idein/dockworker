@@ -1,37 +1,5 @@
-use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
-use std::iter;
-
-use crate::errors::*;
-use crate::hyper_client::Response;
 use serde::{Deserialize, Serialize};
-
-/// response of /containers/{}/stats api
-#[derive(Debug)]
-pub struct StatsReader {
-    buf: BufReader<Response>,
-}
-
-impl StatsReader {
-    pub fn new(response: Response) -> Self {
-        Self {
-            buf: BufReader::new(response),
-        }
-    }
-}
-
-impl iter::Iterator for StatsReader {
-    type Item = Result<Stats>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut line = String::new();
-        match self.buf.read_line(&mut line) {
-            Ok(0) => None,
-            Ok(_) => Some(serde_json::from_str::<Stats>(&line).map_err(Into::into)),
-            Err(err) => Some(Err(err.into())),
-        }
-    }
-}
+use std::collections::HashMap;
 
 /// response type of containers/stats api
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

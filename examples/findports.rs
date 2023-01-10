@@ -1,13 +1,14 @@
-extern crate dockworker;
-
-use dockworker::errors::*;
 use dockworker::{container::ContainerFilters, Docker};
 
-fn find_all_exported_ports() -> Result<()> {
-    let docker = Docker::connect_with_defaults()?;
-    let containers = docker.list_containers(Some(true), None, None, ContainerFilters::default())?;
+#[tokio::main]
+async fn main() {
+    let docker = Docker::connect_with_defaults().unwrap();
+    let containers = docker
+        .list_containers(Some(true), None, None, ContainerFilters::default())
+        .await
+        .unwrap();
     for container in &containers {
-        let info = docker.container_info(container.Id.as_str())?;
+        let info = docker.container_info(container.Id.as_str()).await.unwrap();
 
         // Uncomment this to dump everything we know about a container.
         //println!("{:#?}", &info);
@@ -17,9 +18,4 @@ fn find_all_exported_ports() -> Result<()> {
             println!("{k}: {v:?}");
         }
     }
-    Ok(())
-}
-
-fn main() -> Result<()> {
-    find_all_exported_ports()
 }

@@ -1,10 +1,9 @@
-extern crate dockworker;
-
 use dockworker::Docker;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    let images = docker.images(false).unwrap();
+    let images = docker.images(false).await.unwrap();
 
     for image in &images {
         println!(

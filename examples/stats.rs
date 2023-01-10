@@ -1,17 +1,19 @@
-extern crate dockworker;
-
 use dockworker::{container::ContainerFilters, Docker};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let docker = Docker::connect_with_defaults().unwrap();
-    for container in docker
+    let containers = docker
         .list_containers(None, None, None, ContainerFilters::default())
-        .unwrap()
-    {
-        for stats in docker
+        .await
+        .unwrap();
+    for container in containers {
+        let mut stats = docker
             .stats(&container.Id, Some(false), Some(true))
-            .unwrap()
-        {
+            .await
+            .unwrap();
+        use futures::stream::StreamExt;
+        while let Some(stats) = stats.next().await {
             println!("{:#?}", stats.unwrap());
         }
     }

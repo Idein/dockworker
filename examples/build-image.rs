@@ -1,15 +1,12 @@
-extern crate dockworker;
-extern crate tar;
-
 use dockworker::{ContainerBuildOptions, Docker};
-use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use tar::Builder;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     {
-        let mut dockerfile = File::create("Dockerfile").unwrap();
+        use tokio::io::AsyncWriteExt;
+        let mut dockerfile = tokio::fs::File::create("Dockerfile").await.unwrap();
         dockerfile
             .write_all(
                 r#"FROM alpine:edge
@@ -17,11 +14,16 @@ fn main() {
         "#
                 .as_bytes(),
             )
+            .await
             .unwrap();
     }
     // Create tar file
     {
-        let tar_file = File::create("image.tar").unwrap();
+        let tar_file = tokio::fs::File::create("image.tar")
+            .await
+            .unwrap()
+            .into_std()
+            .await;
         let mut a = Builder::new(tar_file);
         a.append_path("Dockerfile").unwrap();
     }
@@ -35,11 +37,8 @@ fn main() {
         t: vec!["silly:lat".to_owned()],
         ..ContainerBuildOptions::default()
     };
-    let res = docker.build_image(options, Path::new("image.tar")).unwrap();
-
-    // read and discard to end of response
-    for line in BufReader::new(res).lines() {
-        let buf = line.unwrap();
-        println!("{}", &buf);
-    }
+    docker
+        .build_image(options, Path::new("image.tar"))
+        .await
+        .unwrap();
 }

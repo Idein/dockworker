@@ -1,19 +1,14 @@
-extern crate dockworker;
-extern crate hyper;
-
 use dockworker::{
     credentials::{Credential, UserPassword},
     Docker,
 };
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let mut docker = Docker::connect_with_defaults().unwrap();
 
     let (name, tag) = ("alpine", "latest");
-    docker
-        .create_image(name, tag)
-        .unwrap()
-        .for_each(|_| print!("."));
+    docker.create_image(name, tag).await.unwrap();
 
     let serveraddress = "localhost:5000";
     docker.set_credential(Credential::with_password(UserPassword::new(
@@ -26,6 +21,7 @@ fn main() {
     println!("pulled: {name}:{tag}");
     docker
         .push_image(&format!("{serveraddress}/{name}"), tag)
+        .await
         .unwrap();
     println!("pushed: {name}:{tag}");
 }
