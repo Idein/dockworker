@@ -41,13 +41,13 @@ tokio = { version = "1", features = ["full"] }
 log = "0.4"
 mime = "0.3"
 native-tls = { version = "0.2", optional = true }
-nix = "0.24"
-base64 = "0.13"
-dirs = "4"
+nix = "0.26"
+base64 = "0.21"
+dirs = "5.0"
 thiserror = "1"
 
 [dev-dependencies]
-env_logger = "0.9"
+env_logger = "0.10"
 rand = "0.8"
 
 [target.'cfg(unix)'.dependencies]
