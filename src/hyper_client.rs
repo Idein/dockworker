@@ -35,7 +35,7 @@ impl Client {
 pub struct Response {
     pub status: StatusCode,
     buf: Vec<u8>,
-    rx: futures::channel::mpsc::UnboundedReceiver<hyper::body::Bytes>,
+    rx: futures::channel::mpsc::UnboundedReceiver<result::Result<hyper::body::Bytes, hyper::Error>>,
     #[allow(dead_code)]
     handle: std::thread::JoinHandle<()>,
 }
@@ -51,14 +51,14 @@ impl Response {
                 .build()
                 .unwrap();
 
-            let future = res.body_mut().try_for_each(move |chunk| {
+            let future = res.body_mut().for_each(|res| {
                 if !tx.is_closed() {
-                    tx.unbounded_send(chunk).unwrap();
+                    tx.unbounded_send(res).unwrap();
                 }
-                futures::future::ok(())
+                futures::future::ready(())
             });
 
-            tokio_runtime.block_on(future).unwrap();
+            tokio_runtime.block_on(future);
         });
 
         Response {
@@ -87,31 +87,41 @@ impl std::io::Read for Response {
 
         let mut j = i;
         let mut buffer = Vec::new();
+        let mut err_found = None;
 
         if !self.rx.is_terminated() {
-            let stream = self.rx.by_ref().skip_while(|bytes| {
-                let m = std::cmp::min(bytes.len(), n - j);
-                let len = bytes.len();
-                j += len;
+            let stream = self.rx.by_ref().skip_while(|res| match res {
+                Ok(bytes) => {
+                    let m = std::cmp::min(bytes.len(), n - j);
+                    let len = bytes.len();
+                    j += len;
 
-                for byte in &bytes[..m] {
-                    buf[i] = *byte;
-                    i += 1;
+                    for byte in &bytes[..m] {
+                        buf[i] = *byte;
+                        i += 1;
+                    }
+
+                    if len < m {
+                        return futures::future::ready(true);
+                    }
+
+                    if len == m {
+                        return futures::future::ready(false);
+                    }
+
+                    for byte in &bytes[m..] {
+                        buffer.push(*byte);
+                    }
+
+                    futures::future::ready(false)
                 }
-
-                if len < m {
-                    return futures::future::ready(true);
+                Err(_) => {
+                    err_found = Some(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "continuous reading of the response body ended unexpectedly",
+                    ));
+                    futures::future::ready(false)
                 }
-
-                if len == m {
-                    return futures::future::ready(false);
-                }
-
-                for byte in &bytes[m..] {
-                    buffer.push(*byte);
-                }
-
-                futures::future::ready(false)
             });
 
             let (_, _) = tokio::runtime::Builder::new_multi_thread()
@@ -119,6 +129,10 @@ impl std::io::Read for Response {
                 .build()
                 .unwrap()
                 .block_on(stream.into_future());
+        }
+
+        if let Some(e) = err_found {
+            return Err(e);
         }
 
         self.buf = buffer;
