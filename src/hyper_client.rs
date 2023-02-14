@@ -70,6 +70,51 @@ impl Response {
     }
 }
 
+//  hyper::Error doesn't export the values, so the predicate is used to determine and branch.
+fn convert_hyper_error_to_io_error<T>(e: &hyper::Error) -> std::result::Result<T, std::io::Error> {
+    if e.is_parse() || e.is_parse_too_large() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!("HTTP parse error: {}", e),
+        ));
+    }
+    if e.is_parse_status() || e.is_user() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("invalid HTTP response: {}", e),
+        ));
+    }
+    if e.is_canceled() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "HTTP request was canceled",
+        ));
+    }
+    if e.is_closed() || e.is_connect() || e.is_incomplete_message() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::ConnectionAborted,
+            format!("connection aborted: {}", e),
+        ));
+    }
+    if e.is_body_write_aborted() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("aborted to write response body: {}", e),
+        ));
+    }
+    if e.is_timeout() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            format!("timeout occurred: {}", e),
+        ));
+    }
+
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        format!("unknown error occured: {}", e),
+    ))
+}
+
 impl std::io::Read for Response {
     fn read(&mut self, buf: &mut [u8]) -> std::result::Result<usize, std::io::Error> {
         let n = buf.len();
@@ -115,11 +160,8 @@ impl std::io::Read for Response {
 
                     futures::future::ready(false)
                 }
-                Err(_) => {
-                    err_found = Some(std::io::Error::new(
-                        std::io::ErrorKind::UnexpectedEof,
-                        "continuous reading of the response body ended unexpectedly",
-                    ));
+                Err(e) => {
+                    err_found = Some(convert_hyper_error_to_io_error(e));
                     futures::future::ready(false)
                 }
             });
@@ -131,8 +173,8 @@ impl std::io::Read for Response {
                 .block_on(stream.into_future());
         }
 
-        if let Some(e) = err_found {
-            return Err(e);
+        if let Some(err) = err_found {
+            return err;
         }
 
         self.buf = buffer;
