@@ -9,7 +9,7 @@ repository = "https://github.com/Idein/dockworker"
 documentation = "https://docs.rs/dockworker"
 readme = "README.md"
 keywords = ["docker"]
-edition = "2018"
+edition = "2021"
 
 [badges]
 appveyor = { repository = "eldesh/dockworker", branch = "master", service = "github" }

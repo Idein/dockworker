@@ -507,9 +507,11 @@ impl LogConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum LogConfigType {
     JsonFile,
     Syslog,
+    #[default]
     Journald,
     Gelf,
     Fluentd,
@@ -517,12 +519,6 @@ pub enum LogConfigType {
     Splunk,
     Etwlogs,
     None,
-}
-
-impl Default for LogConfigType {
-    fn default() -> Self {
-        LogConfigType::Journald
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
