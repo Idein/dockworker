@@ -43,7 +43,7 @@ pub struct Image {
     pub Parent: String,
     pub Comment: String,
     #[serde(with = "format::datetime_rfc3339")]
-    /// https://github.com/moby/moby/blob/611b23c1a0e9a9f440165a331964923fd1116256/daemon/images/image_inspect.go#L72
+    // https://github.com/moby/moby/blob/611b23c1a0e9a9f440165a331964923fd1116256/daemon/images/image_inspect.go#L72
     pub Created: DateTime<FixedOffset>,
     pub Container: String,
     pub ContainerConfig: Config,
