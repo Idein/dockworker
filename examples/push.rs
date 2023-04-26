@@ -5,7 +5,7 @@ use dockworker::{
 
 #[tokio::main]
 async fn main() {
-    let mut docker = Docker::connect_with_defaults().unwrap();
+    let docker = Docker::connect_with_defaults().unwrap();
 
     let (name, tag) = ("alpine", "latest");
     docker.create_image(name, tag).await.unwrap();
