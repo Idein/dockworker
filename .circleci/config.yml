@@ -63,15 +63,23 @@ jobs:
             RUST_BACKTRACE=1 cargo build --verbose --features ssl
             RUST_BACKTRACE=1 cargo build --examples -j 8
       - run:
-          name: Unit testing
+          name: Unit testing with ssl feature
           command: |
             RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl
+      - run:
+          name: Unit testing with ssl-rustls feature
+          command: |
+            RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl-rustls
       - run:
           name: More unit testing
           command: |
             docker load -i test-iostream
             docker load -i test-signal
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
+      - run:
+          name: More unit testing with ssl-rustls
+          command: |
+            RUST_BACKTRACE=1 cargo test --verbose --features ssl-rustls -- --ignored
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
           paths:
