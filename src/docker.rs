@@ -282,7 +282,7 @@ impl Docker {
         .into())
     }
 
-    #[cfg(feature = "openssl")]
+    #[cfg(any(feature = "openssl", feature = "rustls"))]
     pub fn connect_with_ssl(
         addr: &str,
         key: &Path,
@@ -298,7 +298,7 @@ impl Docker {
         Ok(Docker::new(client, Protocol::Tcp))
     }
 
-    #[cfg(not(feature = "openssl"))]
+    #[cfg(not(any(feature = "openssl", feature = "rustls")))]
     pub fn connect_with_ssl(
         _addr: &str,
         _key: &Path,

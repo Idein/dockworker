@@ -11,6 +11,8 @@ enum Client {
     HttpClient(hyper::Client<hyper::client::HttpConnector>),
     #[cfg(feature = "openssl")]
     HttpsClient(hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>>),
+    #[cfg(feature = "rustls")]
+    HttpsClient(hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>),
     #[cfg(unix)]
     UnixClient(hyper::Client<hyperlocal::UnixConnector>),
 }
@@ -20,6 +22,8 @@ impl Client {
         match self {
             Client::HttpClient(http_client) => http_client.request(req),
             #[cfg(feature = "openssl")]
+            Client::HttpsClient(https_client) => https_client.request(req),
+            #[cfg(feature = "rustls")]
             Client::HttpsClient(https_client) => https_client.request(req),
             #[cfg(unix)]
             Client::UnixClient(unix_client) => unix_client.request(req),
@@ -170,6 +174,67 @@ impl HyperClient {
         let mut http = hyper::client::HttpConnector::new();
         http.enforce_http(false);
         let https = hyper_tls::HttpsConnector::from((http, builder.build()?.into()));
+        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
+        Ok(Self::new(Client::HttpsClient(client), url))
+    }
+
+    #[cfg(feature = "rustls")]
+    pub fn connect_with_ssl(
+        addr: &str,
+        key: &Path,
+        cert: &Path,
+        ca: &Path,
+    ) -> Result<Self, DwError> {
+        use log::warn;
+        use rustls::{Certificate, PrivateKey};
+        use rustls_pemfile::Item;
+        use std::fs::File;
+        use std::io::BufReader;
+
+        let addr_https = addr.clone().replacen("tcp://", "https://", 1);
+        let url = Uri::from_str(&addr_https).map_err(|err| DwError::InvalidUri {
+            var: addr_https,
+            source: err,
+        })?;
+
+        let mut key_buf = BufReader::new(File::open(key)?);
+        let mut cert_buf = BufReader::new(File::open(cert)?);
+        let mut ca_buf = BufReader::new(File::open(ca)?);
+
+        let private_key = match rustls_pemfile::rsa_private_keys(&mut key_buf)? {
+            keys if keys.is_empty() => return Err(rustls::Error::NoCertificatesPresented.into()),
+            mut keys if keys.len() == 1 => PrivateKey(keys.remove(0)),
+            mut keys => {
+                // if keys.len() > 1
+                warn!("Private key file contains multiple keys. Using only first one.");
+                PrivateKey(keys.remove(0))
+            }
+        };
+        let certs = rustls_pemfile::read_all(&mut cert_buf)?
+            .into_iter()
+            .filter_map(|item| match item {
+                Item::X509Certificate(c) => Some(Certificate(c)),
+                _ => None,
+            })
+            .collect();
+        let mut root_certs = rustls::RootCertStore::empty();
+        for c in rustls_pemfile::certs(&mut ca_buf)? {
+            root_certs.add(&Certificate(c))?;
+        }
+
+        let config = rustls::ClientConfig::builder()
+            .with_safe_default_cipher_suites()
+            .with_safe_default_kx_groups()
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_root_certificates(root_certs)
+            .with_single_cert(certs, private_key)
+            .expect("bad certificate/key");
+        let https = hyper_rustls::HttpsConnectorBuilder::new()
+            .with_tls_config(config)
+            .https_or_http()
+            .enable_all_versions()
+            .build();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
         Ok(Self::new(Client::HttpsClient(client), url))
     }
