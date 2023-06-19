@@ -56,6 +56,8 @@ thiserror = "1"
 
 [dev-dependencies]
 rand = "0.8"
+rstest = "0.17"
+serial_test = "2"
 
 [target.'cfg(unix)'.dependencies]
 hyperlocal = "0.8"
