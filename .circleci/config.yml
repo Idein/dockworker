@@ -21,32 +21,34 @@ jobs:
 
   build:
     working_directory: /tmp/dockworker
-    docker:
-      - image: rust:1.49.0
-        environment:
-          DOCKER_VERSION: 18.03.1-ce
+    machine:
+      image: ubuntu-2204:2023.04.2
+    environment:
+      DOCKER_VERSION: 18.03.1-ce
     steps:
       - checkout
-      - setup_remote_docker
       - attach_workspace:
           at: /tmp/dockworker
       - run:
           name: Setup Packages
           command: |
-            apt-get update
-            apt-get install -y ca-certificates curl libssl-dev
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates curl libssl-dev
       - run:
           name: Install Docker Client
           command: |
             # client only
-            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | tar -zxf - --strip 1 -C /usr/local/bin docker/docker
+            curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | sudo tar -zxf - --strip 1 -C /usr/local/bin docker/docker
       - run:
           name: Install rustfmt
           command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
             rustup component add rustfmt
       - run:
           name: Generate cache key
           command: |
+            source "$HOME/.cargo/env"
             cat Cargo.toml Cargo.lock >  /tmp/build-dep
             rustc --version           >> /tmp/build-dep
             rustfmt --version         >> /tmp/build-dep
@@ -56,29 +58,36 @@ jobs:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}
       - run:
           name: Checking source code style
-          command: cargo fmt -- --check
+          command: |
+            source "$HOME/.cargo/env"
+            cargo fmt -- --check
       - run:
           name: Build project
           command: |
+            source "$HOME/.cargo/env"
             RUST_BACKTRACE=1 cargo build --verbose --features ssl
             RUST_BACKTRACE=1 cargo build --examples -j 8
       - run:
           name: Unit testing with ssl feature
           command: |
+            source "$HOME/.cargo/env"
             RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl
       - run:
           name: Unit testing with ssl-rustls feature
           command: |
+            source "$HOME/.cargo/env"
             RUST_BACKTRACE=1 cargo test -j 8 --verbose --features ssl-rustls
       - run:
           name: More unit testing
           command: |
+            source "$HOME/.cargo/env"
             docker load -i test-iostream
             docker load -i test-signal
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - run:
           name: More unit testing with ssl-rustls
           command: |
+            source "$HOME/.cargo/env"
             RUST_BACKTRACE=1 cargo test --verbose --features ssl-rustls -- --ignored
       - save_cache:
           key: cache-cargo-target-{{ .Environment.CIRCLE_JOB }}-{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "/tmp/build-dep" }}

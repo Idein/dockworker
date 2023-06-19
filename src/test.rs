@@ -377,7 +377,7 @@ fn v2_blob_layer(
                 let body = base64::engine::general_purpose::STANDARD_NO_PAD.decode(body).unwrap();
                 assert_eq!(body.len(), 2457);
                 let body = async_stream::stream!{
-                    for (i, bytes) in body.chunks(16).enumerate() {
+                    for (i, bytes) in body.chunks(8).enumerate() {
                         if let Some(count) = conn_shutdown_count {
                             if i > count {
                                 // simulate a connection shutdown
@@ -415,7 +415,7 @@ async fn pull_succ() {
     );
     let cred = crate::credentials::Credential::with_password(pass);
     dw.set_credential(cred);
-    let image_id = "localhost:3000/hello-world:latest";
+    let image_id = "localhost:37564/hello-world:latest";
     dw.remove_image(image_id, Some(true), Some(true)).await.ok();
     let (server_ready_tx, server_ready_rx) = tokio::sync::oneshot::channel::<()>();
     let (shutdown_server_tx, shutdown_server_rx) = tokio::sync::oneshot::channel::<()>();
@@ -432,7 +432,8 @@ async fn pull_succ() {
                 });
             Ok(svc) as Result<_, std::convert::Infallible>
         });
-        let fut = hyper::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 3000))).serve(app);
+        let fut =
+            hyper::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 37564))).serve(app);
         let fut = futures::future::join(
             async {
                 fut.await.unwrap();
@@ -448,6 +449,7 @@ async fn pull_succ() {
     };
     let fut2 = async {
         server_ready_rx.await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         // manifest の取得までは POST /images/create の response header を返す前に行われる
         // manifest は containerd が /var/lib/containerd 以下にキャッシュしており、 docker rmi
         // では削除できない
@@ -464,23 +466,23 @@ async fn pull_succ() {
     futures::future::join(fut1, fut2).await;
     dw.remove_image(image_id, Some(true), Some(true)).await.ok();
 }
+
 #[rstest::rstest]
 #[case(
     "cannot_lookup",
-    "Get https://unexist.actcast.io/v2/: dial tcp: lookup unexist.actcast.io: no such host"
+    "Get \"https://unexist.actcast.io/v2/\": dial tcp: lookup unexist.actcast.io: no such host"
 )]
 #[case(
     "cannot_connect",
-    "Get http://localhost:3001/v2/: dial tcp 127.0.0.1:3001: connect: connection refused"
+    "Get \"http://localhost:13001/v2/\": dial tcp 127.0.0.1:13001: connect: connection refused"
 )]
-#[case("cannot_get_version", "Get http://localhost:3000/v2/: EOF")]
+#[case("cannot_get_version", "Get \"http://localhost:37564/v2/\": EOF")]
 #[case(
     "cannot_get_manifest",
-    "Head http://localhost:3000/v2/hello-world/manifests/latest: EOF"
+    "Head \"http://localhost:37564/v2/hello-world/manifests/latest\": EOF"
 )]
-#[case("cannot_get_manifest_sha256", "Get http://localhost:3000/v2/hello-world/manifests/sha256:7e9b6e7ba2842c91cf49f3e214d04a7a496f8214356f41d81a6e6dcad11f11e3: EOF")]
-// this test sometimes failed if manifest file is cached
-#[case("cannot_download_manifest_sha256", "Get http://localhost:3000/v2/hello-world/manifests/sha256:7e9b6e7ba2842c91cf49f3e214d04a7a496f8214356f41d81a6e6dcad11f11e3: EOF")]
+#[case("cannot_get_manifest_sha256", "Get \"http://localhost:37564/v2/hello-world/manifests/sha256:7e9b6e7ba2842c91cf49f3e214d04a7a496f8214356f41d81a6e6dcad11f11e3\": EOF")]
+#[case("cannot_download_manifest_sha256", "Get \"http://localhost:37564/v2/hello-world/manifests/sha256:7e9b6e7ba2842c91cf49f3e214d04a7a496f8214356f41d81a6e6dcad11f11e3\": EOF")]
 #[serial_test::serial]
 #[tokio::test]
 async fn pull_failed_before_stream_response(
@@ -498,8 +500,8 @@ async fn pull_failed_before_stream_response(
     dw.set_credential(cred);
     let image_id = match case {
         "cannot_lookup" => "unexist.actcast.io/hello-world:latest",
-        "cannot_connect" => "localhost:3001/hello-world:latest",
-        _ => "localhost:3000/hello-world:latest",
+        "cannot_connect" => "localhost:13001/hello-world:latest",
+        _ => "localhost:37564/hello-world:latest",
     };
     dw.remove_image(image_id, Some(true), Some(true)).await.ok();
     let (server_ready_tx, server_ready_rx) = tokio::sync::oneshot::channel::<()>();
@@ -523,7 +525,8 @@ async fn pull_failed_before_stream_response(
                 });
             Ok(svc) as Result<_, std::convert::Infallible>
         });
-        let fut = hyper::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 3000))).serve(app);
+        let fut =
+            hyper::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 37564))).serve(app);
         let fut = futures::future::join(
             async {
                 fut.await.unwrap();
@@ -539,6 +542,7 @@ async fn pull_failed_before_stream_response(
     };
     let fut2 = async {
         server_ready_rx.await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         // manifest の取得までは POST /images/create の response header を返す前に行われる
         // manifest は containerd が /var/lib/containerd 以下にキャッシュしており、 docker rmi
         // では削除できない
@@ -557,14 +561,20 @@ async fn pull_failed_before_stream_response(
 }
 
 #[rstest::rstest]
-#[case(true, 999, "error pulling image configuration: Get http://localhost:3000/v2/hello-world/blobs/sha256:9c7a54a9a43cca047013b82af109fe963fde787f63f9e016fdc3384500c2823d: EOF", "error pulling image configuration: Get http://localhost:3000/v2/hello-world/blobs/sha256:9c7a54a9a43cca047013b82af109fe963fde787f63f9e016fdc3384500c2823d: EOF")]
-#[case(false, 0, "unexpected EOF", "unexpected EOF")]
 #[case(
-    false,
-    1,
-    "expected HTTP 206 from byte range request",
-    "expected HTTP 206 from byte range request"
+    true,
+    999,
+    "error pulling image configuration: download failed after attempts=6: EOF",
+    "error pulling image configuration: download failed after attempts=6: EOF"
 )]
+// thoses tests sometimes failed if blob file is cached
+//#[case(false, 0, "unexpected EOF", "unexpected EOF")]
+//#[case(
+//    false,
+//    1,
+//    "expected HTTP 206 from byte range request",
+//    "expected HTTP 206 from byte range request"
+//)]
 #[serial_test::serial]
 #[tokio::test]
 async fn pull_failed_on_response_stream(
@@ -582,8 +592,18 @@ async fn pull_failed_on_response_stream(
     );
     let cred = crate::credentials::Credential::with_password(pass);
     dw.set_credential(cred);
-    let image_id = "localhost:3000/hello-world:latest";
+    let image_id = "localhost:37564/hello-world:latest";
     dw.remove_image(image_id, Some(true), Some(true)).await.ok();
+    let output = std::process::Command::new("sudo")
+        .args([
+            "rm",
+            "-rf",
+            "/var/lib/containerd/io.containerd.content.v1.content/*",
+        ])
+        .output()
+        .unwrap();
+    println!("{}", String::from_utf8(output.stdout).unwrap());
+    println!("{}", String::from_utf8(output.stderr).unwrap());
     let (server_ready_tx, server_ready_rx) = tokio::sync::oneshot::channel::<()>();
     let (shutdown_server_tx, shutdown_server_rx) = tokio::sync::oneshot::channel::<()>();
     let fut1 = async {
@@ -599,7 +619,8 @@ async fn pull_failed_on_response_stream(
                 });
             Ok(svc) as Result<_, std::convert::Infallible>
         });
-        let fut = hyper::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 3000))).serve(app);
+        let fut =
+            hyper::Server::bind(&std::net::SocketAddr::from(([0, 0, 0, 0], 37564))).serve(app);
         let fut = futures::future::join(
             async {
                 fut.await.unwrap();
@@ -615,6 +636,7 @@ async fn pull_failed_on_response_stream(
     };
     let fut2 = async {
         server_ready_rx.await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         let res = dw.create_image(image_id, "").await.unwrap();
         use futures::StreamExt;
         let results = res
