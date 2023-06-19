@@ -161,6 +161,10 @@ fn get_stats_response() -> http::Response<hyper::Body> {
 
 // docker run -d -p 5000:5000 registry
 // docker push localhost:5000/hello-world:latest
+// original
+// - https://hub.docker.com/_/hello-world
+// - https://github.com/docker-library/hello-world/
+// - in MIT License
 static MANIFEST: &str = r###"{
    "schemaVersion": 2,
    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
