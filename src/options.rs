@@ -265,6 +265,8 @@ pub struct ContainerHostConfig {
     cap_drop: Vec<String>,
     group_add: Vec<String>,
     restart_policy: RestartPolicy,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    userns_mode: Option<String>,
     network_mode: String,
     devices: Vec<DeviceMapping>,
     sysctls: HashMap<String, String>,
@@ -314,6 +316,7 @@ impl ContainerHostConfig {
             cap_drop: Vec::new(),
             group_add: Vec::new(),
             restart_policy: RestartPolicy::default(),
+            userns_mode: None,
             network_mode: "default".to_owned(),
             devices: Vec::new(),
             sysctls: HashMap::new(),
@@ -452,6 +455,10 @@ impl ContainerHostConfig {
     }
     pub fn restart_policy(&mut self, restart_policy: RestartPolicy) -> &mut Self {
         self.restart_policy = restart_policy;
+        self
+    }
+    pub fn userns_mode(&mut self, userns_mode: Option<String>) -> &mut Self {
+        self.userns_mode = userns_mode;
         self
     }
     pub fn network_mode(&mut self, network_mode: String) -> &mut Self {
