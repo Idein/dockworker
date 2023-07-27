@@ -928,7 +928,7 @@ impl Docker {
         &self,
         options: ContainerBuildOptions,
         tar_path: &Path,
-    ) -> Result<(), DwError> {
+    ) -> Result<BoxStream<'static, Result<DockerResponse, DwError>>, DwError> {
         let mut headers = self.headers().clone();
         headers.insert(
             http::header::CONTENT_TYPE,
@@ -936,17 +936,17 @@ impl Docker {
         );
         let res = self
             .http_client()
-            .post_file(
+            .post_file_stream(
                 &headers,
                 &format!("/build?{}", options.to_url_params()),
                 tar_path,
             )
             .await?;
-        if !res.status().is_success() {
-            return Err(serde_json::from_slice::<DockerError>(res.body())?.into());
+        if res.status().is_success() {
+            into_jsonlines(res.into_body())
+        } else {
+            Err(into_docker_error(res.into_body()).await?.into())
         }
-
-        Ok(())
     }
 
     /// Create an image by pulling it from registry

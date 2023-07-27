@@ -30,15 +30,22 @@ pub trait HttpClient {
         body: &str,
     ) -> Result<Response<hyper::Body>, Self::Err>;
 
-    async fn delete(&self, headers: &HeaderMap, path: &str)
-        -> Result<Response<Vec<u8>>, Self::Err>;
-
     async fn post_file(
         &self,
         headers: &HeaderMap,
         path: &str,
         file: &Path,
     ) -> Result<Response<Vec<u8>>, Self::Err>;
+
+    async fn post_file_stream(
+        &self,
+        headers: &HeaderMap,
+        path: &str,
+        file: &Path,
+    ) -> Result<Response<hyper::Body>, Self::Err>;
+
+    async fn delete(&self, headers: &HeaderMap, path: &str)
+        -> Result<Response<Vec<u8>>, Self::Err>;
 
     async fn put_file(
         &self,
