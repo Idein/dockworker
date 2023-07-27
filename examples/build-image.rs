@@ -1,4 +1,5 @@
 use dockworker::{ContainerBuildOptions, Docker};
+use futures::stream::StreamExt;
 use std::path::Path;
 use tar::Builder;
 
@@ -37,8 +38,12 @@ async fn main() {
         t: vec!["silly:lat".to_owned()],
         ..ContainerBuildOptions::default()
     };
-    docker
+
+    let mut stream = docker
         .build_image(options, Path::new("image.tar"))
         .await
         .unwrap();
+    while let Some(msg) = stream.next().await {
+        println!("msg: {:?}", msg);
+    }
 }
