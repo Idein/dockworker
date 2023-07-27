@@ -26,10 +26,31 @@ pub struct Progress {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
+pub struct Stream {
+    pub stream: String,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
 pub struct Status {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     pub status: String,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct LogID {
+    pub ID: String,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
+pub struct Aux {
+    pub aux: LogID,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
+pub struct LogResponse {
+    pub response: String,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Serialize, Deserialize)]
@@ -53,6 +74,9 @@ pub struct Error {
 pub enum Response {
     Progress(Progress),
     Status(Status),
+    Stream(Stream),
+    Aux(Aux),
+    Response(LogResponse),
     Error(Error),
     /// unknown response
     Unknown(json::Value),

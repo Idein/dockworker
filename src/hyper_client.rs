@@ -340,25 +340,6 @@ impl HttpClient for HyperClient {
         Ok(res)
     }
 
-    async fn delete(
-        &self,
-        headers: &HeaderMap,
-        path: &str,
-    ) -> Result<Response<Vec<u8>>, Self::Err> {
-        let url = join_uri(&self.base, path)?;
-
-        let res = request_with_redirect::<Vec<u8>>(
-            self.client.clone(),
-            http::Method::DELETE,
-            url,
-            headers.clone(),
-            None,
-        )
-        .await?;
-        let res = fetch_body(res).await?;
-        Ok(res)
-    }
-
     async fn post_file(
         &self,
         headers: &HeaderMap,
@@ -378,6 +359,49 @@ impl HttpClient for HyperClient {
             url,
             headers.clone(),
             Some(buf),
+        )
+        .await?;
+        let res = fetch_body(res).await?;
+        Ok(res)
+    }
+
+    async fn post_file_stream(
+        &self,
+        headers: &HeaderMap,
+        path: &str,
+        file: &Path,
+    ) -> Result<Response<hyper::Body>, Self::Err> {
+        let mut content = tokio::fs::File::open(file).await?;
+        let url = join_uri(&self.base, path)?;
+
+        use tokio::io::AsyncReadExt;
+        let mut buf = Vec::new();
+        content.read_to_end(&mut buf).await?;
+
+        let res = request_with_redirect(
+            self.client.clone(),
+            http::Method::POST,
+            url,
+            headers.clone(),
+            Some(buf),
+        )
+        .await?;
+        Ok(res)
+    }
+
+    async fn delete(
+        &self,
+        headers: &HeaderMap,
+        path: &str,
+    ) -> Result<Response<Vec<u8>>, Self::Err> {
+        let url = join_uri(&self.base, path)?;
+
+        let res = request_with_redirect::<Vec<u8>>(
+            self.client.clone(),
+            http::Method::DELETE,
+            url,
+            headers.clone(),
+            None,
         )
         .await?;
         let res = fetch_body(res).await?;
