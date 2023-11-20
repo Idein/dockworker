@@ -758,6 +758,49 @@ impl Default for ContainerBuildOptions {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ExporsedPorts(pub Vec<String>);
+
+impl From<Vec<String>> for ExporsedPorts {
+    fn from(ports: Vec<String>) -> Self {
+        ExporsedPorts(ports)
+    }
+}
+
+impl Into<Vec<String>> for ExporsedPorts {
+    fn into(self) -> Vec<String> {
+        self.0
+    }
+}
+
+impl serde::Serialize for ExporsedPorts {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = HashMap::new();
+        for port in &self.0 {
+            map.insert(port.clone(), serde_json::Value::default());
+        }
+        map.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ExporsedPorts {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let map = HashMap::<String, serde_json::Value>::deserialize(deserializer)?;
+        Ok(ExporsedPorts(map.keys().cloned().collect()))
+    }
+}
+
+#[test]
+fn test_exposed_ports() {
+    let ports = ExporsedPorts(vec!["80/tcp".to_owned(), "443/tcp".to_owned(),
+    "8080/tcp".to_owned(), "8443/tcp".to_owned()
+    ]);
+    let json = serde_json::to_string(&ports).unwrap();
+    assert_eq!(json, r#"{"80/tcp":{},"443/tcp":{},"8080/tcp":{},"8443/tcp":{}}"#);
+    let ports: ExporsedPorts = serde_json::from_str(&json).unwrap();
+    assert_eq!(ports.0, vec!["80/tcp".to_owned(), "443/tcp".to_owned(),"8080/tcp".to_owned(), "8443/tcp".to_owned()]);
+}
+
 /// request body of /containers/create api
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -768,7 +811,7 @@ pub struct ContainerCreateOptions {
     attach_stdin: bool,
     attach_stdout: bool,
     attach_stderr: bool,
-    // exposed_ports: HashMap<String, Any>, not sure the type that this would need to be
+    exposed_ports: ExporsedPorts,
     tty: bool,
     open_stdin: bool,
     stdin_once: bool,
