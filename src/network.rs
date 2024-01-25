@@ -28,7 +28,7 @@ pub struct Network {
 #[allow(non_snake_case)]
 pub struct IPAM {
     pub Driver: String,
-    pub Config: Vec<IPAMConfig>,
+    pub Config: Option<Vec<IPAMConfig>>,
     #[serde(deserialize_with = "format::null_to_default")]
     pub Options: HashMap<String, String>,
 }
@@ -37,7 +37,7 @@ impl Default for IPAM {
     fn default() -> Self {
         IPAM {
             Driver: "default".to_string(),
-            Config: vec![],
+            Config: None,
             Options: HashMap::new(),
         }
     }
