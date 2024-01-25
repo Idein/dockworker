@@ -7,8 +7,8 @@ async fn main() {
 
     for image in &images {
         println!(
-            "{} -> Size: {}, Virtual Size: {}, Created: {}",
-            image.Id, image.Size, image.VirtualSize, image.Created
+            "{} -> Size: {}, Size: {}, Created: {}",
+            image.Id, image.Size, image.Size, image.Created
         );
     }
 }

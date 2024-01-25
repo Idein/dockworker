@@ -28,7 +28,9 @@ pub struct SummaryImage {
     pub Size: i64,
     #[serde(default = "i64::default")]
     pub SharedSize: i64,
-    pub VirtualSize: i64,
+    #[deprecated]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub VirtualSize: Option<i64>,
     #[serde(default = "i64::default")]
     pub Containers: i64,
 }
@@ -53,7 +55,9 @@ pub struct Image {
     pub Architecture: String,
     pub Os: String,
     pub Size: i64,
-    pub VirtualSize: i64,
+    #[deprecated]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub VirtualSize: Option<i64>,
     pub GraphDriver: GraphDriver,
     pub RootFS: RootFS,
 }
