@@ -252,7 +252,7 @@ pub struct ContainerHostConfig {
     oom_score_adj: u16, // TODO: Maybe this can be smaller?
     pid_mode: String,
     pids_limit: i16,
-    port_bindings: HashMap<String, Vec<HashMap<String, String>>>,
+    port_bindings: PortBindings,
     publish_all_ports: bool,
     privileged: bool,
     readonly_rootfs: bool,
@@ -302,7 +302,7 @@ impl ContainerHostConfig {
             oom_score_adj: 0,
             pid_mode: "".to_owned(),
             pids_limit: 0,
-            port_bindings: HashMap::new(),
+            port_bindings: PortBindings(vec![]),
             publish_all_ports: false,
             privileged: false,
             readonly_rootfs: false,
@@ -485,6 +485,10 @@ impl ContainerHostConfig {
     }
     pub fn shm_size(&mut self, shm_size: u64) -> &mut Self {
         self.shm_size = shm_size;
+        self
+    }
+    pub fn port_bindings(&mut self, port_bindings: PortBindings) -> &mut Self {
+        self.port_bindings = port_bindings;
         self
     }
 }
@@ -926,10 +930,14 @@ pub struct ContainerCreateOptions {
     stop_signal: String,
     #[serde(with = "format::duration::DurationDelegate")]
     stop_timeout: Duration,
-    host_config: Option<ContainerHostConfig>,
+    host_config: Option<HostConfig>,
     networking_config: Option<NetworkingConfig>,
     exposed_ports: Option<ExporsedPorts>,
-    port_bindings: Option<PortBindings>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HostConfig {
+    pub port_bindings: PortBindings,
 }
 
 impl ContainerCreateOptions {
@@ -958,7 +966,6 @@ impl ContainerCreateOptions {
             host_config: None,
             networking_config: None,
             exposed_ports: None,
-            port_bindings: None,
         }
     }
 
@@ -1066,7 +1073,7 @@ impl ContainerCreateOptions {
         self
     }
 
-    pub fn host_config(&mut self, host_config: ContainerHostConfig) -> &mut Self {
+    pub fn host_config(&mut self, host_config: HostConfig) -> &mut Self {
         self.host_config = Some(host_config);
         self
     }
@@ -1078,11 +1085,6 @@ impl ContainerCreateOptions {
 
     pub fn exposed_ports(&mut self, exposed_ports: ExporsedPorts) -> &mut Self {
         self.exposed_ports = Some(exposed_ports);
-        self
-    }
-
-    pub fn port_bindings(&mut self, port_bindings: PortBindings) -> &mut Self {
-        self.port_bindings = Some(port_bindings);
         self
     }
 }
