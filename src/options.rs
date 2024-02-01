@@ -5,8 +5,9 @@ use crate::network;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::time::Duration;
 use url::{self, form_urlencoded};
 
@@ -765,8 +766,8 @@ impl serde::Serialize for ExporsedPorts {
         let mut map = HashMap::new();
         for (port, protocol) in &self.0 {
             map.insert(
-                format!("{:?}/{:?}", port, protocol).clone(),
-                serde_json::Value::default(),
+                format!("{}/{}", port, protocol).clone(),
+                serde_json::Value::Object(serde_json::Map::new()),
             );
         }
         map.serialize(serializer)
@@ -789,6 +790,40 @@ impl<'de> serde::Deserialize<'de> for ExporsedPorts {
     }
 }
 
+#[test]
+fn test_exposed_ports() {
+    let ports = ExporsedPorts(vec![
+        (80, "tcp".to_owned()),
+        (443, "tcp".to_owned()),
+        (8080, "tcp".to_owned()),
+        (8443, "tcp".to_owned()),
+    ]);
+    let json = serde_json::to_string(&ports).unwrap();
+    // hashmapのkey順序は不定であるため,json_valueに変換してから比較が必要
+    let result_json = serde_json::Value::from_str(&json).unwrap();
+    let expected_json =
+        serde_json::Value::from_str(r#"{"80/tcp":{},"443/tcp":{},"8080/tcp":{},"8443/tcp":{}}"#)
+            .unwrap();
+
+    assert_eq!(result_json, expected_json);
+
+    let ports: ExporsedPorts = serde_json::from_str(&json).unwrap();
+    let result: HashSet<&(u16, String)> = HashSet::from_iter(ports.0.iter());
+    // hashmapのkey順序は不定であるため,hash_setに変換してから比較する
+    assert_eq!(
+        result,
+        HashSet::from_iter(
+            vec![
+                (80, "tcp".to_owned()),
+                (443, "tcp".to_owned()),
+                (8080, "tcp".to_owned()),
+                (8443, "tcp".to_owned())
+            ]
+            .iter()
+        )
+    );
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct PortBindings(pub Vec<(u16, String, u16)>);
 
@@ -797,7 +832,7 @@ impl serde::Serialize for PortBindings {
         let mut map = HashMap::new();
         for (container_port, protocol, host_port) in &self.0 {
             map.insert(
-                format!("{:?}/{:?}", container_port, protocol).clone(),
+                format!("{}/{}", container_port, protocol).clone(),
                 vec![serde_json::json!({"HostPort": host_port.to_string()})],
             );
         }
