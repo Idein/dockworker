@@ -1075,6 +1075,16 @@ impl ContainerCreateOptions {
         self.networking_config = Some(networking_config);
         self
     }
+
+    pub fn exposed_ports(&mut self, exposed_ports: ExporsedPorts) -> &mut Self {
+        self.exposed_ports = Some(exposed_ports);
+        self
+    }
+
+    pub fn port_bindings(&mut self, port_bindings: PortBindings) -> &mut Self {
+        self.port_bindings = Some(port_bindings);
+        self
+    }
 }
 
 mod format {
