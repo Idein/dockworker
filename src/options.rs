@@ -869,6 +869,33 @@ impl<'de> serde::Deserialize<'de> for PortBindings {
     }
 }
 
+#[test]
+fn test_port_bindings() {
+    let ports = PortBindings(vec![
+        (80, "tcp".to_owned(), 8080),
+        (443, "tcp".to_owned(), 8000),
+    ]);
+    let json = serde_json::to_string(&ports).unwrap();
+    // hashmapのkey順序は不定であるため,json_valueに変換してから比較が必要
+    let result_json = serde_json::Value::from_str(&json).unwrap();
+    let expected_json = serde_json::Value::from_str(
+        r#"{"80/tcp":[{"HostPort":"8080"}],"443/tcp":[{"HostPort":"8000"}]}"#,
+    )
+    .unwrap();
+
+    assert_eq!(result_json, expected_json);
+
+    let ports: PortBindings = serde_json::from_str(&json).unwrap();
+    let result: HashSet<&(u16, String, u16)> = HashSet::from_iter(ports.0.iter());
+    // hashmapのkey順序は不定であるため,hash_setに変換してから比較する
+    assert_eq!(
+        result,
+        HashSet::from_iter(
+            vec![(80, "tcp".to_owned(), 8080), (443, "tcp".to_owned(), 8000),].iter()
+        )
+    );
+}
+
 /// request body of /containers/create api
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
