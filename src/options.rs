@@ -757,6 +757,82 @@ impl Default for ContainerBuildOptions {
         }
     }
 }
+#[derive(Debug, Clone, Default)]
+pub struct ExporsedPorts(pub Vec<(u16, String)>);
+
+impl serde::Serialize for ExporsedPorts {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = HashMap::new();
+        for (port, protocol) in &self.0 {
+            map.insert(
+                format!("{:?}/{:?}", port, protocol).clone(),
+                serde_json::Value::default(),
+            );
+        }
+        map.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ExporsedPorts {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let map = HashMap::<String, serde_json::Value>::deserialize(deserializer)?;
+        let keys = map
+            .keys()
+            .map(|k| {
+                let mut parts = k.split('/');
+                let port = parts.next().unwrap().parse().unwrap();
+                let protocol = parts.next().unwrap().to_owned();
+                (port, protocol)
+            })
+            .collect();
+        Ok(ExporsedPorts(keys))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PortBindings(pub Vec<(u16, String, u16)>);
+
+impl serde::Serialize for PortBindings {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut map = HashMap::new();
+        for (container_port, protocol, host_port) in &self.0 {
+            map.insert(
+                format!("{:?}/{:?}", container_port, protocol).clone(),
+                vec![serde_json::json!({"HostPort": host_port.to_string()})],
+            );
+        }
+        map.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for PortBindings {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let map = HashMap::<String, serde_json::Value>::deserialize(deserializer)?;
+        let tuples = map
+            .keys()
+            .map(|k| {
+                let mut parts = k.split('/');
+                let port = parts.next().unwrap().parse().unwrap();
+                let protocol = parts.next().unwrap().to_owned();
+                let host_port = map
+                    .get(k)
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .first()
+                    .unwrap()
+                    .get("HostPort")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .parse()
+                    .unwrap();
+                (port, protocol, host_port)
+            })
+            .collect();
+        Ok(PortBindings(tuples))
+    }
+}
 
 /// request body of /containers/create api
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -790,6 +866,8 @@ pub struct ContainerCreateOptions {
     stop_timeout: Duration,
     host_config: Option<ContainerHostConfig>,
     networking_config: Option<NetworkingConfig>,
+    exposed_ports: Option<ExporsedPorts>,
+    port_bindings: Option<PortBindings>,
 }
 
 impl ContainerCreateOptions {
@@ -817,6 +895,8 @@ impl ContainerCreateOptions {
             stop_timeout: Duration::from_secs(10),
             host_config: None,
             networking_config: None,
+            exposed_ports: None,
+            port_bindings: None,
         }
     }
 
