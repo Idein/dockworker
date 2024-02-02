@@ -2384,7 +2384,7 @@ mod tests {
     async fn port_mapping() {
         let docker = Docker::connect_with_defaults().unwrap();
 
-        let image_name = "port-mapping";
+        let image_name = "port-mapping:latest";
         let mut host_config = ContainerHostConfig::new();
         // 8080 -> 80のport_mappingを行い,container内のnginxに疎通できるかテストしている
         host_config.port_bindings(PortBindings(vec![(80, "tcp".to_string(), 8080)]));

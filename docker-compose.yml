@@ -20,7 +20,8 @@ services:
 
   port-mapping:
     build:
-      context: ./docker/nginx  
+      context: ./docker/nginx 
+    image: port-mapping:latest   
 
 
   # Docker registry container.
