@@ -20,7 +20,7 @@ services:
 
   port-mapping:
     build:
-      context: ./docker/nginx 
+      context: ./docker/port-mapping 
     image: port-mapping:latest   
 
 
