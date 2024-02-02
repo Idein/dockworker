@@ -12,14 +12,12 @@ jobs:
             docker-compose build
             docker save -o test-iostream test-iostream:latest
             docker save -o test-signal   test-signal:latest
-            docker save -o port-mapping  port-mapping:latest
 
       - persist_to_workspace:
           root: /tmp/dockworker
           paths:
             - test-iostream
             - test-signal
-            - port-mapping
 
   build:
     working_directory: /tmp/dockworker
