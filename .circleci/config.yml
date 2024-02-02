@@ -77,7 +77,7 @@ jobs:
           command: |
             docker load -i test-iostream
             docker load -i test-signal
-            docker load -i port-mapping
+            docker pull nginx:latest
             RUST_BACKTRACE=1 cargo test --verbose --features ssl -- --ignored
       - run:
           name: More unit testing with ssl-rustls

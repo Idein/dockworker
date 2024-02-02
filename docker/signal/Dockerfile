@@ -1,7 +1,7 @@
 # display trapped signal
 #
 
-FROM debian:jessie-20180831
+FROM debian:latest
 
 WORKDIR /test
 
