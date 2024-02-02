@@ -752,12 +752,14 @@ impl Default for ContainerBuildOptions {
     }
 }
 #[derive(Debug, Clone, Default)]
-pub struct ExporsedPorts(pub Vec<(u16, String)>);
+pub struct ExposedPorts {
+    pub field1: Vec<(u16, String)>,
+}
 
-impl serde::Serialize for ExporsedPorts {
+impl serde::Serialize for ExposedPorts {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = HashMap::new();
-        for (port, protocol) in &self.0 {
+        for (port, protocol) in &self.field1 {
             map.insert(
                 format!("{}/{}", port, protocol).clone(),
                 serde_json::Value::Object(serde_json::Map::new()),
@@ -767,7 +769,7 @@ impl serde::Serialize for ExporsedPorts {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for ExporsedPorts {
+impl<'de> serde::Deserialize<'de> for ExposedPorts {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let map = HashMap::<String, serde_json::Value>::deserialize(deserializer)?;
         let keys = map
@@ -779,18 +781,20 @@ impl<'de> serde::Deserialize<'de> for ExporsedPorts {
                 (port, protocol)
             })
             .collect();
-        Ok(ExporsedPorts(keys))
+        Ok(ExposedPorts { field1: keys })
     }
 }
 
 #[test]
 fn test_exposed_ports() {
-    let ports = ExporsedPorts(vec![
-        (80, "tcp".to_owned()),
-        (443, "tcp".to_owned()),
-        (8080, "tcp".to_owned()),
-        (8443, "tcp".to_owned()),
-    ]);
+    let ports = ExposedPorts {
+        field1: vec![
+            (80, "tcp".to_owned()),
+            (443, "tcp".to_owned()),
+            (8080, "tcp".to_owned()),
+            (8443, "tcp".to_owned()),
+        ],
+    };
     let json = serde_json::to_string(&ports).unwrap();
     // hashmapのkey順序は不定であるため,json_valueに変換してから比較が必要
     let result_json = serde_json::Value::from_str(&json).unwrap();
@@ -800,8 +804,8 @@ fn test_exposed_ports() {
 
     assert_eq!(result_json, expected_json);
 
-    let ports: ExporsedPorts = serde_json::from_str(&json).unwrap();
-    let result: HashSet<&(u16, String)> = HashSet::from_iter(ports.0.iter());
+    let ports: ExposedPorts = serde_json::from_str(&json).unwrap();
+    let result: HashSet<&(u16, String)> = HashSet::from_iter(ports.field1.iter());
     // hashmapのkey順序は不定であるため,hash_setに変換してから比較する
     assert_eq!(
         result,
@@ -921,7 +925,7 @@ pub struct ContainerCreateOptions {
     stop_timeout: Duration,
     host_config: Option<ContainerHostConfig>,
     networking_config: Option<NetworkingConfig>,
-    exposed_ports: Option<ExporsedPorts>,
+    exposed_ports: Option<ExposedPorts>,
 }
 
 impl ContainerCreateOptions {
@@ -1067,7 +1071,7 @@ impl ContainerCreateOptions {
         self
     }
 
-    pub fn exposed_ports(&mut self, exposed_ports: ExporsedPorts) -> &mut Self {
+    pub fn exposed_ports(&mut self, exposed_ports: ExposedPorts) -> &mut Self {
         self.exposed_ports = Some(exposed_ports);
         self
     }
