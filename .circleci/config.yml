@@ -19,6 +19,7 @@ jobs:
           paths:
             - test-iostream
             - test-signal
+            - port-mapping
 
   build:
     working_directory: /tmp/dockworker
