@@ -2377,6 +2377,7 @@ mod tests {
             .unwrap();
     }
 
+    // docker daemonが起動していないどtestできないのでignoreしている
     #[tokio::test]
     #[ignore]
     async fn port_mapping() {
