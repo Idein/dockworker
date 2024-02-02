@@ -1503,6 +1503,7 @@ mod tests {
     use std::path::PathBuf;
 
     use chrono::Local;
+    use futures::StreamExt;
     use http::request;
     use log::trace;
     use rand::Rng;
@@ -2385,6 +2386,7 @@ mod tests {
 
         let image_name = "nginx:latest";
         let mut host_config = ContainerHostConfig::new();
+        // 8080 -> 80のport_mappingを行い,container内のnginxに疎通できるかテストしている
         host_config.port_bindings(PortBindings(vec![(80, "tcp".to_string(), 8080)]));
 
         let mut create = ContainerCreateOptions::new(image_name);
@@ -2397,8 +2399,14 @@ mod tests {
             .unwrap();
         docker.start_container(&container.id).await.unwrap();
 
+        // serverの起動を待つ
+        tokio::time::sleep(Duration::from_secs(5)).await;
+
         use reqwest;
-        reqwest::get("http://localhost:8080").await.unwrap();
+        let resp = reqwest::get("http://localhost:8080").await.unwrap();
+        assert!(resp.status().is_success());
+
+        docker.stop_container(&container.id, Duration::from_secs(5)).await.unwrap();
 
         trace!("remove container");
         docker
