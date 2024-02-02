@@ -1,5 +1,5 @@
 use dockworker::{
-    ContainerCreateOptions, ContainerHostConfig, Docker, ExporsedPorts, HostConfig, PortBindings,
+    ContainerCreateOptions, ContainerHostConfig, Docker, ExporsedPorts, PortBindings,
 };
 
 #[tokio::main]
