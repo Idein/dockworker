@@ -18,6 +18,10 @@ services:
       context: ./docker/signal
     image: test-signal:latest
 
+  port-mapping:
+    build:
+      context: ./docker/nginx  
+
 
   # Docker registry container.
   # This service is used for examples/login and auth.
