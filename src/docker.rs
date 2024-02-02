@@ -2406,7 +2406,10 @@ mod tests {
         let resp = reqwest::get("http://localhost:8080").await.unwrap();
         assert!(resp.status().is_success());
 
-        docker.stop_container(&container.id, Duration::from_secs(5)).await.unwrap();
+        docker
+            .stop_container(&container.id, Duration::from_secs(5))
+            .await
+            .unwrap();
 
         trace!("remove container");
         docker
