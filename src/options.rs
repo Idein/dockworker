@@ -752,7 +752,7 @@ impl Default for ContainerBuildOptions {
     }
 }
 #[derive(Debug, Clone, Default)]
-pub struct ExposedPorts(Vec<(u16, String)>);
+pub struct ExposedPorts(pub Vec<(u16, String)>);
 
 impl serde::Serialize for ExposedPorts {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
