@@ -752,14 +752,12 @@ impl Default for ContainerBuildOptions {
     }
 }
 #[derive(Debug, Clone, Default)]
-pub struct ExposedPorts {
-    pub field1: Vec<(u16, String)>,
-}
+pub struct ExposedPorts(Vec<(u16, String)>);
 
 impl serde::Serialize for ExposedPorts {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut map = HashMap::new();
-        for (port, protocol) in &self.field1 {
+        for (port, protocol) in &self.0 {
             map.insert(
                 format!("{}/{}", port, protocol).clone(),
                 serde_json::Value::Object(serde_json::Map::new()),
@@ -781,20 +779,18 @@ impl<'de> serde::Deserialize<'de> for ExposedPorts {
                 (port, protocol)
             })
             .collect();
-        Ok(ExposedPorts { field1: keys })
+        Ok(ExposedPorts(keys))
     }
 }
 
 #[test]
 fn test_exposed_ports() {
-    let ports = ExposedPorts {
-        field1: vec![
-            (80, "tcp".to_owned()),
-            (443, "tcp".to_owned()),
-            (8080, "tcp".to_owned()),
-            (8443, "tcp".to_owned()),
-        ],
-    };
+    let ports = ExposedPorts(vec![
+        (80, "tcp".to_owned()),
+        (443, "tcp".to_owned()),
+        (8080, "tcp".to_owned()),
+        (8443, "tcp".to_owned()),
+    ]);
     let json = serde_json::to_string(&ports).unwrap();
     // hashmapのkey順序は不定であるため,json_valueに変換してから比較が必要
     let result_json = serde_json::Value::from_str(&json).unwrap();
@@ -805,7 +801,7 @@ fn test_exposed_ports() {
     assert_eq!(result_json, expected_json);
 
     let ports: ExposedPorts = serde_json::from_str(&json).unwrap();
-    let result: HashSet<&(u16, String)> = HashSet::from_iter(ports.field1.iter());
+    let result: HashSet<&(u16, String)> = HashSet::from_iter(ports.0.iter());
     // hashmapのkey順序は不定であるため,hash_setに変換してから比較する
     assert_eq!(
         result,
