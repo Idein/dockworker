@@ -47,8 +47,12 @@ pub struct Image {
     #[serde(with = "format::datetime_rfc3339")]
     // https://github.com/moby/moby/blob/611b23c1a0e9a9f440165a331964923fd1116256/daemon/images/image_inspect.go#L72
     pub Created: DateTime<FixedOffset>,
-    pub Container: String,
-    pub ContainerConfig: Config,
+    #[deprecated]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Container: Option<String>,
+    #[deprecated]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ContainerConfig: Option<Config>,
     pub DockerVersion: String,
     pub Author: String,
     pub Config: Config,
