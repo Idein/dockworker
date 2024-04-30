@@ -8,10 +8,7 @@ async fn main() {
         .await
         .unwrap();
     for container in containers {
-        let mut stats = docker
-            .stats(&container.Id, Some(false), Some(true))
-            .await
-            .unwrap();
+        let mut stats = docker.stats(&container.Id, true).await.unwrap();
         use futures::stream::StreamExt;
         while let Some(stats) = stats.next().await {
             println!("{:#?}", stats.unwrap());
