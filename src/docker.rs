@@ -761,12 +761,13 @@ impl Docker {
     pub async fn stats(
         &self,
         container_id: &str,
-        stream: Option<bool>,
-        oneshot: Option<bool>,
+        stream: bool,
     ) -> Result<BoxStream<'static, Result<Stats, DwError>>, DwError> {
         let mut query = url::form_urlencoded::Serializer::new(String::new());
-        query.append_pair("stream", &stream.unwrap_or(true).to_string());
-        query.append_pair("one-shot", &oneshot.unwrap_or(false).to_string());
+
+        if !stream {
+            query.append_key_only("stream");
+        }
         let res = self
             .http_client()
             .get_stream(
@@ -1621,17 +1622,14 @@ mod tests {
         docker.start_container(container).await.unwrap();
 
         // one shot
-        let one_stats = docker
-            .stats(container, Some(false), Some(true))
-            .await
-            .unwrap();
+        let one_stats = docker.stats(container, false).await.unwrap();
         use futures::StreamExt;
         let one_stats = one_stats.collect::<Vec<_>>().await;
         assert_eq!(one_stats.len(), 1);
 
         // stream
         let thr_stats = docker
-            .stats(container, Some(true), Some(false))
+            .stats(container, true)
             .await
             .unwrap()
             .take(3)
