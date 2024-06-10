@@ -330,20 +330,25 @@ impl Docker {
         size: Option<bool>,
         filters: ContainerFilters,
     ) -> Result<Vec<Container>, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("all", &(all.unwrap_or(false) as u64).to_string());
-        if let Some(limit) = limit {
-            param.append_pair("limit", &limit.to_string());
-        }
-        param.append_pair("size", &(size.unwrap_or(false) as u64).to_string());
-        param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
-        debug!("filter: {}", serde_json::to_string(&filters).unwrap());
+        let prepare_path = || -> String {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("all", &(all.unwrap_or(false) as u64).to_string());
+            if let Some(limit) = limit {
+                param.append_pair("limit", &limit.to_string());
+            }
+            param.append_pair("size", &(size.unwrap_or(false) as u64).to_string());
+            param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
+            debug!("filter: {}", serde_json::to_string(&filters).unwrap());
+            format!("/containers/json?{}", param.finish())
+        };
 
+        let path = prepare_path();
+        
         let res = self
             .http_client()
             .get(
                 self.headers(),
-                &format!("/containers/json?{}", param.finish()),
+                &path,
             )
             .await?;
         api_result(res).map_err(Into::into)
