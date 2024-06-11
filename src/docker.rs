@@ -343,14 +343,8 @@ impl Docker {
         };
 
         let path = prepare_path();
-        
-        let res = self
-            .http_client()
-            .get(
-                self.headers(),
-                &path,
-            )
-            .await?;
+
+        let res = self.http_client().get(self.headers(), &path).await?;
         api_result(res).map_err(Into::into)
     }
 
