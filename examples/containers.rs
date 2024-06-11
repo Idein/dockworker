@@ -14,5 +14,5 @@ async fn main() {
         containers.iter().for_each(|c| {
             println!("{c:?}");
         });
-    });    
+    });
 }
