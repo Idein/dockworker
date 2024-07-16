@@ -9,7 +9,7 @@ use crate::event::EventResponse;
 use crate::filesystem::{FilesystemChange, XDockerContainerPathStat};
 use crate::http_client::{HaveHttpClient, HttpClient};
 use crate::hyper_client::HyperClient;
-use crate::image::{Image, ImageId, SummaryImage};
+use crate::image::{FoundImage, Image, ImageFilters, ImageId, SummaryImage};
 use crate::network::*;
 use crate::options::*;
 use crate::process::{Process, Top};
@@ -1114,6 +1114,40 @@ impl Docker {
         let res = self
             .http_client()
             .get(self.headers(), &format!("/images/json?a={}", all as u32))
+            .await?;
+        api_result(res).map_err(Into::into)
+    }
+
+    /// Search for an image on Docker Hub.
+    ///
+    /// # API
+    /// /images/search
+    pub async fn search_images(
+        &self,
+        term: &str,
+        limit: Option<u64>,
+        filters: ImageFilters,
+    ) -> Result<Vec<FoundImage>, DwError> {
+        let mut param = url::form_urlencoded::Serializer::new(String::new());
+        param.append_pair("term", term);
+        if let Some(limit) = limit {
+            param.append_pair("limit", &limit.to_string());
+        }
+        if let Some(is_automated) = filters.is_automated {
+            param.append_pair("is-automated", &is_automated.to_string());
+        }
+        if let Some(is_official) = filters.is_official {
+            param.append_pair("is-official", &is_official.to_string());
+        }
+        if let Some(stars) = filters.stars {
+            param.append_pair("stars", &stars.to_string());
+        }
+        let res = self
+            .http_client()
+            .get(
+                self.headers(),
+                &format!("/images/search?{}", param.finish()),
+            )
             .await?;
         api_result(res).map_err(Into::into)
     }

@@ -17,6 +17,50 @@ where
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
+pub struct FoundImage {
+    pub description: String,
+    pub is_official: bool,
+    pub is_automated: bool,
+    pub name: String,
+    pub star_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[allow(non_snake_case)]
+pub struct ImageFilters {
+    #[serde(rename = "is-automated")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_automated: Option<bool>,
+    #[serde(rename = "is-official")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_official: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stars: Option<u64>,
+}
+
+impl ImageFilters {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_automated(&mut self, is_automated: bool) -> &mut Self {
+        self.is_automated = Some(is_automated);
+        self
+    }
+
+    pub fn is_official(&mut self, is_official: bool) -> &mut Self {
+        self.is_official = Some(is_official);
+        self
+    }
+
+    pub fn stars(&mut self, stars: u64) -> &mut Self {
+        self.stars = Some(stars);
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct SummaryImage {
     pub Id: String,
     pub ParentId: String,
