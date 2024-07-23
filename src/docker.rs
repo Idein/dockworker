@@ -1133,15 +1133,7 @@ impl Docker {
         if let Some(limit) = limit {
             param.append_pair("limit", &limit.to_string());
         }
-        if let Some(is_automated) = filters.is_automated {
-            param.append_pair("is-automated", &is_automated.to_string());
-        }
-        if let Some(is_official) = filters.is_official {
-            param.append_pair("is-official", &is_official.to_string());
-        }
-        if let Some(stars) = filters.stars {
-            param.append_pair("stars", &stars.to_string());
-        }
+        param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
         let res = self
             .http_client()
             .get(
