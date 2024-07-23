@@ -30,9 +30,11 @@ pub struct FoundImage {
 pub struct ImageFilters {
     #[serde(rename = "is-automated")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(with = "format::boolopt_as_strlist")]
     pub is_automated: Option<bool>,
     #[serde(rename = "is-official")]
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(with = "format::boolopt_as_strlist")]
     pub is_official: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stars: Option<u64>,
@@ -161,11 +163,47 @@ impl ImageId {
 }
 
 pub mod format {
+    use serde::de::{self, Deserialize, Deserializer};
+    use serde::Serializer;
+
+    pub mod boolopt_as_strlist {
+        use super::*;
+
+        pub fn serialize<S>(opt: &Option<bool>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            if let Some(b) = opt {
+                serializer.serialize_some(&[&b.to_string()])
+            } else {
+                serializer.serialize_none()
+            }
+        }
+
+        pub fn deserialize<'de, D>(de: D) -> Result<Option<bool>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let sopt = Option::<Vec<String>>::deserialize(de)?;
+            if let Some(s) = sopt {
+                if s.len() == 1 {
+                    match s[0].parse::<bool>() {
+                        Ok(b) => Ok(Some(b)),
+                        Err(_) => Err(de::Error::invalid_value(de::Unexpected::Str(&s[0]), &r#"string represents bool"#)),
+                    }
+                } else {
+                    Err(de::Error::invalid_length(s.len(), &"bool string singleton"))
+                }
+            } else {
+                Ok(None)
+            }
+        }
+    }
+
     pub mod datetime_rfc3339 {
+        use super::*;
         use chrono::offset::FixedOffset;
         use chrono::DateTime;
-        use serde::de::{self, Deserialize, Deserializer};
-        use serde::Serializer;
 
         pub fn serialize<S>(dt: &DateTime<FixedOffset>, serializer: S) -> Result<S::Ok, S::Error>
         where
