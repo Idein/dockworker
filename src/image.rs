@@ -189,7 +189,10 @@ pub mod format {
                 if s.len() == 1 {
                     match s[0].parse::<bool>() {
                         Ok(b) => Ok(Some(b)),
-                        Err(_) => Err(de::Error::invalid_value(de::Unexpected::Str(&s[0]), &r#"string represents bool"#)),
+                        Err(_) => Err(de::Error::invalid_value(
+                            de::Unexpected::Str(&s[0]),
+                            &r#"string represents bool"#,
+                        )),
                     }
                 } else {
                     Err(de::Error::invalid_length(s.len(), &"bool string singleton"))
