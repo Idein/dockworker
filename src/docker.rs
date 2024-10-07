@@ -927,6 +927,7 @@ impl Docker {
             let mut param = url::form_urlencoded::Serializer::new(String::new());
             param.append_pair("path", &dst.to_string_lossy());
             param.append_pair("noOverwriteDirNonDir", &noOverwriteDirNonDir.to_string());
+            param.finish()
         };
         let res = self
             .http_client()
