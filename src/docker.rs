@@ -330,7 +330,7 @@ impl Docker {
         size: Option<bool>,
         filters: ContainerFilters,
     ) -> Result<Vec<Container>, DwError> {
-        let prepare_path = || -> String {
+        let param = {
             let mut param = url::form_urlencoded::Serializer::new(String::new());
             param.append_pair("all", &(all.unwrap_or(false) as u64).to_string());
             if let Some(limit) = limit {
@@ -338,13 +338,13 @@ impl Docker {
             }
             param.append_pair("size", &(size.unwrap_or(false) as u64).to_string());
             param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
-            debug!("filter: {}", serde_json::to_string(&filters).unwrap());
-            format!("/containers/json?{}", param.finish())
+            param.finish()
         };
-
-        let path = prepare_path();
-
-        let res = self.http_client().get(self.headers(), &path).await?;
+        debug!("filter: {}", serde_json::to_string(&filters).unwrap());
+        let res = self
+            .http_client()
+            .get(self.headers(), &format!("/containers/json?{}", param))
+            .await?;
         api_result(res).map_err(Into::into)
     }
 
@@ -426,13 +426,16 @@ impl Docker {
     /// # API
     /// /containers/{id}/stop
     pub async fn stop_container(&self, id: &str, timeout: Duration) -> Result<(), DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("t", &timeout.as_secs().to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("t", &timeout.as_secs().to_string());
+            param.finish()
+        };
         let res = self
             .http_client()
             .post(
                 self.headers(),
-                &format!("/containers/{}/stop?{}", id, param.finish()),
+                &format!("/containers/{}/stop?{}", id, param),
                 "",
             )
             .await?;
@@ -444,13 +447,16 @@ impl Docker {
     /// # API
     /// /containers/{id}/kill
     pub async fn kill_container(&self, id: &str, signal: Signal) -> Result<(), DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("signal", &signal.as_i32().to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("signal", &signal.as_i32().to_string());
+            param.finish()
+        };
         let res = self
             .http_client()
             .post(
                 self.headers(),
-                &format!("/containers/{}/kill?{}", id, param.finish()),
+                &format!("/containers/{}/kill?{}", id, param),
                 "",
             )
             .await?;
@@ -462,13 +468,16 @@ impl Docker {
     /// # API
     /// /containers/{id}/restart
     pub async fn restart_container(&self, id: &str, timeout: Duration) -> Result<(), DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("t", &timeout.as_secs().to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("t", &timeout.as_secs().to_string());
+            param.finish()
+        };
         let res = self
             .http_client()
             .post(
                 self.headers(),
-                &format!("/containers/{}/restart?{}", id, param.finish()),
+                &format!("/containers/{}/restart?{}", id, param),
                 "",
             )
             .await?;
@@ -493,20 +502,23 @@ impl Docker {
         stdout: bool,
         stderr: bool,
     ) -> Result<BoxStream<'static, Result<AttachResponseFrame, DwError>>, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        if let Some(keys) = detachKeys {
-            param.append_pair("detachKeys", keys);
-        }
-        param.append_pair("logs", &logs.to_string());
-        param.append_pair("stream", &stream.to_string());
-        param.append_pair("stdin", &stdin.to_string());
-        param.append_pair("stdout", &stdout.to_string());
-        param.append_pair("stderr", &stderr.to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            if let Some(keys) = detachKeys {
+                param.append_pair("detachKeys", keys);
+            }
+            param.append_pair("logs", &logs.to_string());
+            param.append_pair("stream", &stream.to_string());
+            param.append_pair("stdin", &stdin.to_string());
+            param.append_pair("stdout", &stdout.to_string());
+            param.append_pair("stderr", &stderr.to_string());
+            param.finish()
+        };
         let res = self
             .http_client()
             .post_stream(
                 self.headers(),
-                &format!("/containers/{}/attach?{}", id, param.finish()),
+                &format!("/containers/{}/attach?{}", id, param),
                 "",
             )
             .await?;
@@ -803,16 +815,16 @@ impl Docker {
         force: Option<bool>,
         link: Option<bool>,
     ) -> Result<(), DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("v", &volume.unwrap_or(false).to_string());
-        param.append_pair("force", &force.unwrap_or(false).to_string());
-        param.append_pair("link", &link.unwrap_or(false).to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("v", &volume.unwrap_or(false).to_string());
+            param.append_pair("force", &force.unwrap_or(false).to_string());
+            param.append_pair("link", &link.unwrap_or(false).to_string());
+            param.finish()
+        };
         let res = self
             .http_client()
-            .delete(
-                self.headers(),
-                &format!("/containers/{}?{}", id, param.finish()),
-            )
+            .delete(self.headers(), &format!("/containers/{}?{}", id, param))
             .await?;
         no_content(res).map_err(Into::into)
     }
@@ -826,14 +838,17 @@ impl Docker {
         id: &str,
         path: &Path,
     ) -> Result<BoxStream<'static, Result<Bytes, DwError>>, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
         debug!("get_file({}, {})", id, path.display());
-        param.append_pair("path", path.to_str().unwrap_or("")); // FIXME: cause an invalid path error
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("path", path.to_str().unwrap_or("")); // FIXME: cause an invalid path error
+            param.finish()
+        };
         let res = self
             .http_client()
             .get_stream(
                 self.headers(),
-                &format!("/containers/{}/archive?{}", id, param.finish()),
+                &format!("/containers/{}/archive?{}", id, param),
             )
             .await?;
         if res.status().is_success() {
@@ -854,14 +869,17 @@ impl Docker {
         id: &str,
         path: &Path,
     ) -> Result<XDockerContainerPathStat, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
         debug!("head_file({}, {})", id, path.display());
-        param.append_pair("path", path.to_str().unwrap_or(""));
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("path", path.to_str().unwrap_or(""));
+            param.finish()
+        };
         let res = self
             .http_client()
             .head(
                 self.headers(),
-                &format!("/containers/{}/archive?{}", id, param.finish()),
+                &format!("/containers/{}/archive?{}", id, param),
             )
             .await?;
         let stat_base64: &str = res
@@ -905,14 +923,16 @@ impl Docker {
             dst.display(),
             noOverwriteDirNonDir
         );
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("path", &dst.to_string_lossy());
-        param.append_pair("noOverwriteDirNonDir", &noOverwriteDirNonDir.to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("path", &dst.to_string_lossy());
+            param.append_pair("noOverwriteDirNonDir", &noOverwriteDirNonDir.to_string());
+        };
         let res = self
             .http_client()
             .put_file(
                 self.headers(),
-                &format!("/containers/{}/archive?{}", id, param.finish()),
+                &format!("/containers/{}/archive?{}", id, param),
                 src,
             )
             .await?;
@@ -966,9 +986,12 @@ impl Docker {
         image: &str,
         tag: &str,
     ) -> Result<BoxStream<'static, Result<DockerResponse, DwError>>, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("fromImage", image);
-        param.append_pair("tag", tag);
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("fromImage", image);
+            param.append_pair("tag", tag);
+            param.finish()
+        };
 
         let mut headers = self.headers().clone();
         if let Some(ref credential) = self.credential.lock().unwrap().as_ref() {
@@ -982,7 +1005,7 @@ impl Docker {
         }
         let res = self
             .http_client()
-            .post_stream(&headers, &format!("/images/create?{}", param.finish()), "")
+            .post_stream(&headers, &format!("/images/create?{}", param), "")
             .await?;
         if res.status().is_success() {
             into_jsonlines(res.into_body())
@@ -1014,8 +1037,11 @@ impl Docker {
     /// /images/{name}/push
     ///
     pub async fn push_image(&self, name: &str, tag: &str) -> Result<(), DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("tag", tag);
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("tag", tag);
+            param.finish()
+        };
         let mut headers = self.headers().clone();
         if let Some(ref credential) = self.credential.lock().unwrap().as_ref() {
             headers.insert(
@@ -1028,11 +1054,7 @@ impl Docker {
         }
         let res = self
             .http_client()
-            .post(
-                &headers,
-                &format!("/images/{}/push?{}", name, param.finish()),
-                "",
-            )
+            .post(&headers, &format!("/images/{}/push?{}", name, param), "")
             .await?;
         ignore_result(res).map_err(Into::into)
     }
@@ -1048,15 +1070,15 @@ impl Docker {
         force: Option<bool>,
         noprune: Option<bool>,
     ) -> Result<Vec<RemovedImage>, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("force", &force.unwrap_or(false).to_string());
-        param.append_pair("noprune", &noprune.unwrap_or(false).to_string());
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("force", &force.unwrap_or(false).to_string());
+            param.append_pair("noprune", &noprune.unwrap_or(false).to_string());
+            param.finish()
+        };
         let res = self
             .http_client()
-            .delete(
-                self.headers(),
-                &format!("/images/{}?{}", name, param.finish()),
-            )
+            .delete(self.headers(), &format!("/images/{}?{}", name, param))
             .await?;
         api_result(res).map_err(Into::into)
     }
@@ -1067,18 +1089,17 @@ impl Docker {
     /// /images/prune
     pub async fn prune_image(&self, dangling: bool) -> Result<PrunedImages, DwError> {
         debug!("start pruning...dangling? {}", &dangling);
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair(
-            "filters",
-            &format!(r#"{{ "dangling": {{ "{dangling}": true }} }}"#),
-        );
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair(
+                "filters",
+                &format!(r#"{{ "dangling": {{ "{dangling}": true }} }}"#),
+            );
+            param.finish()
+        };
         let res = self
             .http_client()
-            .post(
-                self.headers(),
-                &format!("/images/prune?{}", param.finish()),
-                "",
-            )
+            .post(self.headers(), &format!("/images/prune?{}", param), "")
             .await?;
         api_result(res).map_err(Into::into)
     }
@@ -1373,17 +1394,17 @@ impl Docker {
         verbose: Option<bool>,
         scope: Option<&str>,
     ) -> Result<Network, DwError> {
-        let mut param = url::form_urlencoded::Serializer::new(String::new());
-        param.append_pair("verbose", &verbose.unwrap_or(false).to_string());
-        if let Some(scope) = scope {
-            param.append_pair("scope", scope);
-        }
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("verbose", &verbose.unwrap_or(false).to_string());
+            if let Some(scope) = scope {
+                param.append_pair("scope", scope);
+            }
+            param.finish()
+        };
         let res = self
             .http_client()
-            .get(
-                self.headers(),
-                &format!("/networks/{}?{}", id, param.finish()),
-            )
+            .get(self.headers(), &format!("/networks/{}?{}", id, param))
             .await?;
         api_result(res).map_err(Into::into)
     }
