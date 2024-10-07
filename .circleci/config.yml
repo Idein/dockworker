@@ -3,7 +3,7 @@ jobs:
   build_image:
     working_directory: /tmp/dockworker
     machine:
-      image: ubuntu-2004:202008-01
+      image: default
     steps:
       - checkout
       - run:

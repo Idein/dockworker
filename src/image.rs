@@ -17,6 +17,52 @@ where
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
+pub struct FoundImage {
+    pub description: String,
+    pub is_official: bool,
+    pub is_automated: bool,
+    pub name: String,
+    pub star_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[allow(non_snake_case)]
+pub struct ImageFilters {
+    #[serde(rename = "is-automated")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(with = "format::boolopt_as_strlist")]
+    pub is_automated: Option<bool>,
+    #[serde(rename = "is-official")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(with = "format::boolopt_as_strlist")]
+    pub is_official: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stars: Option<u64>,
+}
+
+impl ImageFilters {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_automated(&mut self, is_automated: bool) -> &mut Self {
+        self.is_automated = Some(is_automated);
+        self
+    }
+
+    pub fn is_official(&mut self, is_official: bool) -> &mut Self {
+        self.is_official = Some(is_official);
+        self
+    }
+
+    pub fn stars(&mut self, stars: u64) -> &mut Self {
+        self.stars = Some(stars);
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(non_snake_case)]
 pub struct SummaryImage {
     pub Id: String,
     pub ParentId: String,
@@ -117,11 +163,50 @@ impl ImageId {
 }
 
 pub mod format {
+    use serde::de::{self, Deserialize, Deserializer};
+    use serde::Serializer;
+
+    pub mod boolopt_as_strlist {
+        use super::*;
+
+        pub fn serialize<S>(opt: &Option<bool>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            if let Some(b) = opt {
+                serializer.serialize_some(&[&b.to_string()])
+            } else {
+                serializer.serialize_none()
+            }
+        }
+
+        pub fn deserialize<'de, D>(de: D) -> Result<Option<bool>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let sopt = Option::<Vec<String>>::deserialize(de)?;
+            if let Some(s) = sopt {
+                if s.len() == 1 {
+                    match s[0].parse::<bool>() {
+                        Ok(b) => Ok(Some(b)),
+                        Err(_) => Err(de::Error::invalid_value(
+                            de::Unexpected::Str(&s[0]),
+                            &r#"string represents bool"#,
+                        )),
+                    }
+                } else {
+                    Err(de::Error::invalid_length(s.len(), &"bool string singleton"))
+                }
+            } else {
+                Ok(None)
+            }
+        }
+    }
+
     pub mod datetime_rfc3339 {
+        use super::*;
         use chrono::offset::FixedOffset;
         use chrono::DateTime;
-        use serde::de::{self, Deserialize, Deserializer};
-        use serde::Serializer;
 
         pub fn serialize<S>(dt: &DateTime<FixedOffset>, serializer: S) -> Result<S::Ok, S::Error>
         where
