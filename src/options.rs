@@ -267,6 +267,7 @@ pub struct ContainerHostConfig {
     cgroup_parent: Option<String>,
     volume_driver: Option<String>,
     shm_size: Option<u64>,
+    init: Option<bool>
 }
 
 impl ContainerHostConfig {
@@ -274,6 +275,11 @@ impl ContainerHostConfig {
         Self {
             ..Default::default()
         }
+    }
+
+    pub fn init(&mut self,init: bool) -> &mut Self {
+        self.init = Some(init);
+        self
     }
 
     pub fn binds(&mut self, binds: Vec<String>) -> &mut Self {
