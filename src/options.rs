@@ -267,6 +267,7 @@ pub struct ContainerHostConfig {
     cgroup_parent: Option<String>,
     volume_driver: Option<String>,
     shm_size: Option<u64>,
+    userns_mode: Option<String>,
 }
 
 impl ContainerHostConfig {
@@ -274,6 +275,11 @@ impl ContainerHostConfig {
         Self {
             ..Default::default()
         }
+    }
+
+    pub fn userns_mode(&mut self, userns_mode: String) -> &mut Self {
+        self.userns_mode = Some(userns_mode);
+        self
     }
 
     pub fn binds(&mut self, binds: Vec<String>) -> &mut Self {
