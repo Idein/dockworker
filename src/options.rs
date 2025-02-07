@@ -268,6 +268,7 @@ pub struct ContainerHostConfig {
     volume_driver: Option<String>,
     shm_size: Option<u64>,
     userns_mode: Option<String>,
+    device_cgroup_rules: Option<Vec<String>>,
 }
 
 impl ContainerHostConfig {
@@ -275,6 +276,11 @@ impl ContainerHostConfig {
         Self {
             ..Default::default()
         }
+    }
+
+    pub fn device_cgroup_rules(&mut self, device_cgroup_rules: Vec<String>) -> &mut Self {
+        self.device_cgroup_rules = Some(device_cgroup_rules);
+        self
     }
 
     pub fn userns_mode(&mut self, userns_mode: String) -> &mut Self {
