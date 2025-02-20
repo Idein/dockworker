@@ -30,12 +30,12 @@ async fn main() {
     }
 
     let docker = Docker::connect_with_defaults().unwrap();
-    let name = "test-image";
+    let name = "test-buildkit";
     let tag = "latest";
     println!("build an image {name}:{tag} ...");
     let options = ContainerBuildOptions {
         dockerfile: "Dockerfile".into(),
-        t: vec!["silly:lat".to_owned()],
+        t: vec!["silly-buildkit:lat".to_owned()],
         version: Version::BuildKit,
         ..ContainerBuildOptions::default()
     };
