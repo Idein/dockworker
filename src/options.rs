@@ -6,6 +6,7 @@ use serde::de::{DeserializeOwned, Deserializer};
 use serde::{Deserialize, Serialize};
 
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
@@ -585,6 +586,25 @@ impl Default for ContainerLogOptions {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
+pub enum Version {
+    // the first generation classic (deprecated) builder in the Docker daemon (default)
+    #[default]
+    Default,
+    // the next generation builder (BuildKit)
+    BuildKit,
+}
+// This display format is depend on docker doc.
+// ref.) https://docs.docker.com/reference/api/engine/version/v1.47/#tag/Image/operation/ImageBuild
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Version::Default => write!(f, "1"),
+            Version::BuildKit => write!(f, "2"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ContainerBuildOptions {
     /// Path within the build context to the Dockerfile.
@@ -657,6 +677,9 @@ pub struct ContainerBuildOptions {
 
     /// Platform in the format os[/arch[/variant]]
     pub platform: String,
+
+    /// Version of the builder backend to use.
+    pub version: Version,
 }
 
 impl ContainerBuildOptions {
@@ -730,6 +753,9 @@ impl ContainerBuildOptions {
         if let Some(ref networkmode) = self.networkmode {
             params.append_pair("networkmode", networkmode);
         }
+        if self.version != Version::Default {
+            params.append_pair("version", &self.version.to_string());
+        }
         params.append_pair("platform", &self.platform);
         params.finish()
     }
@@ -760,6 +786,7 @@ impl Default for ContainerBuildOptions {
             labels: None,
             networkmode: None,
             platform: String::new(),
+            version: Version::default(),
         }
     }
 }
