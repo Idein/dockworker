@@ -22,7 +22,7 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: rust:1.49.0
+      - image: rust:1.83.0
         environment:
           DOCKER_VERSION: 18.03.1-ce
     steps:
