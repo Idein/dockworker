@@ -949,11 +949,24 @@ impl Docker {
         options: ContainerBuildOptions,
         tar_path: &Path,
     ) -> Result<BoxStream<'static, Result<DockerResponse, DwError>>, DwError> {
+        use base64::prelude::BASE64_URL_SAFE;
+
         let mut headers = self.headers().clone();
         headers.insert(
             http::header::CONTENT_TYPE,
             "application/x-tar".parse().unwrap(),
         );
+        // TODO: remove this. This is test.
+        if options.version == crate::options::Version::BuildKit {
+            eprintln!("XXXX: Using BuildKit.");
+            headers.insert(
+                "X-Registry-Auth",
+                BASE64_URL_SAFE
+                    .encode(r#"{"identitytoken":"dckr_pat_xxxx"}"#)
+                    .parse()
+                    .unwrap(),
+            );
+        }
         let res = self
             .http_client()
             .post_file_stream(
