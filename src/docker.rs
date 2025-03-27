@@ -463,6 +463,33 @@ impl Docker {
         no_content(res).map_err(Into::into)
     }
 
+    /// Rename a container
+    ///
+    /// # Summary
+    /// Rename a container specified with `id` to `name`.
+    ///
+    /// * `id` - ID or name of the container
+    /// * `name` - new name for the container
+    ///
+    /// # API
+    /// /containers/{id}/rename
+    pub async fn rename_container(&self, id: &str, name: &str) -> Result<(), DwError> {
+        let param = {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            param.append_pair("name", name);
+            param.finish()
+        };
+        let res = self
+            .http_client()
+            .post(
+                self.headers(),
+                &format!("/containers/{}/rename?{}", id, param),
+                "",
+            )
+            .await?;
+        no_content(res).map_err(Into::into)
+    }
+
     /// Restart a container
     ///
     /// # API
