@@ -35,7 +35,7 @@ Supported Api List.
 	- [x] `/containers/{id}/restart`
 	- [x] `/containers/{id}/kill`
 	- [ ] `/containers/{id}/update`
-	- [ ] `/containers/{id}/rename`
+	- [x] `/containers/{id}/rename`
 	- [ ] `/containers/{id}/pause`
 	- [ ] `/containers/{id}/unpause`
 	- [x] `/containers/{id}/attach`
