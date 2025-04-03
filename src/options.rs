@@ -585,6 +585,18 @@ impl Default for ContainerLogOptions {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Deserialize, Serialize)]
+pub enum BuilderVersion {
+    Version1,
+    Version2,
+}
+
+impl Default for BuilderVersion {
+    fn default() -> Self {
+        BuilderVersion::Version1
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ContainerBuildOptions {
     /// Path within the build context to the Dockerfile.
@@ -657,6 +669,9 @@ pub struct ContainerBuildOptions {
 
     /// Platform in the format os[/arch[/variant]]
     pub platform: String,
+
+    /// Version of the builder backend to use
+    pub version: BuilderVersion,
 }
 
 impl ContainerBuildOptions {
@@ -760,6 +775,7 @@ impl Default for ContainerBuildOptions {
             labels: None,
             networkmode: None,
             platform: String::new(),
+            version: Default::default(),
         }
     }
 }
