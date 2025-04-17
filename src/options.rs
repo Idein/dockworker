@@ -900,6 +900,83 @@ fn test_port_bindings() {
         )
     );
 }
+/// Configuration for container healthchecks.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
+pub struct HealthcheckConfig {
+    /// The test to perform. Possible values are:
+    /// - `[]` inherit healthcheck from image or parent image
+    /// - `["NONE"]` disable healthcheck
+    /// - `["CMD", args...]` exec arguments directly
+    /// - `["CMD-SHELL", command]` run command with system's default shell
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test: Option<Vec<String>>,
+
+    /// The time to wait between checks in nanoseconds. It should be 0 or at least 1_000_000 (1 ms).
+    /// 0 means inherit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interval: Option<u64>,
+
+    /// The time to wait before considering the check to have hung in nanoseconds.
+    /// It should be 0 or at least 1_000_000 (1 ms). 0 means inherit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+
+    /// The number of consecutive failures needed to consider a container as unhealthy.
+    /// 0 means inherit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retries: Option<u8>,
+
+    /// Start period for the container to initialize before starting health-retries countdown in nanoseconds.
+    /// It should be 0 or at least 1_000_000 (1 ms). 0 means inherit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_period: Option<u64>,
+
+    /// The time to wait between checks in nanoseconds during the start period.
+    /// It should be 0 or at least 1_000_000 (1 ms). 0 means inherit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_interval: Option<u64>,
+}
+
+impl HealthcheckConfig {
+    /// Creates a new empty HealthConfig.
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Sets the test command for the healthcheck.
+    pub fn test(&mut self, test: Vec<String>) -> &mut Self {
+        self.test = Some(test);
+        self
+    }
+
+    /// Sets the interval between health checks.
+    /// The duration will be converted to nanoseconds.
+    pub fn interval(&mut self, interval: Duration) -> &mut Self {
+        self.interval = Some(interval.as_nanos() as u64);
+        self
+    }
+
+    /// Sets the timeout for a single health check.
+    /// The duration will be converted to nanoseconds.
+    pub fn timeout(&mut self, timeout: Duration) -> &mut Self {
+        self.timeout = Some(timeout.as_nanos() as u64);
+        self
+    }
+
+    /// Sets the number of retries before marking the container as unhealthy.
+    pub fn retries(&mut self, retries: u8) -> &mut Self {
+        self.retries = Some(retries);
+        self
+    }
+
+    /// Sets the start period for the container. Health checks will not be considered failed during this period.
+    /// The duration will be converted to nanoseconds.
+    pub fn start_period(&mut self, start_period: Duration) -> &mut Self {
+        self.start_period = Some(start_period.as_nanos() as u64);
+        self
+    }
+}
 
 /// request body of /containers/create api
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -934,6 +1011,7 @@ pub struct ContainerCreateOptions {
     host_config: Option<ContainerHostConfig>,
     networking_config: Option<NetworkingConfig>,
     exposed_ports: Option<ExposedPorts>,
+    healthcheck: Option<HealthcheckConfig>,
 }
 
 impl ContainerCreateOptions {
@@ -962,6 +1040,7 @@ impl ContainerCreateOptions {
             host_config: None,
             networking_config: None,
             exposed_ports: None,
+            healthcheck: None,
         }
     }
 
@@ -1081,6 +1160,11 @@ impl ContainerCreateOptions {
 
     pub fn exposed_ports(&mut self, exposed_ports: ExposedPorts) -> &mut Self {
         self.exposed_ports = Some(exposed_ports);
+        self
+    }
+
+    pub fn healthcheck(&mut self, healthcheck: HealthcheckConfig) -> &mut Self {
+        self.healthcheck = Some(healthcheck);
         self
     }
 }
