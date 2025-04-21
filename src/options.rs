@@ -269,6 +269,7 @@ pub struct ContainerHostConfig {
     shm_size: Option<u64>,
     userns_mode: Option<String>,
     device_cgroup_rules: Option<Vec<String>>,
+    init: Option<bool>,
 }
 
 impl ContainerHostConfig {
@@ -490,6 +491,11 @@ impl ContainerHostConfig {
 
     pub fn port_bindings(&mut self, port_bindings: PortBindings) -> &mut Self {
         self.port_bindings = Some(port_bindings);
+        self
+    }
+
+    pub fn init(&mut self, init: bool) -> &mut Self {
+        self.init = Some(init);
         self
     }
 }
