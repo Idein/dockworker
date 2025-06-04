@@ -101,7 +101,7 @@ Some test cases depend on docker are disabled by default.
 These containers required from test cases are built by `docker-compose` like below:
 
 ```shell
-$ docker-compose build
+$ docker compose build
 $ cargo test -- --ignored
 ```
 
