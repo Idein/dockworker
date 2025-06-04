@@ -112,30 +112,12 @@ pub type UnspecifiedObject = HashMap<String, String>;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Config {
-    pub AttachStderr: bool,
-    pub AttachStdin: bool,
-    pub AttachStdout: bool,
     #[serde(deserialize_with = "null_to_default")]
     pub Cmd: Vec<String>,
-    pub Domainname: String,
-    #[serde(deserialize_with = "null_to_default")]
-    pub Entrypoint: Vec<String>,
     #[serde(deserialize_with = "null_to_default")]
     pub Env: Vec<String>,
     #[serde(default = "Default::default")]
     pub ExposedPorts: HashMap<String, UnspecifiedObject>,
-    pub Hostname: String,
-    pub Image: String,
-    #[serde(deserialize_with = "null_to_default")]
-    pub Labels: HashMap<String, String>,
-    #[serde(deserialize_with = "null_to_default")]
-    pub OnBuild: Vec<String>,
-    pub OpenStdin: bool,
-    pub StdinOnce: bool,
-    pub Tty: bool,
-    pub User: String,
-    #[serde(deserialize_with = "null_to_default")]
-    pub Volumes: HashMap<String, UnspecifiedObject>,
     pub WorkingDir: String,
 }
 

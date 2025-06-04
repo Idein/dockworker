@@ -2451,4 +2451,26 @@ mod tests {
             .await
             .unwrap();
     }
+
+    /// This is executed after `docker-compose build signal`
+    #[tokio::test]
+    #[ignore]
+    async fn inspect_container() {
+        use futures::stream::StreamExt;
+        let docker = Docker::connect_with_defaults().unwrap();
+
+        let mut stats = docker.create_image("hello-world", "linux").await.unwrap();
+        // これでpullの完了を待つ
+        while let Some(stat) = stats.next().await {
+            println!("{stat:?}");
+        }
+
+        docker.inspect_image("hello-world:linux").await.unwrap();
+
+        trace!("remove image");
+        docker
+            .remove_image("hello-world:linux", None, None)
+            .await
+            .unwrap();
+    }
 }
