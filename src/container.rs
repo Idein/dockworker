@@ -115,9 +115,18 @@ pub struct Config {
     #[serde(deserialize_with = "null_to_default")]
     pub Cmd: Vec<String>,
     #[serde(deserialize_with = "null_to_default")]
+    pub Entrypoint: Vec<String>,
+    #[serde(deserialize_with = "null_to_default")]
     pub Env: Vec<String>,
     #[serde(default = "Default::default")]
     pub ExposedPorts: HashMap<String, UnspecifiedObject>,
+    #[serde(deserialize_with = "null_to_default")]
+    pub Labels: HashMap<String, String>,
+    #[serde(deserialize_with = "null_to_default")]
+    pub OnBuild: Vec<String>,
+    pub User: String,
+    #[serde(deserialize_with = "null_to_default")]
+    pub Volumes: HashMap<String, UnspecifiedObject>,
     pub WorkingDir: String,
 }
 
