@@ -112,23 +112,14 @@ pub type UnspecifiedObject = HashMap<String, String>;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct Config {
-    #[serde(deserialize_with = "null_to_default")]
     pub Cmd: Option<Vec<String>>,
-    #[serde(deserialize_with = "null_to_default")]
-    pub Entrypoint: Option<Vec<String>>,
-    #[serde(deserialize_with = "null_to_default")]
+    pub EntryPoint: Option<Vec<String>>,
     pub Env: Vec<String>,
-    #[serde(default = "Default::default")]
-    pub ExposedPorts: HashMap<String, UnspecifiedObject>,
-    #[serde(deserialize_with = "null_to_default")]
-    #[serde(default = "Default::default")]
-    pub Labels: HashMap<String, String>,
-    #[serde(deserialize_with = "null_to_default")]
+    pub ExposedPorts: Option<HashMap<String, UnspecifiedObject>>,
+    pub Labels: Option<HashMap<String, String>>,
     pub OnBuild: Option<Vec<String>>,
     pub User: Option<String>,
-    #[serde(deserialize_with = "null_to_default")]
-    #[serde(default = "Default::default")]
-    pub Volumes: HashMap<String, UnspecifiedObject>,
+    pub Volumes: Option<HashMap<String, UnspecifiedObject>>,
     pub WorkingDir: Option<String>,
 }
 
