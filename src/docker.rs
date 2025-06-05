@@ -1052,8 +1052,6 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/images/{name}/json"))
             .await?;
-        let json: serde_json::Value = serde_json::from_slice(res.body()).unwrap();
-        println!("{}", serde_json::to_string_pretty(&json).unwrap());
         api_result(res).map_err(Into::into)
     }
 
