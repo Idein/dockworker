@@ -96,9 +96,6 @@ pub struct Image {
     #[deprecated]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub Container: Option<String>,
-    #[deprecated]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ContainerConfig: Option<Config>,
     pub DockerVersion: String,
     pub Author: String,
     pub Config: Config,
