@@ -2304,7 +2304,7 @@ mod tests {
         let mut containers_to_cleanup = Vec::new();
 
         for i in 1..=4 {
-            let mut create_opts = ContainerCreateOptions::new("alpine:latest");
+            let mut create_opts = ContainerCreateOptions::new("alpine:3.9");
             create_opts
                 .label("test".to_string(), format!("container-{}", i))
                 .label("prune-test".to_string(), "true".to_string());
