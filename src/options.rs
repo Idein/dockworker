@@ -1364,14 +1364,14 @@ impl Serialize for ContainerPruneFilters {
     {
         use serde::ser::SerializeMap;
         let mut map = serializer.serialize_map(None)?;
-        
+
         if !self.until.is_empty() {
             map.serialize_entry("until", &self.until)?;
         }
         if !self.label.is_empty() {
             map.serialize_entry("label", &self.label)?;
         }
-        
+
         map.end()
     }
 }
