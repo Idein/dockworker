@@ -1330,6 +1330,61 @@ pub struct PrunedImages {
     SpaceReclaimed: i64,
 }
 
+/// Container prune filters
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ContainerPruneFilters {
+    pub until: Vec<String>,
+    pub label: Vec<String>,
+}
+
+impl ContainerPruneFilters {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.until.is_empty() && self.label.is_empty()
+    }
+
+    pub fn until(&mut self, until: String) -> &mut Self {
+        self.until.push(until);
+        self
+    }
+
+    pub fn label(&mut self, label: String) -> &mut Self {
+        self.label.push(label);
+        self
+    }
+}
+
+impl Serialize for ContainerPruneFilters {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(None)?;
+        
+        if !self.until.is_empty() {
+            map.serialize_entry("until", &self.until)?;
+        }
+        if !self.label.is_empty() {
+            map.serialize_entry("label", &self.label)?;
+        }
+        
+        map.end()
+    }
+}
+
+/// Response of the prune containers api
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct PrunedContainers {
+    #[serde(deserialize_with = "null_to_default")]
+    pub containers_deleted: Vec<String>,
+    pub space_reclaimed: i64,
+}
+
 /// Response of the history image api
 #[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
