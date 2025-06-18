@@ -2335,7 +2335,7 @@ mod tests {
         // Create more containers for label filtering tests
         let mut more_containers = Vec::new();
         for i in 5..=7 {
-            let mut create_opts = ContainerCreateOptions::new("alpine:latest");
+            let mut create_opts = ContainerCreateOptions::new("test-iostream:latest");
             create_opts
                 .label("test".to_string(), format!("container-{}", i))
                 .label(
