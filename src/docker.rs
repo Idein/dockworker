@@ -856,6 +856,26 @@ impl Docker {
         no_content(res).map_err(Into::into)
     }
 
+    /// Prune unused containers
+    ///
+    /// # API
+    /// /containers/prune
+    pub async fn prune_containers(
+        &self,
+        filters: ContainerPruneFilters,
+    ) -> Result<PrunedContainers, DwError> {
+        let path = if filters.is_empty() {
+            "/containers/prune".to_string()
+        } else {
+            let mut param = url::form_urlencoded::Serializer::new(String::new());
+            debug!("filters: {}", serde_json::to_string(&filters).unwrap());
+            param.append_pair("filters", &serde_json::to_string(&filters).unwrap());
+            format!("/containers/prune?{}", param.finish())
+        };
+        let res = self.http_client().post(self.headers(), &path, "").await?;
+        api_result(res).map_err(Into::into)
+    }
+
     /// Get an archive of a filesystem resource in a container
     ///
     /// # API
@@ -2267,6 +2287,91 @@ mod tests {
         {
             let res = docker.prune_networks(Prune::default()).await.unwrap();
             assert_eq!(&res.networks_deleted, &["nw_test_6".to_owned()]);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_prune_containers() {
+        let docker = Docker::connect_with_defaults().unwrap();
+        prune_containers(&docker).await;
+    }
+
+    async fn prune_containers(docker: &Docker) {
+        use crate::options::{ContainerCreateOptions, ContainerPruneFilters};
+
+        // Create test containers with labels
+        let mut containers_to_cleanup = Vec::new();
+        
+        for i in 1..=4 {
+            let mut create_opts = ContainerCreateOptions::new("alpine:latest");
+            create_opts
+                .label("test".to_string(), format!("container-{}", i))
+                .label("prune-test".to_string(), "true".to_string());
+            
+            if i % 2 == 0 {
+                create_opts.label("keep".to_string(), "false".to_string());
+            } else {
+                create_opts.label("keep".to_string(), "true".to_string());
+            }
+            
+            let container = docker
+                .create_container(None, &create_opts)
+                .await
+                .unwrap();
+            containers_to_cleanup.push(container.id.clone());
+            
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+
+        println!("Created {} test containers", containers_to_cleanup.len());
+
+        // Test prune with no filters (should prune all stopped containers)
+        {
+            let filters = ContainerPruneFilters::new();
+            let result = docker.prune_containers(filters).await.unwrap();
+            println!("Pruned containers (no filters): {:?}", result);
+            assert!(result.containers_deleted.len() >= 4);
+            assert!(result.space_reclaimed >= 0);
+        }
+
+        // Create more containers for label filtering tests
+        let mut more_containers = Vec::new();
+        for i in 5..=7 {
+            let mut create_opts = ContainerCreateOptions::new("alpine:latest");
+            create_opts
+                .label("test".to_string(), format!("container-{}", i))
+                .label("environment".to_string(), if i == 6 { "production".to_string() } else { "development".to_string() });
+            
+            let container = docker
+                .create_container(None, &create_opts)
+                .await
+                .unwrap();
+            more_containers.push(container.id.clone());
+        }
+
+        // Test prune with label filter
+        {
+            let mut filters = ContainerPruneFilters::new();
+            filters.label("environment=development".to_string());
+            let result = docker.prune_containers(filters).await.unwrap();
+            println!("Pruned containers (development label): {:?}", result);
+            assert!(!result.containers_deleted.is_empty());
+        }
+
+        // Test prune with until filter (containers older than 1 minute)
+        {
+            let mut filters = ContainerPruneFilters::new();
+            filters.until("1m".to_string());
+            let result = docker.prune_containers(filters).await.unwrap();
+            println!("Pruned containers (until 1m): {:?}", result);
+        }
+
+        // Cleanup remaining containers
+        for container_id in more_containers {
+            let _ = docker
+                .remove_container(&container_id, Some(true), Some(true), None)
+                .await;
         }
     }
 

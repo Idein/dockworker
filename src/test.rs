@@ -158,3 +158,81 @@ fn get_stats_response() -> http::Response<hyper::Body> {
     let body = include_str!("fixtures/stats_stream.json").to_string();
     response.body(hyper::Body::from(body)).unwrap()
 }
+
+#[test]
+fn container_prune_filters_empty() {
+    use crate::options::ContainerPruneFilters;
+    let filters = ContainerPruneFilters::new();
+    assert!(filters.is_empty());
+    assert!(filters.until.is_empty());
+    assert!(filters.label.is_empty());
+}
+
+#[test]
+fn container_prune_filters_until() {
+    use crate::options::ContainerPruneFilters;
+    let mut filters = ContainerPruneFilters::new();
+    filters.until("24h".to_string());
+    filters.until("1h".to_string());
+    
+    assert!(!filters.is_empty());
+    assert_eq!(filters.until, vec!["24h", "1h"]);
+    assert!(filters.label.is_empty());
+}
+
+#[test]
+fn container_prune_filters_label() {
+    use crate::options::ContainerPruneFilters;
+    let mut filters = ContainerPruneFilters::new();
+    filters.label("test=example".to_string());
+    filters.label("version=1.0".to_string());
+    
+    assert!(!filters.is_empty());
+    assert_eq!(filters.label, vec!["test=example", "version=1.0"]);
+    assert!(filters.until.is_empty());
+}
+
+#[test]
+fn container_prune_filters_mixed() {
+    use crate::options::ContainerPruneFilters;
+    let mut filters = ContainerPruneFilters::new();
+    filters.until("24h".to_string());
+    filters.label("test=example".to_string());
+    
+    assert!(!filters.is_empty());
+    assert_eq!(filters.until, vec!["24h"]);
+    assert_eq!(filters.label, vec!["test=example"]);
+}
+
+#[test]
+fn container_prune_filters_serialization() {
+    use crate::options::ContainerPruneFilters;
+    let mut filters = ContainerPruneFilters::new();
+    filters.until("24h".to_string());
+    filters.label("test=example".to_string());
+    
+    let json = serde_json::to_string(&filters).unwrap();
+    assert!(json.contains("until"));
+    assert!(json.contains("label"));
+    assert!(json.contains("24h"));
+    assert!(json.contains("test=example"));
+}
+
+#[test]
+fn container_prune_filters_empty_serialization() {
+    use crate::options::ContainerPruneFilters;
+    let filters = ContainerPruneFilters::new();
+    
+    let json = serde_json::to_string(&filters).unwrap();
+    assert_eq!(json, "{}");
+}
+
+#[test]
+fn pruned_containers_deserialization() {
+    use crate::options::PrunedContainers;
+    let json = r#"{"ContainersDeleted":["container1","container2"],"SpaceReclaimed":1024}"#;
+    
+    let result: PrunedContainers = serde_json::from_str(json).unwrap();
+    assert_eq!(result.containers_deleted, vec!["container1", "container2"]);
+    assert_eq!(result.space_reclaimed, 1024);
+}
