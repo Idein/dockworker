@@ -2302,25 +2302,22 @@ mod tests {
 
         // Create test containers with labels
         let mut containers_to_cleanup = Vec::new();
-        
+
         for i in 1..=4 {
             let mut create_opts = ContainerCreateOptions::new("alpine:latest");
             create_opts
                 .label("test".to_string(), format!("container-{}", i))
                 .label("prune-test".to_string(), "true".to_string());
-            
+
             if i % 2 == 0 {
                 create_opts.label("keep".to_string(), "false".to_string());
             } else {
                 create_opts.label("keep".to_string(), "true".to_string());
             }
-            
-            let container = docker
-                .create_container(None, &create_opts)
-                .await
-                .unwrap();
+
+            let container = docker.create_container(None, &create_opts).await.unwrap();
             containers_to_cleanup.push(container.id.clone());
-            
+
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
 
@@ -2341,12 +2338,16 @@ mod tests {
             let mut create_opts = ContainerCreateOptions::new("alpine:latest");
             create_opts
                 .label("test".to_string(), format!("container-{}", i))
-                .label("environment".to_string(), if i == 6 { "production".to_string() } else { "development".to_string() });
-            
-            let container = docker
-                .create_container(None, &create_opts)
-                .await
-                .unwrap();
+                .label(
+                    "environment".to_string(),
+                    if i == 6 {
+                        "production".to_string()
+                    } else {
+                        "development".to_string()
+                    },
+                );
+
+            let container = docker.create_container(None, &create_opts).await.unwrap();
             more_containers.push(container.id.clone());
         }
 

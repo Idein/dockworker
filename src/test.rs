@@ -174,7 +174,7 @@ fn container_prune_filters_until() {
     let mut filters = ContainerPruneFilters::new();
     filters.until("24h".to_string());
     filters.until("1h".to_string());
-    
+
     assert!(!filters.is_empty());
     assert_eq!(filters.until, vec!["24h", "1h"]);
     assert!(filters.label.is_empty());
@@ -186,7 +186,7 @@ fn container_prune_filters_label() {
     let mut filters = ContainerPruneFilters::new();
     filters.label("test=example".to_string());
     filters.label("version=1.0".to_string());
-    
+
     assert!(!filters.is_empty());
     assert_eq!(filters.label, vec!["test=example", "version=1.0"]);
     assert!(filters.until.is_empty());
@@ -198,7 +198,7 @@ fn container_prune_filters_mixed() {
     let mut filters = ContainerPruneFilters::new();
     filters.until("24h".to_string());
     filters.label("test=example".to_string());
-    
+
     assert!(!filters.is_empty());
     assert_eq!(filters.until, vec!["24h"]);
     assert_eq!(filters.label, vec!["test=example"]);
@@ -210,7 +210,7 @@ fn container_prune_filters_serialization() {
     let mut filters = ContainerPruneFilters::new();
     filters.until("24h".to_string());
     filters.label("test=example".to_string());
-    
+
     let json = serde_json::to_string(&filters).unwrap();
     assert!(json.contains("until"));
     assert!(json.contains("label"));
@@ -222,7 +222,7 @@ fn container_prune_filters_serialization() {
 fn container_prune_filters_empty_serialization() {
     use crate::options::ContainerPruneFilters;
     let filters = ContainerPruneFilters::new();
-    
+
     let json = serde_json::to_string(&filters).unwrap();
     assert_eq!(json, "{}");
 }
@@ -231,7 +231,7 @@ fn container_prune_filters_empty_serialization() {
 fn pruned_containers_deserialization() {
     use crate::options::PrunedContainers;
     let json = r#"{"ContainersDeleted":["container1","container2"],"SpaceReclaimed":1024}"#;
-    
+
     let result: PrunedContainers = serde_json::from_str(json).unwrap();
     assert_eq!(result.containers_deleted, vec!["container1", "container2"]);
     assert_eq!(result.space_reclaimed, 1024);
