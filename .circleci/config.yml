@@ -1,11 +1,4 @@
-version: 2
-
-
-tag_filter: &tag_filter
-  tags:
-    only: /^\d+\.\d+\.\d+/
-  branches:
-    ignore: /.*/
+version: 2.1
 
 jobs:
   build_image:
@@ -131,16 +124,17 @@ workflows:
             - build_image
       - build_image
   publish:
+    when:
+      matches:
+        pattern: '^\d+\.\d+\.\d+'
+        value: << pipeline.git.tag >>
     jobs:
       - publish:
-          filters: *tag_filter
           requires:
             - build
       - build:
-          filters: *tag_filter
           requires:
             - build_image
-      - build_image:
-          filters: *tag_filter
+      - build_image
 
  
