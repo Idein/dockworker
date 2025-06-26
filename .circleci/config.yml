@@ -86,6 +86,30 @@ jobs:
             - ~/.cargo/registry/
             - target/debug
 
+  publish:
+    working_directory: /tmp/dockworker
+    docker:
+      - image: rust:1.83.0
+        environment:
+          DOCKER_VERSION: 28.0.0
+    steps:
+      - checkout
+      - run:
+          name: Setup Packages
+          command: |
+            apt-get update
+            apt-get install -y ca-certificates libssl-dev
+      - run:
+          name: publish dockwoker (dryrun)
+          command: |
+            cargo publish --dry-run --jobs ${BUILD_JOBS} --locked
+      - run:
+          name: publish dockworker
+          command: |
+            cargo publish --jobs ${BUILD_JOBS} --locked
+          env:
+            CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
 workflows:
   version: 2
   build_and_test:
@@ -94,4 +118,19 @@ workflows:
           requires:
             - build_image
       - build_image
+  publish:
+    jobs:
+      - publish:
+          filters:
+            branches:
+              ignore: '/.*/'
+            tags:
+              only: '/^\d+\.\d+\.\d+/'
+          requires:
+            - build
+      - build:
+          requires:
+            - build_image
+      - build_image
+
  
