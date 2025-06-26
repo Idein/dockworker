@@ -126,7 +126,7 @@ workflows:
   publish:
     when:
       matches:
-        pattern: '^\d+\.\d+\.\d+'
+        pattern: '^v\d+\.\d+\.\d+'
         value: << pipeline.git.tag >>
     jobs:
       - publish:
