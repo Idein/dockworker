@@ -103,15 +103,15 @@ jobs:
       - run:
           name: publish dockwoker (dryrun)
           command: |
-            cargo publish --dry-run --jobs ${BUILD_JOBS} --locked
+            cargo publish --dry-run --locked
       - run:
           name: publish dockwoker (dryrun)
           command: |
-            cargo publish --dry-run --jobs ${BUILD_JOBS} --locked
+            cargo publish --dry-run --locked
       - run:
           name: publish dockworker
           command: |
-            cargo publish --jobs ${BUILD_JOBS} --locked
+            cargo publish --locked
           env:
             CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
