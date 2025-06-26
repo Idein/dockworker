@@ -1,4 +1,12 @@
 version: 2
+
+
+tag_filter: &tag_filter
+  tags:
+    only: /^\d+\.\d+\.\d+/
+  branches:
+    ignore: /.*/
+
 jobs:
   build_image:
     working_directory: /tmp/dockworker
@@ -104,6 +112,10 @@ jobs:
           command: |
             cargo publish --dry-run --jobs ${BUILD_JOBS} --locked
       - run:
+          name: publish dockwoker (dryrun)
+          command: |
+            cargo publish --dry-run --jobs ${BUILD_JOBS} --locked
+      - run:
           name: publish dockworker
           command: |
             cargo publish --jobs ${BUILD_JOBS} --locked
@@ -121,16 +133,14 @@ workflows:
   publish:
     jobs:
       - publish:
-          filters:
-            branches:
-              ignore: '/.*/'
-            tags:
-              only: '/^\d+\.\d+\.\d+/'
+          filters: *tag_filter
           requires:
             - build
       - build:
+          filters: *tag_filter
           requires:
             - build_image
-      - build_image
+      - build_image:
+          filters: *tag_filter
 
  
