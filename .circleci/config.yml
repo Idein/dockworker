@@ -132,9 +132,18 @@ workflows:
       - publish:
           requires:
             - build
+          filters:
+            tags:
+              only: /.*/
       - build:
           requires:
             - build_image
-      - build_image
+          filters:
+            tags:
+              only: /.*/
+      - build_image:
+          filters:
+            tags:
+              only: /.*/
 
  
