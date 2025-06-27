@@ -105,15 +105,9 @@ jobs:
           command: |
             cargo publish --dry-run --locked
       - run:
-          name: publish dockwoker (dryrun)
-          command: |
-            cargo publish --dry-run --locked
-      - run:
           name: publish dockworker
           command: |
             cargo publish --locked
-          env:
-            CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
 workflows:
   version: 2
