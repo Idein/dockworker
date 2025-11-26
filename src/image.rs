@@ -88,16 +88,20 @@ pub struct Image {
     pub Id: String,
     pub RepoTags: Vec<String>,
     pub RepoDigests: Vec<String>,
-    pub Parent: String,
-    pub Comment: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Parent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Comment: Option<String>,
     #[serde(with = "format::datetime_rfc3339")]
     // https://github.com/moby/moby/blob/611b23c1a0e9a9f440165a331964923fd1116256/daemon/images/image_inspect.go#L72
     pub Created: DateTime<FixedOffset>,
     #[deprecated]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub Container: Option<String>,
-    pub DockerVersion: String,
-    pub Author: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub DockerVersion: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub Author: Option<String>,
     pub Config: Config,
     pub Architecture: String,
     pub Os: String,
