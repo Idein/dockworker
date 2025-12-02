@@ -109,7 +109,8 @@ pub struct Image {
     #[deprecated]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub VirtualSize: Option<i64>,
-    pub GraphDriver: GraphDriver,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub GraphDriver: Option<GraphDriver>,
     pub RootFS: RootFS,
 }
 
