@@ -5,7 +5,7 @@ use crate::network;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::{Deserialize, Serialize};
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
@@ -592,6 +592,37 @@ impl Default for ContainerLogOptions {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum ContainerBuildVersionOption {
+    Classic,
+    BuildKit,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseContainerBuildVersionOptionError;
+
+impl FromStr for ContainerBuildVersionOption {
+    type Err = ParseContainerBuildVersionOptionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1" => Ok(ContainerBuildVersionOption::Classic),
+            "2" => Ok(ContainerBuildVersionOption::BuildKit),
+            _ => Err(ParseContainerBuildVersionOptionError),
+        }
+    }
+}
+
+impl std::fmt::Display for ContainerBuildVersionOption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            ContainerBuildVersionOption::Classic => "1",
+            ContainerBuildVersionOption::BuildKit => "2",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ContainerBuildOptions {
     /// Path within the build context to the Dockerfile.
     /// This is ignored if remote is specified and points to an external Dockerfile.
@@ -663,6 +694,9 @@ pub struct ContainerBuildOptions {
 
     /// Platform in the format os[/arch[/variant]]
     pub platform: String,
+
+    /// Version of the builder backend to use
+    pub version: ContainerBuildVersionOption,
 }
 
 impl ContainerBuildOptions {
@@ -737,6 +771,7 @@ impl ContainerBuildOptions {
             params.append_pair("networkmode", networkmode);
         }
         params.append_pair("platform", &self.platform);
+        params.append_pair("version", &self.version.to_string());
         params.finish()
     }
 }
@@ -766,6 +801,7 @@ impl Default for ContainerBuildOptions {
             labels: None,
             networkmode: None,
             platform: String::new(),
+            version: ContainerBuildVersionOption::Classic,
         }
     }
 }
