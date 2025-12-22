@@ -1,7 +1,9 @@
-use crate::response;
 use std::env;
 use std::io;
+
 use thiserror::Error;
+
+use crate::response;
 
 /// Type of general docker error response
 #[derive(Debug, serde::Deserialize, Error)]
@@ -13,11 +15,15 @@ pub struct DockerError {
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("io error")]
-    Io(#[from] io::Error),
+    Io(io::Error),
     #[error("envvar error")]
     Envvar(#[from] env::VarError),
     #[error("hyper error")]
-    Hyper(#[from] hyper::Error),
+    Hyper(hyper::Error),
+    #[error("connection refused")]
+    ConnectionRefused(Box<dyn StdError + Send + Sync>),
+    #[error("connection reset")]
+    ConnectionReset(Box<dyn StdError + Send + Sync>),
     #[error("json error")]
     Json(#[from] serde_json::Error),
     #[error("docker error")]
@@ -57,4 +63,36 @@ pub enum Error {
     Poison { message: String },
     #[error("unknown error: {}", message)]
     Unknown { message: String },
+}
+
+impl From<hyper::Error> for Error {
+    fn from(err: hyper::Error) -> Self {
+        if err.is_connect() {
+            use std::error::Error as _;
+            return match err
+                .source()
+                .and_then(|e| e.downcast_ref::<io::Error>())
+                .map(|e| e.kind())
+            {
+                io::ErrorKind::ConnectionRefused => Error::ConnectionRefused(Box::new(err)),
+                io::ErrorKind::ConnectionReset => Error::ConnectionReset(Box::new(err)),
+                _ => Error::Hyper(err),
+            };
+        }
+        return Error::Hyper(err);
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Self {
+        match err.kind() {
+            io::ErrorKind::ConnectionRefused => {
+                return Error::ConnectionRefused(Box::new(err));
+            }
+            io::ErrorKind::ConnectionReset => {
+                return Error::ConnectionReset(Box::new(err));
+            }
+            _ => return Error::Io(err),
+        }
+    }
 }
