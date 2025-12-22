@@ -75,8 +75,8 @@ impl From<hyper::Error> for Error {
                 .and_then(|e| e.downcast_ref::<io::Error>())
                 .map(|e| e.kind())
             {
-                io::ErrorKind::ConnectionRefused => Error::ConnectionRefused(Box::new(err)),
-                io::ErrorKind::ConnectionReset => Error::ConnectionReset(Box::new(err)),
+                Some(io::ErrorKind::ConnectionRefused) => Error::ConnectionRefused(Box::new(err)),
+                Some(io::ErrorKind::ConnectionReset) => Error::ConnectionReset(Box::new(err)),
                 _ => Error::Hyper(err),
             };
         }
