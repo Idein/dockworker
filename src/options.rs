@@ -257,6 +257,7 @@ pub struct ContainerHostConfig {
     volumes_from: Option<Vec<String>>,
     cap_add: Option<Vec<String>>,
     cap_drop: Option<Vec<String>>,
+    security_opt: Option<Vec<String>>,
     group_add: Option<Vec<String>>,
     restart_policy: Option<RestartPolicy>,
     network_mode: Option<String>,
@@ -436,6 +437,11 @@ impl ContainerHostConfig {
 
     pub fn cap_drop(&mut self, cap_drop: Vec<String>) -> &mut Self {
         self.cap_drop = Some(cap_drop);
+        self
+    }
+
+    pub fn security_opt(&mut self, security_opt: Vec<String>) -> &mut Self {
+        self.security_opt = Some(security_opt);
         self
     }
 
