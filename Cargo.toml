@@ -59,7 +59,7 @@ tokio-stream = { version = "0.1", features = ["io-util"] }
 tokio-util = { version = "0.7", features = ["io"] }
 log = "0.4"
 native-tls = { version = "0.2", optional = true }
-nix = "0.26"
+nix = { version = "0.31", features = ["signal"] }
 base64 = "0.21"
 dirs = "5.0"
 thiserror = "1"
