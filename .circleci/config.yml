@@ -23,7 +23,7 @@ jobs:
   build:
     working_directory: /tmp/dockworker
     docker:
-      - image: rust:1.83.0
+      - image: rust:1.95.0
         environment:
           DOCKER_VERSION: 28.0.0
     steps:
@@ -42,9 +42,9 @@ jobs:
             # client only
             curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz | tar -zxf - --strip 1 -C /usr/local/bin docker/docker
       - run:
-          name: Install rustfmt
+          name: Install Rust components
           command: |
-            rustup component add rustfmt
+            rustup component add rustfmt clippy
       - run:
           name: Generate cache key
           command: |
@@ -58,6 +58,11 @@ jobs:
       - run:
           name: Checking source code style
           command: cargo fmt -- --check
+      - run:
+          name: Lint project
+          command: |
+            cargo clippy -- --deny warnings
+            cargo clippy --examples -- --deny warnings
       - run:
           name: Build project
           command: |
@@ -90,7 +95,7 @@ jobs:
   publish:
     working_directory: /tmp/dockworker
     docker:
-      - image: rust:1.83.0
+      - image: rust:1.95.0
         environment:
           DOCKER_VERSION: 28.0.0
     steps:
