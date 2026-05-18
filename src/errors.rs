@@ -80,20 +80,16 @@ impl From<hyper::Error> for Error {
                 _ => Error::Hyper(err),
             };
         }
-        return Error::Hyper(err);
+        Error::Hyper(err)
     }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         match err.kind() {
-            io::ErrorKind::ConnectionRefused => {
-                return Error::ConnectionRefused(Box::new(err));
-            }
-            io::ErrorKind::ConnectionReset => {
-                return Error::ConnectionReset(Box::new(err));
-            }
-            _ => return Error::Io(err),
+            io::ErrorKind::ConnectionRefused => Error::ConnectionRefused(Box::new(err)),
+            io::ErrorKind::ConnectionReset => Error::ConnectionReset(Box::new(err)),
+            _ => Error::Io(err),
         }
     }
 }

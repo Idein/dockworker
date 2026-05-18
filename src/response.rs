@@ -1,5 +1,5 @@
-///! Response from Dockerd
-///!
+//! Response from Dockerd
+//!
 use serde::{Deserialize, Serialize};
 use serde_json::value as json;
 use std::error::Error as StdError;

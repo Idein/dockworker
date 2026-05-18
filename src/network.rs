@@ -19,6 +19,7 @@ pub struct Network {
     pub Attachable: bool,
     pub Ingress: bool,
     /// Container name to NetworkContainer
+    #[serde(default)]
     pub Containers: HashMap<String, NetworkContainer>,
     pub Options: HashMap<String, String>,
     pub Labels: HashMap<String, String>,

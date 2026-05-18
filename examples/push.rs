@@ -5,10 +5,15 @@ use dockworker::{
 
 #[tokio::main]
 async fn main() {
+    use futures::StreamExt;
+
     let docker = Docker::connect_with_defaults().unwrap();
 
     let (name, tag) = ("alpine", "latest");
-    docker.create_image(name, tag).await.unwrap();
+    let mut pull = docker.create_image(name, tag).await.unwrap();
+    while let Some(status) = pull.next().await {
+        status.unwrap();
+    }
 
     let serveraddress = "localhost:5000";
     docker.set_credential(Credential::with_password(UserPassword::new(

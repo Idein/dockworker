@@ -35,9 +35,7 @@ async fn into_aframe_stream(
 ) -> Result<BoxStream<'static, Result<AttachResponseFrame, DwError>>, DwError> {
     use futures::stream::StreamExt;
     use futures::stream::TryStreamExt;
-    let mut aread = tokio_util::io::StreamReader::new(
-        body.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
-    );
+    let mut aread = tokio_util::io::StreamReader::new(body.map_err(std::io::Error::other));
     let mut buf = [0u8; 8];
     let src = async_stream::stream! {
         loop {
@@ -94,9 +92,7 @@ fn into_lines(body: hyper::Body) -> Result<BoxStream<'static, Result<String, DwE
     use futures::stream::StreamExt;
     use futures::stream::TryStreamExt;
     use tokio::io::AsyncBufReadExt;
-    let aread = tokio_util::io::StreamReader::new(
-        body.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
-    );
+    let aread = tokio_util::io::StreamReader::new(body.map_err(std::io::Error::other));
     let stream = tokio_stream::wrappers::LinesStream::new(aread.lines());
     let stream = stream.map_err(Into::into).boxed();
     Ok(stream)
@@ -345,7 +341,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/containers/json?{}", param))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Create a container
@@ -378,7 +374,7 @@ impl Docker {
             "application/json".parse().unwrap(),
         );
         let res = self.http_client().post(&headers, &path, &json_body).await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Start a container
@@ -390,7 +386,7 @@ impl Docker {
             .http_client()
             .post(self.headers(), &format!("/containers/{id}/start"), "")
             .await?;
-        no_content(res).map_err(Into::into)
+        no_content(res)
     }
 
     /// Start a container from a checkpoint
@@ -439,7 +435,7 @@ impl Docker {
                 "",
             )
             .await?;
-        no_content_or_not_modified(res).map_err(Into::into)
+        no_content_or_not_modified(res)
     }
 
     /// Kill a container
@@ -460,7 +456,7 @@ impl Docker {
                 "",
             )
             .await?;
-        no_content(res).map_err(Into::into)
+        no_content(res)
     }
 
     /// Rename a container
@@ -487,7 +483,7 @@ impl Docker {
                 "",
             )
             .await?;
-        no_content(res).map_err(Into::into)
+        no_content(res)
     }
 
     /// Restart a container
@@ -508,7 +504,7 @@ impl Docker {
                 "",
             )
             .await?;
-        no_content(res).map_err(Into::into)
+        no_content(res)
     }
 
     /// Attach to a container
@@ -676,7 +672,7 @@ impl Docker {
             .http_client()
             .post(&headers, &format!("/containers/{id}/exec"), &json_body)
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Start an exec instance
@@ -722,7 +718,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/exec/{id}/json"))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Gets current logs and tails logs from a container
@@ -757,7 +753,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/containers/{container_id}/top"))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     pub async fn processes(&self, container_id: &str) -> Result<Vec<Process>, DwError> {
@@ -828,7 +824,7 @@ impl Docker {
             .http_client()
             .post(self.headers(), &format!("/containers/{id}/wait"), "")
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Remove a container
@@ -853,7 +849,7 @@ impl Docker {
             .http_client()
             .delete(self.headers(), &format!("/containers/{}?{}", id, param))
             .await?;
-        no_content(res).map_err(Into::into)
+        no_content(res)
     }
 
     /// Prune unused containers
@@ -873,7 +869,7 @@ impl Docker {
             format!("/containers/prune?{}", param.finish())
         };
         let res = self.http_client().post(self.headers(), &path, "").await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Get an archive of a filesystem resource in a container
@@ -984,7 +980,7 @@ impl Docker {
                 src,
             )
             .await?;
-        ignore_result(res).map_err(Into::into)
+        ignore_result(res)
     }
 
     /// Build an image from a tar archive with a Dockerfile in it.
@@ -1072,7 +1068,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/images/{name}/json"))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Push an image
@@ -1104,7 +1100,7 @@ impl Docker {
             .http_client()
             .post(&headers, &format!("/images/{}/push?{}", name, param), "")
             .await?;
-        ignore_result(res).map_err(Into::into)
+        ignore_result(res)
     }
 
     /// Remove an image
@@ -1128,7 +1124,7 @@ impl Docker {
             .http_client()
             .delete(self.headers(), &format!("/images/{}?{}", name, param))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Delete unused images
@@ -1149,7 +1145,7 @@ impl Docker {
             .http_client()
             .post(self.headers(), &format!("/images/prune?{}", param), "")
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// History of an image
@@ -1162,16 +1158,14 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/images/{name}/history"))
             .await?;
-        api_result(res)
-            .map_err(Into::into)
-            .map(|mut hs: Vec<ImageLayer>| {
-                hs.iter_mut().for_each(|change| {
-                    if change.id.as_deref() == Some("<missing>") {
-                        change.id = None;
-                    }
-                });
-                hs
-            })
+        api_result(res).map(|mut hs: Vec<ImageLayer>| {
+            hs.iter_mut().for_each(|change| {
+                if change.id.as_deref() == Some("<missing>") {
+                    change.id = None;
+                }
+            });
+            hs
+        })
     }
 
     /// List images
@@ -1183,7 +1177,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/images/json?a={}", all as u32))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Search for an image on Docker Hub.
@@ -1209,7 +1203,7 @@ impl Docker {
                 &format!("/images/search?{}", param.finish()),
             )
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Get a tarball containing all images and metadata for a repository
@@ -1309,7 +1303,7 @@ impl Docker {
             .http_client()
             .post(&headers, "/auth", &json_body)
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Get system information
@@ -1318,7 +1312,7 @@ impl Docker {
     /// /info
     pub async fn system_info(&self) -> Result<SystemInfo, DwError> {
         let res = self.http_client().get(self.headers(), "/info").await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Inspect about a container
@@ -1330,7 +1324,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/containers/{container_id}/json"))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Get changes on a container's filesystem.
@@ -1350,7 +1344,7 @@ impl Docker {
                 &format!("/containers/{container_id}/changes"),
             )
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Export a container
@@ -1401,7 +1395,7 @@ impl Docker {
     /// /version
     pub async fn version(&self) -> Result<Version, DwError> {
         let res = self.http_client().get(self.headers(), "/version").await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Get monitor events
@@ -1455,7 +1449,7 @@ impl Docker {
             format!("/networks?{}", param.finish())
         };
         let res = self.http_client().get(self.headers(), &path).await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Inspect a network
@@ -1480,7 +1474,7 @@ impl Docker {
             .http_client()
             .get(self.headers(), &format!("/networks/{}?{}", id, param))
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Remove a network
@@ -1492,7 +1486,7 @@ impl Docker {
             .http_client()
             .delete(self.headers(), &format!("/networks/{id}"))
             .await?;
-        no_content(res).map_err(Into::into)
+        no_content(res)
     }
 
     /// Create a network
@@ -1513,7 +1507,7 @@ impl Docker {
             .http_client()
             .post(&headers, "/networks/create", &json_body)
             .await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 
     /// Connect a container to a network
@@ -1535,7 +1529,7 @@ impl Docker {
             .http_client()
             .post(&headers, &format!("/networks/{id}/connect"), &json_body)
             .await?;
-        ignore_result(res).map_err(Into::into)
+        ignore_result(res)
     }
 
     /// Disconnect a container from a network
@@ -1557,7 +1551,7 @@ impl Docker {
             .http_client()
             .post(&headers, &format!("/networks/{id}/disconnect"), &json_body)
             .await?;
-        ignore_result(res).map_err(Into::into)
+        ignore_result(res)
     }
 
     /// Delete unused networks
@@ -1577,7 +1571,7 @@ impl Docker {
             format!("/networks/prune?{}", param.finish())
         };
         let res = self.http_client().post(self.headers(), &path, "").await?;
-        api_result(res).map_err(Into::into)
+        api_result(res)
     }
 }
 
@@ -1597,10 +1591,8 @@ mod tests {
     use std::path::PathBuf;
 
     use chrono::Local;
-    use futures::StreamExt;
-    use http::request;
     use log::trace;
-    use rand::Rng;
+    use rand::RngExt;
 
     async fn read_bytes_stream_to_end(src: BoxStream<'static, Result<Bytes, DwError>>) -> Vec<u8> {
         use futures::stream::TryStreamExt;
@@ -2174,10 +2166,10 @@ mod tests {
 
     // generate a file on path which is constructed from size chars alphanum seq
     async fn gen_rand_file(path: &Path, size: usize) -> std::io::Result<()> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut file = tokio::fs::File::create(path).await?;
         let vec: String = iter::repeat(())
-            .map(|_| rng.sample(rand::distributions::Alphanumeric) as char)
+            .map(|_| rng.sample(rand::distr::Alphanumeric) as char)
             .take(size)
             .collect();
         use tokio::io::AsyncWriteExt;

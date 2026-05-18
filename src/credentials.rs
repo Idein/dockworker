@@ -1,6 +1,6 @@
-///! Access credentials for accessing any docker daemon endpoints
-///!
-///! Currently, any values of these types are only used for `/images/{name}/push` api.
+//! Access credentials for accessing any docker daemon endpoints
+//!
+//! Currently, any values of these types are only used for `/images/{name}/push` api.
 use crate::system::AuthToken;
 use serde::{Deserialize, Serialize};
 
