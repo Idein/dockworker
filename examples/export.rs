@@ -8,16 +8,14 @@ async fn main() {
         .list_containers(None, None, None, ContainerFilters::default())
         .await
         .unwrap()
-        .get(0)
+        .first()
     {
         let res = docker
             .export_container(container.Id.as_str())
             .await
             .unwrap();
         use futures::stream::TryStreamExt;
-        let mut res = tokio_util::io::StreamReader::new(
-            res.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err)),
-        );
+        let mut res = tokio_util::io::StreamReader::new(res.map_err(std::io::Error::other));
         tokio::io::copy(&mut res, &mut file).await.unwrap();
     }
 }

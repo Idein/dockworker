@@ -7,7 +7,7 @@ async fn main() {
         .list_containers(None, None, None, ContainerFilters::default())
         .await
         .unwrap()
-        .get(0)
+        .first()
     {
         let processes = docker.processes(container.Id.as_str()).await.unwrap();
         for process in processes {

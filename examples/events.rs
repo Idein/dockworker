@@ -6,11 +6,14 @@ async fn main() {
     let mut events = docker.events(None, None, None).await.unwrap();
 
     let create = ContainerCreateOptions::new("hello-world:linux");
-    docker.create_image("hello-world", "linux").await.unwrap();
+    let mut pull = docker.create_image("hello-world", "linux").await.unwrap();
+    use futures::stream::StreamExt;
+    while let Some(status) = pull.next().await {
+        status.unwrap();
+    }
     let container = docker.create_container(None, &create).await.unwrap();
     docker.start_container(&container.id).await.unwrap();
 
-    use futures::stream::StreamExt;
     while let Some(e) = events.next().await {
         let e = e.unwrap();
         if e.Type == "network" && e.Action == "disconnect" {

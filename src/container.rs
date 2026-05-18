@@ -1,5 +1,5 @@
 use crate::network::EndpointConfig;
-use serde::de::{self, DeserializeOwned, Deserializer};
+use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
@@ -138,6 +138,7 @@ pub struct Mount {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(non_snake_case)]
 pub struct NetworkSettings {
+    #[serde(default)]
     pub Bridge: String,
     pub EndpointID: String,
     pub Gateway: String,
@@ -344,15 +345,6 @@ impl From<i32> for ExitStatus {
     fn from(status_code: i32) -> Self {
         Self::new(status_code)
     }
-}
-
-fn null_to_default<'de, D, T>(de: D) -> std::result::Result<T, D::Error>
-where
-    D: Deserializer<'de>,
-    T: DeserializeOwned + Default,
-{
-    let actual: Option<T> = Option::deserialize(de)?;
-    Ok(actual.unwrap_or_default())
 }
 
 #[cfg(test)]

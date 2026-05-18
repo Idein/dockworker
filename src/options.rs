@@ -5,8 +5,11 @@ use crate::network;
 use serde::de::{DeserializeOwned, Deserializer};
 use serde::{Deserialize, Serialize};
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(test)]
+use std::collections::HashSet;
 use std::path::PathBuf;
+#[cfg(test)]
 use std::str::FromStr;
 use std::time::Duration;
 use url::{self, form_urlencoded};
